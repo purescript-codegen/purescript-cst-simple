@@ -9,6 +9,7 @@
   , "ps-cst"
   , "psci-support"
   , "spec"
+  , "typelevel-prelude"
   ]  
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

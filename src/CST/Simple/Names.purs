@@ -2,18 +2,25 @@ module CST.Simple.Names
        ( PName
        , pname'
        , pnameP
+       , pnameToProperName
        , IName
        , iname'
        , inameP
        , OpName
        , opName'
        , opNameP
+       , moduleName'
+       , moduleNameP
+       , ModuleNameMapping
+       , module E
        ) where
 
 import Prelude
 
-import CST.Simple.Internal.SymbolUtils (class IsIdentSymbol, class IsOpSymbol, class IsProperSymbol)
+import CST.Simple.Internal.SList (class SListMap, class SListMapping, class SListReflect1, SListProxy(..), reflectSList1)
+import CST.Simple.Internal.SymbolUtils (class NameFormat, class SplitWithChar, type (:/), CCLNil, DigitChar, LowercaseChar, OperatorChar, QuoteChar, UnderscoreChar, UppercaseChar)
 import Control.MonadPlus (guard)
+import Data.Array.NonEmpty as NonEmptyArray
 import Data.Char.Unicode as Char
 import Data.Foldable (all, elem)
 import Data.Maybe (Maybe)
@@ -24,6 +31,9 @@ import Data.String.Regex as Regex
 import Data.String.Regex.Flags as RegexFlags
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Symbol (class IsSymbol, SProxy, reflectSymbol)
+import Data.Traversable (traverse)
+import Language.PS.CST (ModuleName(..)) as E
+import Language.PS.CST (ModuleName(..), ProperName(..))
 
 -- pname
 
@@ -40,16 +50,22 @@ pname' s =
   PName <$> filterRegex pnameRegex s
 
 pnameP ::
-  forall sym.
-  IsProperSymbol sym =>
-  IsSymbol sym =>
-  SProxy sym ->
+  forall s.
+  NameFormat
+  (UppercaseChar :/ CCLNil)
+  (UppercaseChar :/ LowercaseChar :/ DigitChar :/ UnderscoreChar :/ QuoteChar :/ CCLNil)
+  s =>
+  IsSymbol s =>
+  SProxy s ->
   PName
 pnameP = PName <<< reflectSymbol
 
+pnameToProperName :: forall p. PName -> ProperName p
+pnameToProperName (PName s) = ProperName s
+
 pnameRegex :: Regex
 pnameRegex =
-  unsafeRegex "^[A-Z][A-Za-z0-9_]*$" RegexFlags.noFlags
+  unsafeRegex "^[A-Z][A-Za-z0-9_']*$" RegexFlags.noFlags
 
 -- iname
 
@@ -66,16 +82,19 @@ iname' s =
   IName <$> filterRegex inameRegex s
 
 inameP ::
-  forall sym.
-  IsIdentSymbol sym =>
-  IsSymbol sym =>
-  SProxy sym ->
+  forall s.
+  NameFormat
+  (LowercaseChar :/ UnderscoreChar :/ CCLNil)
+  (UppercaseChar :/ LowercaseChar :/ DigitChar :/ UnderscoreChar :/ QuoteChar :/ CCLNil)
+  s =>
+  IsSymbol s =>
+  SProxy s ->
   IName
 inameP = IName <<< reflectSymbol
 
 inameRegex :: Regex
 inameRegex =
-  unsafeRegex "^[a-z][A-Za-z0-9_]*$" RegexFlags.noFlags
+  unsafeRegex "^[a-z_][A-Za-z0-9_]*$" RegexFlags.noFlags
 
 -- opName
 
@@ -96,10 +115,13 @@ opName' s =
 
 -- currently does not support non ascii symbols
 opNameP ::
-  forall sym.
-  IsOpSymbol sym =>
-  IsSymbol sym =>
-  SProxy sym ->
+  forall s.
+  NameFormat
+  (OperatorChar :/ CCLNil)
+  (OperatorChar :/ CCLNil)
+  s =>
+  IsSymbol s =>
+  SProxy s ->
   OpName
 opNameP = OpName <<< reflectSymbol
 
@@ -112,7 +134,35 @@ isSymbolChar c =
 asciiSymbolChars :: Array Char
 asciiSymbolChars = toCharArray ":!#$%&*+./<=>?@\\^|-~"
 
---
+-- moduleName
+
+moduleName' :: String -> Maybe ModuleName
+moduleName' s =
+  ModuleName
+  <$> ( NonEmptyArray.fromArray
+        =<< traverse (map pnameToProperName <<< pname') (String.split (String.Pattern ".") s)
+      )
+
+data ModuleNameMapping
+
+instance moduleNameMapping ::
+  ( NameFormat
+    (UppercaseChar :/ CCLNil)
+    (UppercaseChar :/ LowercaseChar :/ DigitChar :/ CCLNil)
+    s
+  ) => SListMapping ModuleNameMapping s s
+
+moduleNameP ::
+  forall s l.
+  SplitWithChar "." s l =>
+  SListMap ModuleNameMapping l l =>
+  SListReflect1 l =>
+  SProxy s ->
+  ModuleName
+moduleNameP _ =
+  ModuleName $ ProperName <$> reflectSList1 (SListProxy :: _ l)
+
+-- Utils
 
 filterRegex :: Regex -> String -> Maybe String
 filterRegex re s =

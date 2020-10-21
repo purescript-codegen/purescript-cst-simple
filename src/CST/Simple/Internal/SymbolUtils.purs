@@ -4,23 +4,32 @@ module CST.Simple.Internal.SymbolUtils
        , LowercaseChar
        , DigitChar
        , UnderscoreChar
+       , QuoteChar
        , OperatorChar
        , class HasCharClass
-       , class IsWordCharClass
-       , class IsProperSymbol
-       , class IsIdentSymbol
-       , class IsWordTail
-       , class IsOpSymbol
-       , class IsOpTail
+       , kind CharClassList
+       , CCLCons
+       , CCLNil
+       , type (:/)
+       , class ClassInClassList
+       , class CharInClassList
+       , class AllCharsInClassList
+       , class NameFormat
+       , class SplitWithChar
+       , class SplitWithChar'
+       , class SplitWithChar''
        ) where
 
-import Prim.Symbol as Symbol
+import CST.Simple.Internal.SList (SListCons, SListNil, kind SList)
+import Prim.Boolean (False, True, kind Boolean)
+import Type.Data.Symbol as Symbol
 
 foreign import kind CharClass
 foreign import data UppercaseChar :: CharClass
 foreign import data LowercaseChar :: CharClass
 foreign import data DigitChar :: CharClass
 foreign import data UnderscoreChar :: CharClass
+foreign import data QuoteChar :: CharClass
 foreign import data OperatorChar :: CharClass
 
 class HasCharClass (s :: Symbol) (c :: CharClass) | s -> c
@@ -91,6 +100,7 @@ instance hasCharClass_8 :: HasCharClass "8" DigitChar
 instance hasCharClass_9 :: HasCharClass "9" DigitChar
 
 instance hasCharClass_Underscore :: HasCharClass "_" UnderscoreChar
+instance hasCharClass_Quote :: HasCharClass "'" QuoteChar
 
 instance hasCharClass_OpColon :: HasCharClass ":" OperatorChar
 instance hasCharClass_OpExcl :: HasCharClass "!" OperatorChar
@@ -114,55 +124,79 @@ instance hasCharClass_OpHyphen :: HasCharClass "-" OperatorChar
 instance hasCharClass_OpTilde :: HasCharClass "~" OperatorChar
 instance hasCharClass_OpDQuotes :: HasCharClass "\"" OperatorChar
 
-class IsWordCharClass (c :: CharClass)
+foreign import kind CharClassList
+foreign import data CCLCons :: CharClass -> CharClassList -> CharClassList
+foreign import data CCLNil :: CharClassList
 
-instance isWordCharClassUppercase :: IsWordCharClass UppercaseChar
-instance isWordCharClassLowercase :: IsWordCharClass LowercaseChar
-instance isWordCharClassDigit :: IsWordCharClass DigitChar
-instance isWordCharClassUnderscore :: IsWordCharClass UnderscoreChar
+infixr 7 type CCLCons as :/
 
-class IsProperSymbol (s :: Symbol)
+class ClassInClassList (cl :: CharClass) (l :: CharClassList)
+instance cclMatch :: ClassInClassList cl (cl :/ l)
+else instance cclNoMatch :: ClassInClassList cl l => ClassInClassList cl (cl' :/ l)
 
-instance isProperSymbolI ::
-  ( HasCharClass h UppercaseChar
-  , IsWordTail t
-  , Symbol.Cons h t sym
-  ) =>
-  IsProperSymbol sym
+class CharInClassList (s :: Symbol) (l :: CharClassList)
 
-class IsIdentSymbol (s :: Symbol)
+instance charInClassListI ::
+  ( HasCharClass c cl
+  , ClassInClassList cl l
+  ) => CharInClassList c l
 
-instance isIdentSymbolI ::
-  ( HasCharClass h LowercaseChar
-  , IsWordTail t
-  , Symbol.Cons h t sym
-  ) =>
-  IsIdentSymbol sym
+class AllCharsInClassList (s :: Symbol) (l :: CharClassList)
 
-class IsWordTail (s :: Symbol)
+instance allCharsInClassListNil :: AllCharsInClassList "" cl
+else instance allCharsInClassListCons ::
+  ( Symbol.Cons h t s
+  , CharInClassList h l
+  , AllCharsInClassList t l
+  ) => AllCharsInClassList s l
 
-instance isWordTailNil :: IsWordTail ""
-else instance isWordTailCons ::
-  ( HasCharClass h c
-  , IsWordCharClass c
-  , IsWordTail t
-  , Symbol.Cons h t sym
-  ) => IsWordTail sym
+class NameFormat (start :: CharClassList) (body :: CharClassList) (s :: Symbol)
 
-class IsOpSymbol (s :: Symbol)
+instance nameFormatI ::
+  ( Symbol.Cons h t s
+  , CharInClassList h start
+  , AllCharsInClassList t body
+  ) => NameFormat start body s
 
-instance isOpSymbolI ::
-  ( HasCharClass h OperatorChar
-  , IsOpTail t
-  , Symbol.Cons h t sym
-  ) =>
-  IsOpSymbol sym
 
-class IsOpTail (s :: Symbol)
+-- ModuleNamePart
 
-instance isOpTailNil :: IsOpTail ""
-else instance isOpTailCons ::
-  ( HasCharClass h OperatorChar
-  , IsOpTail t
-  , Symbol.Cons h t sym
-  ) => IsOpTail sym
+class SplitWithChar
+      (sep :: Symbol)
+      (s :: Symbol)
+      (l :: SList) | sep s -> l
+
+instance splitWithCharNil :: SplitWithChar sep "" SListNil
+else instance splitWithCharCons ::
+  ( SplitWithChar' "" sep s l
+  ) => SplitWithChar sep s l
+
+class SplitWithChar'
+      (hAcc :: Symbol)
+      (sep :: Symbol)
+      (s :: Symbol)
+      (l :: SList) | hAcc sep s -> l
+
+instance splitWithCharNil' :: SplitWithChar' hAcc sep "" (SListCons hAcc SListNil)
+else instance splitWithCharCons' ::
+  ( Symbol.Cons h t s
+  , Symbol.Equals h sep isSep
+  , SplitWithChar'' hAcc sep h t isSep l
+  ) => SplitWithChar' hAcc sep s l
+
+class SplitWithChar''
+      (hAcc :: Symbol)
+      (sep :: Symbol)
+      (h :: Symbol)
+      (t :: Symbol)
+      (isSep :: Boolean)
+      (l :: SList) | hAcc sep h t isSep -> l
+
+instance splitWithCharIsSep ::
+  ( SplitWithChar sep t l
+  ) => SplitWithChar'' hAcc sep h t True (SListCons hAcc l)
+
+instance splitWithCharNonSep ::
+  ( Symbol.Append hAcc h hAcc'
+  , SplitWithChar' hAcc' sep t l
+  ) => SplitWithChar'' hAcc sep h t False l
