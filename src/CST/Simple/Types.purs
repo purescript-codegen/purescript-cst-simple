@@ -12,6 +12,7 @@ import Data.Generic.Rep.Show (genericShow)
 
 data CodegenError =
   InvalidModuleName String
+  | DuplicateModuleName String
 
 derive instance codegenErrorEq :: Eq CodegenError
 derive instance codegenErrorGeneric :: Generic CodegenError _
