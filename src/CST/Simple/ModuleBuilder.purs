@@ -7,12 +7,11 @@ module CST.Simple.ModuleBuilder
 
 import Prelude
 
-import CST.Simple.Names (moduleName')
-import CST.Simple.Types (CodegenError(..), ModuleSpec(..))
+import CST.Simple.Types (CodegenError, ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow)
 import Control.Monad.Except (class MonadError, ExceptT)
 import Control.Monad.State (StateT)
-import Data.Either (Either, note)
+import Data.Either (Either)
 import Data.Identity (Identity)
 import Data.Newtype (unwrap)
 
@@ -33,11 +32,10 @@ derive newtype instance moduleBuilderTMonadError :: Monad m => MonadError Codege
 
 type ModuleBuilder a = ModuleBuilderT Identity a
 
-
 buildModule ::
   String ->
   ModuleBuilder Unit ->
-  Either CodegenError ModuleSpec
+  Either CodegenError ModuleContent
 buildModule mname mb =
   unwrap $ buildModuleT mname mb
 
@@ -46,6 +44,6 @@ buildModuleT ::
   Monad m =>
   String ->
   ModuleBuilderT m Unit ->
-  m (Either CodegenError ModuleSpec)
+  m (Either CodegenError ModuleContent)
 buildModuleT mname mb =
-  pure $ ModuleSpec <$> (note (InvalidModuleName mname) $ moduleName' mname)
+  pure (pure {})
