@@ -1,8 +1,10 @@
 module CST.Simple.Names
        ( PName
+       , unsafePName
        , pname'
        , pnameP
        , pnameToProperName
+       , pnameToString
        , IName
        , iname'
        , inameP
@@ -12,6 +14,7 @@ module CST.Simple.Names
        , moduleName'
        , moduleNameP
        , ModuleNameMapping
+       , qualNameProper
        , module E
        ) where
 
@@ -23,7 +26,7 @@ import Control.MonadPlus (guard)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Char.Unicode as Char
 import Data.Foldable (all, elem)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.String as String
 import Data.String.CodeUnits (toCharArray)
 import Data.String.Regex (Regex)
@@ -32,8 +35,9 @@ import Data.String.Regex.Flags as RegexFlags
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Symbol (class IsSymbol, SProxy, reflectSymbol)
 import Data.Traversable (traverse)
-import Language.PS.CST (ModuleName(..)) as E
+import Language.PS.CST (ModuleName(..), QualifiedName(..)) as E
 import Language.PS.CST (ModuleName(..), ProperName(..))
+import Language.PS.CST as CST
 
 -- pname
 
@@ -44,6 +48,9 @@ derive newtype instance pnameOrd :: Ord PName
 
 instance pnameShow :: Show PName where
   show (PName s) = "(PName " <> show s <> ")"
+
+unsafePName :: String -> PName
+unsafePName = PName
 
 pname' :: String -> Maybe PName
 pname' s =
@@ -62,6 +69,9 @@ pnameP = PName <<< reflectSymbol
 
 pnameToProperName :: forall p. PName -> ProperName p
 pnameToProperName (PName s) = ProperName s
+
+pnameToString :: PName -> String
+pnameToString (PName s) = s
 
 pnameRegex :: Regex
 pnameRegex =
@@ -161,6 +171,18 @@ moduleNameP ::
   ModuleName
 moduleNameP _ =
   ModuleName $ ProperName <$> reflectSList1 (SListProxy :: _ l)
+
+-- qaulName
+
+qualNameProper :: String -> Maybe (CST.QualifiedName PName)
+qualNameProper s = case String.lastIndexOf (String.Pattern ".") s of
+  Just ndx -> ado
+    qualModule <- Just <$> moduleName' (String.take ndx s)
+    qualName <- pname' (String.drop (ndx + 1) s)
+    in CST.QualifiedName { qualModule, qualName }
+  Nothing -> ado
+    qualName <- pname' s
+    in CST.QualifiedName { qualModule: Nothing, qualName }
 
 -- Utils
 

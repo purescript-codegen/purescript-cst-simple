@@ -5,13 +5,13 @@ module CST.Simple.ProjectBuilderSpec
 import Prelude
 
 import CST.Simple.ProjectBuilder (Project, ProjectBuilder, addModule, buildProject, getCSTModules)
+import CST.Simple.TestUtils (fooBarModuleName)
 import CST.Simple.Types (CodegenError(..))
 import Control.Monad.Error.Class (class MonadThrow, throwError)
-import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..), either)
 import Data.Maybe (Maybe(..))
 import Effect.Exception (Error, error)
-import Language.PS.CST (Module(..), ModuleName(..), ProperName(..))
+import Language.PS.CST (Module(..), ModuleName)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldContain, shouldEqual)
 
@@ -32,10 +32,6 @@ moduleNameSpec = do
   it "should reject duplicate module names" do
     buildProjectErr (addModule "Foo" (pure unit) *> addModule "Foo" (pure unit))
       `shouldContain` (DuplicateModuleName "Foo")
-
-fooBarModuleName :: ModuleName
-fooBarModuleName =
-  ModuleName $ NonEmptyArray.cons' (ProperName "Foo") [ ProperName "Bar" ]
 
 getModuleName :: Module -> ModuleName
 getModuleName (Module { moduleName }) = moduleName

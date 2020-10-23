@@ -12,6 +12,9 @@ import Language.PS.CST as CST
 data CodegenError =
   InvalidModuleName String
   | DuplicateModuleName String
+  | InvalidProperName String
+  | InvalidQualifiedName String
+  | DuplicateDeclName String
 
 derive instance codegenErrorEq :: Eq CodegenError
 derive instance codegenErrorGeneric :: Generic CodegenError _
