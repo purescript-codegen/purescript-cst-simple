@@ -7,6 +7,7 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Language.PS.CST as CST
 
 data CodegenError =
   InvalidModuleName String
@@ -18,5 +19,7 @@ instance codegenErrorShow :: Show CodegenError where
   show = genericShow
 
 type ModuleContent =
-  {
+  { imports :: Array CST.ImportDecl
+  , exports :: Array CST.Export
+  , declarations :: Array CST.Declaration
   }

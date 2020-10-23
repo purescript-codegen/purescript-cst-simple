@@ -46,4 +46,8 @@ buildModuleT ::
   ModuleBuilderT m Unit ->
   m (Either CodegenError ModuleContent)
 buildModuleT mname mb =
-  pure (pure {})
+  pure (pure { declarations: []
+             , exports: []
+             , imports: []
+             }
+       )
