@@ -4,6 +4,10 @@ module CST.Simple.ModuleBuilder
        , buildModule
        , buildModuleT
        , addTypeDecl
+       , class AsType
+       , asType
+       , tyCons
+       , tyString
        ) where
 
 import Prelude
@@ -81,24 +85,19 @@ buildModuleT (ModuleBuilderT mb) = map toContent <$> (runExceptT (execStateT mb 
 
 -- Declarations
 
-addTypeDecl :: forall m. Monad m => String -> String -> ModuleBuilderT m Unit
-addTypeDecl name typ = do
-  pName <- mkPName name
-  q@(QualifiedName { qualName }) <- mkQualName typ
-  addImportType q
-  addDeclaration pName
-    ( CST.DeclType
-      { comments: Nothing
-      , head: CST.DataHead
-        { dataHdName: pnameToProperName pName
-        , dataHdVars: []
-        }
-      , type_: CST.TypeConstructor $
-        QualifiedName { qualModule: Nothing
-                      , qualName: pnameToProperName qualName
-                      }
+addTypeDecl :: forall m t. Monad m => AsType t => String -> t -> ModuleBuilderT m Unit
+addTypeDecl name t = do
+  pname <- mkPName name
+  type_ <- asType t
+  addDeclaration pname $
+    CST.DeclType
+    { comments: Nothing
+    , head: CST.DataHead
+      { dataHdName: pnameToProperName pname
+      , dataHdVars: []
       }
-    )
+    , type_
+    }
 
 addImportType :: forall m. Monad m => QualifiedName PName -> ModuleBuilderT m Unit
 addImportType (QualifiedName { qualModule, qualName }) = for_ qualModule \qualModule' ->
@@ -122,6 +121,29 @@ addDeclaration pname decl = do
       if Set.member pname pnames
         then throwError $ DuplicateDeclName $ pnameToString pname
         else pure unit
+
+-- Types
+
+class AsType a where
+  asType :: forall m. Monad m => a -> ModuleBuilderT m CST.Type
+
+instance asTypeType :: AsType CST.Type where
+  asType = pure
+
+instance asTypeString :: AsType String where
+  asType = tyCons
+
+tyCons :: forall m. Monad m => String -> ModuleBuilderT m CST.Type
+tyCons t = do
+  q@(QualifiedName { qualName }) <- mkQualName t
+  addImportType q
+  pure $ CST.TypeConstructor $
+    QualifiedName { qualModule: Nothing
+                  , qualName: pnameToProperName qualName
+                  }
+
+tyString :: String -> CST.Type
+tyString t = CST.TypeString t
 
 -- Names
 
