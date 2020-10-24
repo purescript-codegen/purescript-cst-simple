@@ -4,7 +4,7 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.ModuleBuilder (ModuleBuilder, addTypeDecl, buildModule, typString)
+import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, addTypeDecl, buildModule, typString)
 import CST.Simple.TestUtils (fooBarModuleName)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
@@ -48,12 +48,7 @@ declarationSpec = do
         }
 
   it "should accept qualified type declarations" do
-    mod <- buildModule' (addTypeDecl "X" "Foo.Bar.Baz")
-    decl <- requireOne mod.declarations
-    type_ <- decl `requireMatch` case _ of
-      CST.DeclType { type_ } -> Just type_
-      _ -> Nothing
-    type_ `shouldEqual`
+    "Foo.Bar.Baz" `shouldMatchType`
       ( CST.TypeConstructor $ CST.QualifiedName
         { qualModule: Nothing
         , qualName: CST.ProperName "Baz"
@@ -77,11 +72,7 @@ declarationSpec = do
     Array.length names `shouldEqual` 1
 
   it "should add type symbol declarations" do
-    mod <- buildModule' (addTypeDecl "X" (typString "foo"))
-    decl <- requireOne mod.declarations
-    decl `requireMatch` case _ of
-      CST.DeclType { type_: CST.TypeString "foo" } -> Just unit
-      _ -> Nothing
+    typString "foo" `shouldMatchType` CST.TypeString "foo"
 
 
 buildModule' :: forall m. MonadThrow Error m => ModuleBuilder Unit -> m ModuleContent
@@ -106,3 +97,11 @@ requireMatch :: forall m a b. Show a => MonadThrow Error m => a -> (a -> Maybe b
 requireMatch a f = case f a of
   Just b -> pure b
   Nothing -> throwError $ error $ "failed to match - "  <> show a
+
+shouldMatchType :: forall t m. MonadThrow Error m => AsTyp t => t -> CST.Type -> m Unit
+shouldMatchType t cstType = do
+  mod <- buildModule' (addTypeDecl "X" t)
+  decl <- requireOne mod.declarations
+  decl `requireMatch` case _ of
+    CST.DeclType { type_ } | type_ == cstType -> Just unit
+    _ -> Nothing
