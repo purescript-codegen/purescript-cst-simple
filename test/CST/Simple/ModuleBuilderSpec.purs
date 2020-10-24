@@ -4,13 +4,14 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, addTypeDecl, buildModule, typString, typVar)
+import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, addTypeDecl, buildModule, typCons, typRow, typString, typVar)
 import CST.Simple.TestUtils (fooBarModuleName)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Data.Tuple.Nested ((/\))
 import Effect.Exception (Error, error)
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
@@ -41,10 +42,7 @@ declarationSpec = do
           { dataHdName: CST.ProperName "X"
           , dataHdVars: []
           }
-        , type_: CST.TypeConstructor $ CST.QualifiedName
-          { qualModule: Nothing
-          , qualName: CST.ProperName "Int"
-          }
+        , type_: intCSTType
         }
 
   it "should accept qualified type declarations" do
@@ -75,11 +73,26 @@ declarationSpec = do
     typVar "x" `shouldMatchType` CST.TypeVar (CST.Ident "x")
 
   it "should reject invalid type var" do
-    buildModuleErr (addTypeDecl "X" (typVar "X")) `shouldReturn`
-      (InvalidIdent "X")
+    typVar "X" `shouldErrorType` InvalidIdent "X"
 
   it "should add type symbol declarations" do
     typString "foo" `shouldMatchType` CST.TypeString "foo"
+
+  it "should add type row" do
+    (typRow [ "a" /\ typCons "Int", "B" /\ typVar "x" ] (Just "y"))
+      `shouldMatchType`
+      CST.TypeRow
+      { rowLabels:
+        [ { label: CST.Label "a", type_: intCSTType }
+        , { label: CST.Label "B", type_: CST.TypeVar (CST.Ident "x") }
+        ]
+      , rowTail:
+        Just $ CST.TypeVar (CST.Ident "y")
+      }
+
+  it "should reject invalid type tail" do
+    typRow [] (Just "Z") `shouldErrorType` InvalidIdent "Z"
+
 
 
 buildModule' :: forall m. MonadThrow Error m => ModuleBuilder Unit -> m ModuleContent
@@ -109,6 +122,18 @@ shouldMatchType :: forall t m. MonadThrow Error m => AsTyp t => t -> CST.Type ->
 shouldMatchType t cstType = do
   mod <- buildModule' (addTypeDecl "X" t)
   decl <- requireOne mod.declarations
-  decl `requireMatch` case _ of
-    CST.DeclType { type_ } | type_ == cstType -> Just unit
+  type_ <- decl `requireMatch` case _ of
+    CST.DeclType { type_ } -> Just type_
     _ -> Nothing
+  type_ `shouldEqual` cstType
+
+shouldErrorType :: forall t m. MonadThrow Error m => AsTyp t => t -> CodegenError -> m Unit
+shouldErrorType t err =
+   buildModuleErr (addTypeDecl "X" t) `shouldReturn` err
+
+intCSTType :: CST.Type
+intCSTType =
+  CST.TypeConstructor $ CST.QualifiedName
+  { qualModule: Nothing
+  , qualName: CST.ProperName "Int"
+  }

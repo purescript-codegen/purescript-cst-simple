@@ -9,6 +9,8 @@ module CST.Simple.ModuleBuilder
        , typVar
        , typCons
        , typString
+       , typRow
+       , typRow_
        , class AsTyp
        , asTyp
        ) where
@@ -33,7 +35,9 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Set (Set)
 import Data.Set as Set
+import Data.Traversable (traverse)
 import Data.Tuple (uncurry)
+import Data.Tuple.Nested (type (/\))
 import Language.PS.CST (QualifiedName(..))
 import Language.PS.CST as CST
 
@@ -146,6 +150,21 @@ typCons s = Typ do
 
 typString :: String -> Typ
 typString = Typ <<< pure <<< CST.TypeString
+
+typRow :: Array (String /\ Typ) -> Maybe String -> Typ
+typRow pairs tailName = Typ ado
+  rowLabels <- traverse (uncurry toRowLabel) pairs
+  rowTail <- traverse toRowTail tailName
+  in CST.TypeRow { rowLabels, rowTail }
+
+  where
+    toRowLabel l typ = runTyp typ <#> \type_ ->
+      { label: CST.Label l, type_ }
+
+    toRowTail s = runTyp (typVar s)
+
+typRow_ :: Array (String /\ Typ) -> Typ
+typRow_ pairs = typRow pairs Nothing
 
 class AsTyp a where
   asTyp :: a -> Typ
