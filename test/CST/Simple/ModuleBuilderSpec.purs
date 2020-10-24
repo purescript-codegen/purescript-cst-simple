@@ -4,7 +4,7 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, addTypeDecl, buildModule, typCons, typRow, typString, typVar)
+import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, addTypeDecl, buildModule, typCons, typRecord, typRow, typString, typVar)
 import CST.Simple.TestUtils (fooBarModuleName)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
@@ -90,8 +90,24 @@ declarationSpec = do
         Just $ CST.TypeVar (CST.Ident "y")
       }
 
-  it "should reject invalid type tail" do
+  it "should reject invalid row tail" do
     typRow [] (Just "Z") `shouldErrorType` InvalidIdent "Z"
+
+  it "should add type record" do
+    (typRecord [ "a" /\ typCons "Int", "B" /\ typVar "x" ] (Just "y"))
+      `shouldMatchType`
+      CST.TypeRecord
+      { rowLabels:
+        [ { label: CST.Label "a", type_: intCSTType }
+        , { label: CST.Label "B", type_: CST.TypeVar (CST.Ident "x") }
+        ]
+      , rowTail:
+        Just $ CST.TypeVar (CST.Ident "y")
+      }
+
+  it "should reject invalid record tail" do
+    typRecord [] (Just "Z") `shouldErrorType` InvalidIdent "Z"
+
 
 
 

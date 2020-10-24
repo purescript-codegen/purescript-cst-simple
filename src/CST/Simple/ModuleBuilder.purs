@@ -11,6 +11,8 @@ module CST.Simple.ModuleBuilder
        , typString
        , typRow
        , typRow_
+       , typRecord
+       , typRecord_
        , class AsTyp
        , asTyp
        ) where
@@ -152,19 +154,35 @@ typString :: String -> Typ
 typString = Typ <<< pure <<< CST.TypeString
 
 typRow :: Array (String /\ Typ) -> Maybe String -> Typ
-typRow pairs tailName = Typ ado
+typRow = typLabelled CST.TypeRow
+
+typRow_ :: Array (String /\ Typ) -> Typ
+typRow_ pairs = typRow pairs Nothing
+
+typRecord :: Array (String /\ Typ) -> Maybe String -> Typ
+typRecord = typLabelled CST.TypeRecord
+
+typRecord_ :: Array (String /\ Typ) -> Typ
+typRecord_ pairs = typRow pairs Nothing
+
+typLabelled ::
+  ( { rowLabels :: Array { label :: CST.Label, type_ :: CST.Type}
+    , rowTail :: Maybe CST.Type
+    } -> CST.Type
+  ) ->
+  Array (String /\ Typ) ->
+  Maybe String ->
+  Typ
+typLabelled f pairs tailName = Typ ado
   rowLabels <- traverse (uncurry toRowLabel) pairs
   rowTail <- traverse toRowTail tailName
-  in CST.TypeRow { rowLabels, rowTail }
+  in f { rowLabels, rowTail }
 
   where
     toRowLabel l typ = runTyp typ <#> \type_ ->
       { label: CST.Label l, type_ }
 
     toRowTail s = runTyp (typVar s)
-
-typRow_ :: Array (String /\ Typ) -> Typ
-typRow_ pairs = typRow pairs Nothing
 
 class AsTyp a where
   asTyp :: a -> Typ
