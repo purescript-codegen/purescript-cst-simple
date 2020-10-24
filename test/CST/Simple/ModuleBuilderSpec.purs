@@ -4,7 +4,7 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.ModuleBuilder (ModuleBuilder, addTypeDecl, buildModule, tyString)
+import CST.Simple.ModuleBuilder (ModuleBuilder, addTypeDecl, buildModule, typString)
 import CST.Simple.TestUtils (fooBarModuleName)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
@@ -77,7 +77,7 @@ declarationSpec = do
     Array.length names `shouldEqual` 1
 
   it "should add type symbol declarations" do
-    mod <- buildModule' (addTypeDecl "X" (tyString "foo"))
+    mod <- buildModule' (addTypeDecl "X" (typString "foo"))
     decl <- requireOne mod.declarations
     decl `requireMatch` case _ of
       CST.DeclType { type_: CST.TypeString "foo" } -> Just unit

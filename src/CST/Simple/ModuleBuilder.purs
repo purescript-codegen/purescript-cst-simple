@@ -4,10 +4,12 @@ module CST.Simple.ModuleBuilder
        , buildModule
        , buildModuleT
        , addTypeDecl
-       , class AsType
-       , asType
-       , tyCons
-       , tyString
+       , Typ
+       , runTyp
+       , typCons
+       , typString
+       , class AsTyp
+       , asTyp
        ) where
 
 import Prelude
@@ -16,8 +18,8 @@ import CST.Simple.Internal.Utils (noteM)
 import CST.Simple.Names (ModuleName, PName, pname', pnameToProperName, pnameToString, qualNameProper)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
-import Control.Monad.Except (class MonadError, ExceptT, runExceptT)
-import Control.Monad.State (class MonadState, StateT, execStateT, gets, modify_)
+import Control.Monad.Except (class MonadError, ExceptT, mapExceptT, runExceptT)
+import Control.Monad.State (class MonadState, StateT, execStateT, gets, mapStateT, modify_)
 import Data.Array as Array
 import Data.Either (Either)
 import Data.Foldable (for_)
@@ -85,10 +87,10 @@ buildModuleT (ModuleBuilderT mb) = map toContent <$> (runExceptT (execStateT mb 
 
 -- Declarations
 
-addTypeDecl :: forall m t. Monad m => AsType t => String -> t -> ModuleBuilderT m Unit
+addTypeDecl :: forall m t. Monad m => AsTyp t => String -> t -> ModuleBuilderT m Unit
 addTypeDecl name t = do
   pname <- mkPName name
-  type_ <- asType t
+  type_ <- runTyp' t
   addDeclaration pname $
     CST.DeclType
     { comments: Nothing
@@ -122,28 +124,36 @@ addDeclaration pname decl = do
         then throwError $ DuplicateDeclName $ pnameToString pname
         else pure unit
 
--- Types
+-- Typ
 
-class AsType a where
-  asType :: forall m. Monad m => a -> ModuleBuilderT m CST.Type
+newtype Typ = Typ (ModuleBuilder CST.Type)
 
-instance asTypeType :: AsType CST.Type where
-  asType = pure
+runTyp :: forall m. Monad m => Typ -> ModuleBuilderT m CST.Type
+runTyp (Typ mb) = liftModuleBuilder mb
 
-instance asTypeString :: AsType String where
-  asType = tyCons
-
-tyCons :: forall m. Monad m => String -> ModuleBuilderT m CST.Type
-tyCons t = do
-  q@(QualifiedName { qualName }) <- mkQualName t
+typCons :: String -> Typ
+typCons s = Typ do
+  q@(QualifiedName { qualName }) <- mkQualName s
   addImportType q
   pure $ CST.TypeConstructor $
     QualifiedName { qualModule: Nothing
                   , qualName: pnameToProperName qualName
                   }
 
-tyString :: String -> CST.Type
-tyString t = CST.TypeString t
+typString :: String -> Typ
+typString = Typ <<< pure <<< CST.TypeString
+
+class AsTyp a where
+  asTyp :: a -> Typ
+
+instance asTypTyp :: AsTyp Typ where
+  asTyp = identity
+
+instance asTypString :: AsTyp String where
+  asTyp = typCons
+
+runTyp' :: forall m a. Monad m => AsTyp a => a -> ModuleBuilderT m CST.Type
+runTyp' = runTyp <<< asTyp
 
 -- Names
 
@@ -152,3 +162,9 @@ mkPName s = noteM (InvalidProperName s) $ pname' s
 
 mkQualName :: forall m. MonadThrow CodegenError m => String -> m (QualifiedName PName)
 mkQualName s = noteM (InvalidQualifiedName s) $ qualNameProper s
+
+-- Utils
+
+liftModuleBuilder :: forall m a. Monad m => ModuleBuilder a -> ModuleBuilderT m a
+liftModuleBuilder (ModuleBuilderT x) =
+  (ModuleBuilderT $ mapStateT (mapExceptT (pure <<< unwrap)) x)
