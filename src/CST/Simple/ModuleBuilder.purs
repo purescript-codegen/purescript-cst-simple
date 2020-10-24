@@ -6,6 +6,7 @@ module CST.Simple.ModuleBuilder
        , addTypeDecl
        , Typ
        , runTyp
+       , typVar
        , typCons
        , typString
        , class AsTyp
@@ -15,7 +16,7 @@ module CST.Simple.ModuleBuilder
 import Prelude
 
 import CST.Simple.Internal.Utils (noteM)
-import CST.Simple.Names (ModuleName, PName, pname', pnameToProperName, pnameToString, qualNameProper)
+import CST.Simple.Names (IName, ModuleName, PName, iname', inameToIdent, pname', pnameToProperName, pnameToString, qualNameProper)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
 import Control.Monad.Except (class MonadError, ExceptT, mapExceptT, runExceptT)
@@ -131,6 +132,9 @@ newtype Typ = Typ (ModuleBuilder CST.Type)
 runTyp :: forall m. Monad m => Typ -> ModuleBuilderT m CST.Type
 runTyp (Typ mb) = liftModuleBuilder mb
 
+typVar :: String -> Typ
+typVar s = Typ $ CST.TypeVar <<< inameToIdent <$> mkIName s
+
 typCons :: String -> Typ
 typCons s = Typ do
   q@(QualifiedName { qualName }) <- mkQualName s
@@ -159,6 +163,9 @@ runTyp' = runTyp <<< asTyp
 
 mkPName :: forall m. MonadThrow CodegenError m => String -> m PName
 mkPName s = noteM (InvalidProperName s) $ pname' s
+
+mkIName :: forall m. MonadThrow CodegenError m => String -> m IName
+mkIName s = noteM (InvalidIdent s) $ iname' s
 
 mkQualName :: forall m. MonadThrow CodegenError m => String -> m (QualifiedName PName)
 mkQualName s = noteM (InvalidQualifiedName s) $ qualNameProper s

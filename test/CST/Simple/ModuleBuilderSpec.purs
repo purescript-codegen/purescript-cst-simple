@@ -4,7 +4,7 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, addTypeDecl, buildModule, typString)
+import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, addTypeDecl, buildModule, typString, typVar)
 import CST.Simple.TestUtils (fooBarModuleName)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
@@ -70,6 +70,13 @@ declarationSpec = do
     mod <- buildModule' (addTypeDecl "X" "Foo.Bar.Baz" *> addTypeDecl "Y" "Foo.Bar.Baz")
     CST.ImportDecl { names } <- requireOne mod.imports
     Array.length names `shouldEqual` 1
+
+  it "should add type var" do
+    typVar "x" `shouldMatchType` CST.TypeVar (CST.Ident "x")
+
+  it "should reject invalid type var" do
+    buildModuleErr (addTypeDecl "X" (typVar "X")) `shouldReturn`
+      (InvalidIdent "X")
 
   it "should add type symbol declarations" do
     typString "foo" `shouldMatchType` CST.TypeString "foo"

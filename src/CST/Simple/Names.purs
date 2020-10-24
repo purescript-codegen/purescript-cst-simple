@@ -8,6 +8,8 @@ module CST.Simple.Names
        , IName
        , iname'
        , inameP
+       , inameToIdent
+       , inameToString
        , OpName
        , opName'
        , opNameP
@@ -105,6 +107,12 @@ inameP = IName <<< reflectSymbol
 inameRegex :: Regex
 inameRegex =
   unsafeRegex "^[a-z_][A-Za-z0-9_]*$" RegexFlags.noFlags
+
+inameToIdent :: IName -> CST.Ident
+inameToIdent (IName s) = CST.Ident s
+
+inameToString :: IName -> String
+inameToString (IName s) = s
 
 -- opName
 

@@ -13,6 +13,7 @@ data CodegenError =
   InvalidModuleName String
   | DuplicateModuleName String
   | InvalidProperName String
+  | InvalidIdent String
   | InvalidQualifiedName String
   | DuplicateDeclName String
 
