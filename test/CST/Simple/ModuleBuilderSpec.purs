@@ -4,7 +4,7 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, addTypeDecl, buildModule, typCons, typRecord, typRow, typString, typVar)
+import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, Typ, addTypeDecl, buildModule, typApp, typCons, typRecord, typRow, typString, typVar)
 import CST.Simple.TestUtils (fooBarModuleName)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
@@ -108,7 +108,22 @@ declarationSpec = do
   it "should reject invalid record tail" do
     typRecord [] (Just "Z") `shouldErrorType` InvalidIdent "Z"
 
+  it "should treat empty typApp as typCons" do
+    appType <- evalTyp $ typApp "Foo.Bar.Baz" ([] :: Array Typ)
+    consType <- evalTyp $ typCons "Foo.Bar.Baz"
+    appType `shouldEqual` consType
 
+  it "should create nested typApp" do
+    typApp "Foo" [ "Int", "String", "Boolean" ] `shouldMatchType`
+      CST.TypeApp
+      ( CST.TypeApp
+        ( CST.TypeApp
+          (cstTypCons "Foo")
+          (cstTypCons "Int")
+        )
+        (cstTypCons "String")
+      )
+      (cstTypCons "Boolean")
 
 
 buildModule' :: forall m. MonadThrow Error m => ModuleBuilder Unit -> m ModuleContent
@@ -134,14 +149,17 @@ requireMatch a f = case f a of
   Just b -> pure b
   Nothing -> throwError $ error $ "failed to match - "  <> show a
 
-shouldMatchType :: forall t m. MonadThrow Error m => AsTyp t => t -> CST.Type -> m Unit
-shouldMatchType t cstType = do
+evalTyp :: forall t m. MonadThrow Error m => AsTyp t => t -> m CST.Type
+evalTyp t = do
   mod <- buildModule' (addTypeDecl "X" t)
   decl <- requireOne mod.declarations
-  type_ <- decl `requireMatch` case _ of
+  decl `requireMatch` case _ of
     CST.DeclType { type_ } -> Just type_
     _ -> Nothing
-  type_ `shouldEqual` cstType
+
+shouldMatchType :: forall t m. MonadThrow Error m => AsTyp t => t -> CST.Type -> m Unit
+shouldMatchType t cstType = do
+  evalTyp t `shouldReturn` cstType
 
 shouldErrorType :: forall t m. MonadThrow Error m => AsTyp t => t -> CodegenError -> m Unit
 shouldErrorType t err =
@@ -152,4 +170,11 @@ intCSTType =
   CST.TypeConstructor $ CST.QualifiedName
   { qualModule: Nothing
   , qualName: CST.ProperName "Int"
+  }
+
+cstTypCons :: String -> CST.Type
+cstTypCons n =
+  CST.TypeConstructor $ CST.QualifiedName
+  { qualModule: Nothing
+  , qualName: CST.ProperName n
   }

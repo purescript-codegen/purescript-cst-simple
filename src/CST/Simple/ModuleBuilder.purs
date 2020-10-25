@@ -13,6 +13,7 @@ module CST.Simple.ModuleBuilder
        , typRow_
        , typRecord
        , typRecord_
+       , typApp
        , class AsTyp
        , asTyp
        ) where
@@ -27,7 +28,7 @@ import Control.Monad.Except (class MonadError, ExceptT, mapExceptT, runExceptT)
 import Control.Monad.State (class MonadState, StateT, execStateT, gets, mapStateT, modify_)
 import Data.Array as Array
 import Data.Either (Either)
-import Data.Foldable (for_)
+import Data.Foldable (foldl, for_)
 import Data.Identity (Identity)
 import Data.List (List, (:))
 import Data.List as List
@@ -183,6 +184,13 @@ typLabelled f pairs tailName = Typ ado
       { label: CST.Label l, type_ }
 
     toRowTail s = runTyp (typVar s)
+
+typApp :: forall c a. AsTyp c => AsTyp a => c -> Array a -> Typ
+typApp c as = Typ $ foldl f (runTyp (asTyp c)) as
+  where
+    f acc' a' = CST.TypeApp
+      <$> acc'
+      <*> runTyp (asTyp a')
 
 class AsTyp a where
   asTyp :: a -> Typ
