@@ -14,6 +14,7 @@ module CST.Simple.ModuleBuilder
        , typRecord
        , typRecord_
        , typApp
+       , typForall
        , class AsTyp
        , asTyp
        ) where
@@ -27,6 +28,7 @@ import Control.Monad.Error.Class (class MonadThrow, throwError)
 import Control.Monad.Except (class MonadError, ExceptT, mapExceptT, runExceptT)
 import Control.Monad.State (class MonadState, StateT, execStateT, gets, mapStateT, modify_)
 import Data.Array as Array
+import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either)
 import Data.Foldable (foldl, for_)
 import Data.Identity (Identity)
@@ -191,6 +193,20 @@ typApp c as = Typ $ foldl f (runTyp (asTyp c)) as
     f acc' a' = CST.TypeApp
       <$> acc'
       <*> runTyp (asTyp a')
+
+typForall :: forall t. AsTyp t => Array String -> t -> Typ
+typForall vs t = case NonEmptyArray.fromArray vs of
+  Just vs' ->
+    Typ $
+    CST.TypeForall <$> traverse toTypeVarName vs' <*> runTyp t'
+  Nothing ->
+    t'
+
+  where
+    t' = asTyp t
+
+    toTypeVarName v = CST.TypeVarName <<< inameToIdent <$> mkIName v
+
 
 class AsTyp a where
   asTyp :: a -> Typ
