@@ -15,6 +15,8 @@ module CST.Simple.ModuleBuilder
        , typRecord_
        , typApp
        , typForall
+       , typArrow
+       , (*->)
        , class AsTyp
        , asTyp
        ) where
@@ -207,6 +209,10 @@ typForall vs t = case NonEmptyArray.fromArray vs of
 
     toTypeVarName v = CST.TypeVarName <<< inameToIdent <$> mkIName v
 
+typArrow :: forall t1 t2. AsTyp t1 => AsTyp t2 => t1 -> t2 -> Typ
+typArrow t1 t2 = Typ $ CST.TypeArr <$> runTyp' t1 <*> runTyp' t2
+
+infixr 6 typArrow as *->
 
 class AsTyp a where
   asTyp :: a -> Typ
