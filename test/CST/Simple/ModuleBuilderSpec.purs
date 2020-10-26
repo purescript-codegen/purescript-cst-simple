@@ -4,11 +4,12 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, Typ, addTypeDecl, buildModule, typApp, typCons, typRecord, typRow, typString, typVar)
+import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, Typ, addTypeDecl, buildModule, typApp, typCons, typForall, typRecord, typRow, typString, typVar, (*->), (*::))
 import CST.Simple.TestUtils (fooBarModuleName)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
 import Data.Array as Array
+import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\))
@@ -125,6 +126,45 @@ declarationSpec = do
       )
       (cstTypCons "Boolean")
 
+  it "should treat empty forall as typCons" do
+    appType <- evalTyp $ typForall [] "Foo.Bar.Baz"
+    consType <- evalTyp $ typCons "Foo.Bar.Baz"
+    appType `shouldEqual` consType
+
+  it "should treat create forall typ" do
+    typForall [ "a", "b", "c" ] "Int" `shouldMatchType`
+      ( CST.TypeForall
+        ( NonEmptyArray.cons'
+          (CST.TypeVarName (CST.Ident "a"))
+          [ CST.TypeVarName (CST.Ident "b")
+          , CST.TypeVarName (CST.Ident "c")
+          ]
+        )
+        intCSTType
+      )
+
+  it "should catch errors in type vars" do
+    typForall [ "A" ] "Int" `shouldErrorType`
+      (InvalidIdent "A")
+
+  it "should create type arrows" do
+    ("Int" *-> "String" *-> "Int") `shouldMatchType`
+      (intCSTType `CST.TypeArr` (stringCSTType `CST.TypeArr` intCSTType))
+
+  it "should create kinded types" do
+    ("Qux" *:: "Foo.Bar.Baz") `shouldMatchType`
+      (CST.TypeKinded (cstTypCons "Qux") (CST.KindName (cstUnqualName "Baz")))
+
+  it "should import kinds" do
+    mod <- buildModule' (addTypeDecl "X" ("Qux" *:: "Foo.Bar.Baz"))
+    mod.imports `shouldContain`
+      ( CST.ImportDecl
+        { moduleName: fooBarModuleName
+        , names: [ CST.ImportKind (CST.ProperName "Baz")
+                 ]
+        , qualification: Nothing
+        }
+      )
 
 buildModule' :: forall m. MonadThrow Error m => ModuleBuilder Unit -> m ModuleContent
 buildModule' mb = case buildModule mb of
@@ -172,9 +212,19 @@ intCSTType =
   , qualName: CST.ProperName "Int"
   }
 
-cstTypCons :: String -> CST.Type
-cstTypCons n =
+stringCSTType :: CST.Type
+stringCSTType =
   CST.TypeConstructor $ CST.QualifiedName
+  { qualModule: Nothing
+  , qualName: CST.ProperName "String"
+  }
+
+cstTypCons :: String -> CST.Type
+cstTypCons = CST.TypeConstructor <<< cstUnqualName
+
+cstUnqualName :: forall p. String -> CST.QualifiedName (CST.ProperName p)
+cstUnqualName n =
+  CST.QualifiedName
   { qualModule: Nothing
   , qualName: CST.ProperName n
   }

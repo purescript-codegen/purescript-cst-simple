@@ -17,6 +17,8 @@ module CST.Simple.ModuleBuilder
        , typForall
        , typArrow
        , (*->)
+       , typKinded
+       , (*::)
        , class AsTyp
        , asTyp
        ) where
@@ -113,13 +115,31 @@ addTypeDecl name t = do
     , type_
     }
 
+-- Private Builders
+
 addImportType :: forall m. Monad m => QualifiedName PName -> ModuleBuilderT m Unit
-addImportType (QualifiedName { qualModule, qualName }) = for_ qualModule \qualModule' ->
-  modify_ (\s -> s { imports = Map.insertWith append qualModule' (Set.singleton import_) s.imports
+addImportType = addQualImport \n -> CST.ImportType n Nothing
+
+addImportKind :: forall m. Monad m => QualifiedName PName -> ModuleBuilderT m Unit
+addImportKind = addQualImport CST.ImportKind
+
+addQualImport ::
+  forall p m.
+  Monad m =>
+  (CST.ProperName p -> CST.Import) ->
+  QualifiedName PName ->
+  ModuleBuilderT m Unit
+addQualImport toCSTImport (QualifiedName { qualModule, qualName }) =
+  for_ qualModule (\m -> addImport m import_)
+
+  where
+    import_ = toCSTImport (pnameToProperName qualName)
+
+addImport :: forall m. Monad m => ModuleName -> CST.Import -> ModuleBuilderT m Unit
+addImport moduleName import_ =
+  modify_ (\s -> s { imports = Map.insertWith append moduleName (Set.singleton import_) s.imports
                    }
           )
-  where
-    import_ = CST.ImportType (pnameToProperName qualName) Nothing
 
 addDeclaration :: forall m. Monad m => PName -> CST.Declaration -> ModuleBuilderT m Unit
 addDeclaration pname decl = do
@@ -213,6 +233,20 @@ typArrow :: forall t1 t2. AsTyp t1 => AsTyp t2 => t1 -> t2 -> Typ
 typArrow t1 t2 = Typ $ CST.TypeArr <$> runTyp' t1 <*> runTyp' t2
 
 infixr 6 typArrow as *->
+
+typKinded :: forall t. AsTyp t => t -> String -> Typ
+typKinded t k = Typ do
+  t' <- runTyp' t
+  q@(QualifiedName { qualName }) <- mkQualName k
+  addImportKind q
+  pure $ CST.TypeKinded t' $ CST.KindName $
+    QualifiedName { qualModule: Nothing
+                  , qualName: pnameToProperName qualName
+                  }
+
+infixr 8 typKinded as *::
+
+-- AsTyp
 
 class AsTyp a where
   asTyp :: a -> Typ
