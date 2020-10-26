@@ -19,6 +19,7 @@ module CST.Simple.ModuleBuilder
        , (*->)
        , typKinded
        , (*::)
+       , typOp
        , class AsTyp
        , asTyp
        ) where
@@ -26,7 +27,7 @@ module CST.Simple.ModuleBuilder
 import Prelude
 
 import CST.Simple.Internal.Utils (noteM)
-import CST.Simple.Names (IName, ModuleName, PName, iname', inameToIdent, pname', pnameToProperName, pnameToString, qualNameProper)
+import CST.Simple.Names (IName, ModuleName, OpName, PName, iname', inameToIdent, opNameToOpName, pname', pnameToProperName, pnameToString, qualNameOp, qualNameProper)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
 import Control.Monad.Except (class MonadError, ExceptT, mapExceptT, runExceptT)
@@ -77,7 +78,7 @@ type ModuleBuilder a = ModuleBuilderT Identity a
 buildModule ::
   ModuleBuilder Unit ->
   Either CodegenError ModuleContent
-buildModule=
+buildModule =
   unwrap <<< buildModuleT
 
 buildModuleT ::
@@ -168,7 +169,7 @@ typVar s = Typ $ CST.TypeVar <<< inameToIdent <$> mkIName s
 
 typCons :: String -> Typ
 typCons s = Typ do
-  q@(QualifiedName { qualName }) <- mkQualName s
+  q@(QualifiedName { qualName }) <- mkQualPName s
   addImportType q
   pure $ CST.TypeConstructor $
     QualifiedName { qualModule: Nothing
@@ -237,7 +238,7 @@ infixr 6 typArrow as *->
 typKinded :: forall t. AsTyp t => t -> String -> Typ
 typKinded t k = Typ do
   t' <- runTyp' t
-  q@(QualifiedName { qualName }) <- mkQualName k
+  q@(QualifiedName { qualName }) <- mkQualPName k
   addImportKind q
   pure $ CST.TypeKinded t' $ CST.KindName $
     QualifiedName { qualModule: Nothing
@@ -245,6 +246,18 @@ typKinded t k = Typ do
                   }
 
 infixr 8 typKinded as *::
+
+typOp :: forall t1 t2. AsTyp t1 => AsTyp t2 => t1 -> String -> t2 -> Typ
+typOp t1 op t2 = Typ do
+  t1' <- runTyp' t1
+  op'@(QualifiedName { qualModule, qualName }) <- map opNameToOpName <$> mkQualOpName op
+  t2' <- runTyp' t2
+
+  for_ qualModule \qm ->
+    addImport qm $ CST.ImportTypeOp qualName
+  let op'' = QualifiedName { qualModule: Nothing, qualName }
+
+  pure $ CST.TypeOp t1' op'' t2'
 
 -- AsTyp
 
@@ -268,8 +281,30 @@ mkPName s = noteM (InvalidProperName s) $ pname' s
 mkIName :: forall m. MonadThrow CodegenError m => String -> m IName
 mkIName s = noteM (InvalidIdent s) $ iname' s
 
-mkQualName :: forall m. MonadThrow CodegenError m => String -> m (QualifiedName PName)
-mkQualName s = noteM (InvalidQualifiedName s) $ qualNameProper s
+mkQualName ::
+  forall m n.
+  MonadThrow CodegenError m =>
+  (String -> Maybe (QualifiedName n)) ->
+  String ->
+  m (QualifiedName n)
+mkQualName f s =
+  noteM (InvalidQualifiedName s) $ f s
+
+mkQualPName ::
+  forall m.
+  MonadThrow CodegenError m =>
+  String ->
+  m (QualifiedName PName)
+mkQualPName =
+  mkQualName qualNameProper
+
+mkQualOpName ::
+  forall m.
+  MonadThrow CodegenError m =>
+  String ->
+  m (QualifiedName OpName)
+mkQualOpName =
+  mkQualName qualNameOp
 
 -- Utils
 

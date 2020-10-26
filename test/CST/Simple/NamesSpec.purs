@@ -4,7 +4,7 @@ module CST.Simple.NamesSpec
 
 import Prelude
 
-import CST.Simple.Names (QualifiedName(..), iname', inameP, moduleName', moduleNameP, opName', opNameP, pname', pnameP, qualNameProper, unsafePName)
+import CST.Simple.Names (QualifiedName(..), iname', inameP, moduleName', moduleNameP, opName', opNameP, pname', pnameP, qualNameOp, qualNameProper, unsafeOpName, unsafePName)
 import CST.Simple.TestUtils (fooBarModuleName)
 import Data.Maybe (Maybe(..), isJust, isNothing)
 import Data.Symbol (SProxy(..))
@@ -122,3 +122,11 @@ qualNameSpec = describe "qualName" do
   it "should read qualified pname" do
     (qualNameProper "Foo.Bar.Baz") `shouldEqual`
       Just (QualifiedName { qualModule: Just fooBarModuleName, qualName: unsafePName "Baz" })
+
+  it "should accept unqualified opname" do
+    (qualNameOp "(<>)") `shouldEqual`
+      Just (QualifiedName { qualModule: Nothing, qualName: unsafeOpName "<>" })
+
+  it "should read qualified opname" do
+    (qualNameOp "Foo.Bar.(<>)") `shouldEqual`
+      Just (QualifiedName { qualModule: Just fooBarModuleName, qualName: unsafeOpName "<>" })

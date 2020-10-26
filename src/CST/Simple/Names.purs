@@ -11,12 +11,15 @@ module CST.Simple.Names
        , inameToIdent
        , inameToString
        , OpName
+       , unsafeOpName
        , opName'
        , opNameP
+       , opNameToOpName
        , moduleName'
        , moduleNameP
        , ModuleNameMapping
        , qualNameProper
+       , qualNameOp
        , module E
        ) where
 
@@ -124,6 +127,9 @@ derive newtype instance opNameOrd :: Ord OpName
 instance opNameShow :: Show OpName where
   show (OpName s) = "(OpName " <> show s <> ")"
 
+unsafeOpName :: String -> OpName
+unsafeOpName = OpName
+
 opName' :: String -> Maybe OpName
 opName' s =
   guard ( not String.null s
@@ -142,6 +148,9 @@ opNameP ::
   SProxy s ->
   OpName
 opNameP = OpName <<< reflectSymbol
+
+opNameToOpName :: forall p. OpName -> CST.OpName p
+opNameToOpName (OpName s) = CST.OpName s
 
 isSymbolChar :: Char -> Boolean
 isSymbolChar c =
@@ -183,14 +192,34 @@ moduleNameP _ =
 -- qaulName
 
 qualNameProper :: String -> Maybe (CST.QualifiedName PName)
-qualNameProper s = case String.lastIndexOf (String.Pattern ".") s of
+qualNameProper = qualName' pname'
+
+qualNameOp :: String -> Maybe (CST.QualifiedName OpName)
+qualNameOp =  qualName' (opName' <=< unParen)
+  where
+    unParen s = do
+      let p1 = String.splitAt 1 s
+      guard (p1.before == "(")
+      let p2 = String.splitAt (String.length s - 2) p1.after
+      guard (p2.after == ")")
+      pure p2.before
+
+qualName' :: forall a. (String -> Maybe a) -> String -> Maybe (CST.QualifiedName a)
+qualName' f s = do
+  CST.QualifiedName q <- qualName s
+  s' <- f q.qualName
+  pure $ CST.QualifiedName { qualModule: q.qualModule
+                           , qualName: s'
+                           }
+
+qualName :: String -> Maybe (CST.QualifiedName String)
+qualName s = case String.lastIndexOf (String.Pattern ".") s of
   Just ndx -> ado
     qualModule <- Just <$> moduleName' (String.take ndx s)
-    qualName <- pname' (String.drop (ndx + 1) s)
-    in CST.QualifiedName { qualModule, qualName }
-  Nothing -> ado
-    qualName <- pname' s
-    in CST.QualifiedName { qualModule: Nothing, qualName }
+    in CST.QualifiedName { qualModule, qualName: String.drop (ndx + 1) s }
+  Nothing ->
+    Just $ CST.QualifiedName { qualModule: Nothing, qualName: s }
+
 
 -- Utils
 

@@ -4,7 +4,7 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, Typ, addTypeDecl, buildModule, typApp, typCons, typForall, typRecord, typRow, typString, typVar, (*->), (*::))
+import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, Typ, addTypeDecl, buildModule, typApp, typCons, typForall, typOp, typRecord, typRow, typString, typVar, (*->), (*::))
 import CST.Simple.TestUtils (fooBarModuleName)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
@@ -153,7 +153,7 @@ declarationSpec = do
 
   it "should create kinded types" do
     ("Qux" *:: "Foo.Bar.Baz") `shouldMatchType`
-      (CST.TypeKinded (cstTypCons "Qux") (CST.KindName (cstUnqualName "Baz")))
+      (CST.TypeKinded (cstTypCons "Qux") (CST.KindName (cstUnqualProperName "Baz")))
 
   it "should import kinds" do
     mod <- buildModule' (addTypeDecl "X" ("Qux" *:: "Foo.Bar.Baz"))
@@ -165,6 +165,29 @@ declarationSpec = do
         , qualification: Nothing
         }
       )
+
+  it "should create type operators" do
+    (typOp "String" "Foo.Bar.Baz.(><)" "Int") `shouldMatchType`
+      (CST.TypeOp
+       (cstTypCons "String")
+       (cstUnqualName (CST.OpName "><"))
+       (cstTypCons "Int")
+      )
+
+  it "should import type operators" do
+    mod <- buildModule' (addTypeDecl "X" (typOp "String" "Foo.Bar.(><)" "Int"))
+    mod.imports `shouldContain`
+      ( CST.ImportDecl
+        { moduleName: fooBarModuleName
+        , names: [ CST.ImportTypeOp (CST.OpName "><")
+                 ]
+        , qualification: Nothing
+        }
+      )
+
+  it "should guard against invalid operator" do
+    (typOp "String" "Foo.Bar.Baz.(Qux)" "Int")  `shouldErrorType`
+      (InvalidQualifiedName "Foo.Bar.Baz.(Qux)")
 
 buildModule' :: forall m. MonadThrow Error m => ModuleBuilder Unit -> m ModuleContent
 buildModule' mb = case buildModule mb of
@@ -220,11 +243,14 @@ stringCSTType =
   }
 
 cstTypCons :: String -> CST.Type
-cstTypCons = CST.TypeConstructor <<< cstUnqualName
+cstTypCons = CST.TypeConstructor <<< cstUnqualProperName
 
-cstUnqualName :: forall p. String -> CST.QualifiedName (CST.ProperName p)
-cstUnqualName n =
+cstUnqualProperName :: forall p. String -> CST.QualifiedName (CST.ProperName p)
+cstUnqualProperName = cstUnqualName <<< CST.ProperName
+
+cstUnqualName :: forall n. n -> CST.QualifiedName n
+cstUnqualName qualName =
   CST.QualifiedName
   { qualModule: Nothing
-  , qualName: CST.ProperName n
+  , qualName
   }
