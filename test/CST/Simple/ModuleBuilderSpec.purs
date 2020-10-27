@@ -55,15 +55,13 @@ declarationSpec = do
       )
 
   it "should add qualified names to imports" do
-    mod <- buildModule' (addTypeDecl "X" "Foo.Bar.Baz")
-    mod.imports `shouldContain`
-      ( CST.ImportDecl
-        { moduleName: fooBarModuleName
-        , names: [ CST.ImportType (CST.ProperName "Baz") Nothing -- todo import data type
-                 ]
-        , qualification: Nothing
-        }
-      )
+    "Foo.Bar.Baz" `shouldImport`
+      CST.ImportDecl
+      { moduleName: fooBarModuleName
+      , names: [ CST.ImportType (CST.ProperName "Baz") Nothing -- todo import data type
+               ]
+      , qualification: Nothing
+      }
 
   it "should not duplicate imports" do
     mod <- buildModule' (addTypeDecl "X" "Foo.Bar.Baz" *> addTypeDecl "Y" "Foo.Bar.Baz")
@@ -156,15 +154,13 @@ declarationSpec = do
       (CST.TypeKinded (cstTypCons "Qux") (CST.KindName (cstUnqualProperName "Baz")))
 
   it "should import kinds" do
-    mod <- buildModule' (addTypeDecl "X" ("Qux" *:: "Foo.Bar.Baz"))
-    mod.imports `shouldContain`
-      ( CST.ImportDecl
-        { moduleName: fooBarModuleName
-        , names: [ CST.ImportKind (CST.ProperName "Baz")
-                 ]
-        , qualification: Nothing
-        }
-      )
+    ("Qux" *:: "Foo.Bar.Baz") `shouldImport`
+      CST.ImportDecl
+      { moduleName: fooBarModuleName
+      , names: [ CST.ImportKind (CST.ProperName "Baz")
+               ]
+      , qualification: Nothing
+      }
 
   it "should create type operators" do
     (typOp "String" "Foo.Bar.Baz.(><)" "Int") `shouldMatchType`
@@ -175,19 +171,43 @@ declarationSpec = do
       )
 
   it "should import type operators" do
-    mod <- buildModule' (addTypeDecl "X" (typOp "String" "Foo.Bar.(><)" "Int"))
-    mod.imports `shouldContain`
-      ( CST.ImportDecl
-        { moduleName: fooBarModuleName
-        , names: [ CST.ImportTypeOp (CST.OpName "><")
-                 ]
-        , qualification: Nothing
-        }
-      )
+    (typOp "String" "Foo.Bar.(><)" "Int") `shouldImport`
+      CST.ImportDecl
+      { moduleName: fooBarModuleName
+      , names: [ CST.ImportTypeOp (CST.OpName "><")
+               ]
+      , qualification: Nothing
+      }
 
   it "should guard against invalid operator" do
     (typOp "String" "Foo.Bar.Baz.(Qux)" "Int")  `shouldErrorType`
       (InvalidQualifiedName "Foo.Bar.Baz.(Qux)")
+
+{-
+  it "should create constrained types" do
+    (cnst "Foo.Bar" [ typVar "a" ] *=> typeVar "a") `shouldMatchType`
+      CST.TypeConstrained
+      ( CST.Constraint
+        { className: cstUnqualProperName "Bar"
+        , args: [ CST.TypeVar (CST.Ident "a")
+                ]
+        }
+      )
+      ( CST.TypeVar (CST.Ident "a")
+      )
+
+  it "should import class constraints constrained types" do
+    (cnst "Foo.Bar" [ typVar "a" ] *=> typeVar "a") `shouldMatchType`
+      CST.TypeConstrained
+      ( CST.Constraint
+        { className: cstUnqualProperName "Bar"
+        , args: [ CST.TypeVar (CST.Ident "a")
+                ]
+        }
+      )
+      ( CST.TypeVar (CST.Ident "a")
+      )
+-}
 
 buildModule' :: forall m. MonadThrow Error m => ModuleBuilder Unit -> m ModuleContent
 buildModule' mb = case buildModule mb of
@@ -227,6 +247,11 @@ shouldMatchType t cstType = do
 shouldErrorType :: forall t m. MonadThrow Error m => AsTyp t => t -> CodegenError -> m Unit
 shouldErrorType t err =
    buildModuleErr (addTypeDecl "X" t) `shouldReturn` err
+
+shouldImport :: forall t m. MonadThrow Error m => AsTyp t => t -> CST.ImportDecl -> m Unit
+shouldImport t import_ = do
+  mod <- buildModule' (addTypeDecl "X" t)
+  mod.imports `shouldContain` import_
 
 intCSTType :: CST.Type
 intCSTType =
