@@ -10,8 +10,8 @@ module CST.Simple.ProjectBuilder
 
 import Prelude
 
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder)
 import CST.Simple.Internal.Utils (noteM)
-import CST.Simple.ModuleBuilder (ModuleBuilder)
 import CST.Simple.Names (moduleName')
 import CST.Simple.Types (CodegenError(..))
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError)
