@@ -4,7 +4,7 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, Typ, addTypeDecl, buildModule, typApp, typCons, typForall, typOp, typRecord, typRow, typString, typVar, (*->), (*::))
+import CST.Simple.ModuleBuilder (class AsTyp, ModuleBuilder, Typ, addTypeDecl, buildModule, cnst, typApp, typCons, typForall, typOp, typRecord, typRow, typString, typVar, (*->), (*::), (*=>))
 import CST.Simple.TestUtils (fooBarModuleName)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
@@ -183,12 +183,11 @@ declarationSpec = do
     (typOp "String" "Foo.Bar.Baz.(Qux)" "Int")  `shouldErrorType`
       (InvalidQualifiedName "Foo.Bar.Baz.(Qux)")
 
-{-
   it "should create constrained types" do
-    (cnst "Foo.Bar" [ typVar "a" ] *=> typeVar "a") `shouldMatchType`
+    (cnst "Foo.Bar.Baz" [ typVar "a" ] *=> typVar "a") `shouldMatchType`
       CST.TypeConstrained
       ( CST.Constraint
-        { className: cstUnqualProperName "Bar"
+        { className: cstUnqualProperName "Baz"
         , args: [ CST.TypeVar (CST.Ident "a")
                 ]
         }
@@ -197,17 +196,14 @@ declarationSpec = do
       )
 
   it "should import class constraints constrained types" do
-    (cnst "Foo.Bar" [ typVar "a" ] *=> typeVar "a") `shouldMatchType`
-      CST.TypeConstrained
-      ( CST.Constraint
-        { className: cstUnqualProperName "Bar"
-        , args: [ CST.TypeVar (CST.Ident "a")
-                ]
-        }
-      )
-      ( CST.TypeVar (CST.Ident "a")
-      )
--}
+    (cnst "Foo.Bar.Baz" [ typVar "a" ] *=> typVar "a") `shouldImport`
+      CST.ImportDecl
+      { moduleName: fooBarModuleName
+      , names:
+        [ CST.ImportClass (CST.ProperName "Baz")
+        ]
+      , qualification: Nothing
+      }
 
 buildModule' :: forall m. MonadThrow Error m => ModuleBuilder Unit -> m ModuleContent
 buildModule' mb = case buildModule mb of

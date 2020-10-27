@@ -20,8 +20,12 @@ module CST.Simple.ModuleBuilder
        , typKinded
        , (*::)
        , typOp
+       , typConstrained
+       , (*=>)
        , class AsTyp
        , asTyp
+       , Constraint
+       , cnst
        ) where
 
 import Prelude
@@ -124,6 +128,9 @@ addImportType = addQualImport \n -> CST.ImportType n Nothing
 addImportKind :: forall m. Monad m => QualifiedName PName -> ModuleBuilderT m Unit
 addImportKind = addQualImport CST.ImportKind
 
+addImportClass :: forall m. Monad m => QualifiedName PName -> ModuleBuilderT m Unit
+addImportClass = addQualImport CST.ImportClass
+
 addQualImport ::
   forall p m.
   Monad m =>
@@ -215,7 +222,7 @@ typApp c as = Typ $ foldl f (runTyp (asTyp c)) as
   where
     f acc' a' = CST.TypeApp
       <$> acc'
-      <*> runTyp (asTyp a')
+      <*> runTyp' a'
 
 typForall :: forall t. AsTyp t => Array String -> t -> Typ
 typForall vs t = case NonEmptyArray.fromArray vs of
@@ -259,6 +266,13 @@ typOp t1 op t2 = Typ do
 
   pure $ CST.TypeOp t1' op'' t2'
 
+typConstrained :: forall t. AsTyp t => Constraint -> t -> Typ
+typConstrained c t = Typ $ CST.TypeConstrained
+  <$> runConstraint c
+  <*> runTyp' t
+
+infixr 10 typConstrained as *=>
+
 -- AsTyp
 
 class AsTyp a where
@@ -272,6 +286,25 @@ instance asTypString :: AsTyp String where
 
 runTyp' :: forall m a. Monad m => AsTyp a => a -> ModuleBuilderT m CST.Type
 runTyp' = runTyp <<< asTyp
+
+-- Constraint
+
+newtype Constraint = SConstraint (ModuleBuilder CST.Constraint)
+
+runConstraint :: forall m. Monad m => Constraint -> ModuleBuilderT m CST.Constraint
+runConstraint (SConstraint mb) = liftModuleBuilder mb
+
+cnst :: forall t. AsTyp t => String -> Array t -> Constraint
+cnst s args = SConstraint do
+  q@(QualifiedName { qualName }) <- mkQualPName s
+  addImportClass q
+  args' <- traverse runTyp' args
+  pure $ CST.Constraint
+    { className: QualifiedName { qualModule: Nothing
+                               , qualName: pnameToProperName qualName
+                               }
+    , args: args'
+    }
 
 -- Names
 
