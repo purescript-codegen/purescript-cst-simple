@@ -20,54 +20,12 @@ import Test.Spec.Assertions (shouldContain, shouldEqual, shouldReturn)
 
 moduleBuilderSpec :: Spec Unit
 moduleBuilderSpec = describe "ModuleBuilder" do
-  declarationSpec
+  typesSpec
+  typeDeclarationSpec
 
-declarationSpec :: Spec Unit
-declarationSpec = do
-  it "should reject type declarations with invalid name" do
-    buildModuleErr (addTypeDecl "x" "Int") `shouldReturn` (InvalidProperName "x")
 
-  it "should reject type declarations with invalid value" do
-    buildModuleErr (addTypeDecl "X" "int") `shouldReturn` (InvalidQualifiedName "int")
-
-  it "should reject duplicate declarations" do
-    buildModuleErr (addTypeDecl "X" "Int" *> addTypeDecl "X" "String")
-      `shouldReturn` (DuplicateDeclName "X")
-
-  it "should accept type declarations" do
-    mod <- buildModule' (addTypeDecl "X" "Int")
-    mod.declarations `shouldContain`
-      CST.DeclType
-        { comments: Nothing
-        , head: CST.DataHead
-          { dataHdName: CST.ProperName "X"
-          , dataHdVars: []
-          }
-        , type_: intCSTType
-        }
-
-  it "should accept qualified type declarations" do
-    "Foo.Bar.Baz" `shouldMatchType`
-      ( CST.TypeConstructor $ CST.QualifiedName
-        { qualModule: Nothing
-        , qualName: CST.ProperName "Baz"
-        }
-      )
-
-  it "should add qualified names to imports" do
-    "Foo.Bar.Baz" `shouldImport`
-      CST.ImportDecl
-      { moduleName: fooBarModuleName
-      , names: [ CST.ImportType (CST.ProperName "Baz") Nothing -- todo import data type
-               ]
-      , qualification: Nothing
-      }
-
-  it "should not duplicate imports" do
-    mod <- buildModule' (addTypeDecl "X" "Foo.Bar.Baz" *> addTypeDecl "Y" "Foo.Bar.Baz")
-    CST.ImportDecl { names } <- requireOne mod.imports
-    Array.length names `shouldEqual` 1
-
+typesSpec :: Spec Unit
+typesSpec = do
   it "should add type var" do
     typVar "x" `shouldMatchType` CST.TypeVar (CST.Ident "x")
 
@@ -204,6 +162,54 @@ declarationSpec = do
         ]
       , qualification: Nothing
       }
+
+typeDeclarationSpec :: Spec Unit
+typeDeclarationSpec = do
+  it "should reject type declarations with invalid name" do
+    buildModuleErr (addTypeDecl "x" "Int") `shouldReturn` (InvalidProperName "x")
+
+  it "should reject type declarations with invalid value" do
+    buildModuleErr (addTypeDecl "X" "int") `shouldReturn` (InvalidQualifiedName "int")
+
+  it "should reject duplicate declarations" do
+    buildModuleErr (addTypeDecl "X" "Int" *> addTypeDecl "X" "String")
+      `shouldReturn` (DuplicateDeclName "X")
+
+  it "should accept type declarations" do
+    mod <- buildModule' (addTypeDecl "X" "Int")
+    mod.declarations `shouldContain`
+      CST.DeclType
+        { comments: Nothing
+        , head: CST.DataHead
+          { dataHdName: CST.ProperName "X"
+          , dataHdVars: []
+          }
+        , type_: intCSTType
+        }
+
+  it "should accept qualified type declarations" do
+    "Foo.Bar.Baz" `shouldMatchType`
+      ( CST.TypeConstructor $ CST.QualifiedName
+        { qualModule: Nothing
+        , qualName: CST.ProperName "Baz"
+        }
+      )
+
+  it "should add qualified names to imports" do
+    "Foo.Bar.Baz" `shouldImport`
+      CST.ImportDecl
+      { moduleName: fooBarModuleName
+      , names: [ CST.ImportType (CST.ProperName "Baz") Nothing -- todo import data type
+               ]
+      , qualification: Nothing
+      }
+
+  it "should not duplicate imports" do
+    mod <- buildModule' (addTypeDecl "X" "Foo.Bar.Baz" *> addTypeDecl "Y" "Foo.Bar.Baz")
+    CST.ImportDecl { names } <- requireOne mod.imports
+    Array.length names `shouldEqual` 1
+
+-- Utils
 
 buildModule' :: forall m. MonadThrow Error m => ModuleBuilder Unit -> m ModuleContent
 buildModule' mb = case buildModule mb of
