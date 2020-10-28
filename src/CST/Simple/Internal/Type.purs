@@ -27,7 +27,7 @@ module CST.Simple.Internal.Type
 import Prelude
 
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, addImport, addImportClass, addImportKind, addImportType, liftModuleBuilder, mkIdent, mkQualOpName, mkQualProperName)
-import CST.Simple.Names (QualifiedName(..), opNameToOpName)
+import CST.Simple.Names (QualifiedName(..))
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Foldable (foldl)
 import Data.Maybe (Maybe(..))
@@ -127,7 +127,7 @@ infixr 8 typKinded as *::
 typOp :: forall t1 t2. AsTyp t1 => AsTyp t2 => t1 -> String -> t2 -> Typ
 typOp t1 op t2 = Typ do
   t1' <- runTyp' t1
-  op'@(QualifiedName { qualModule, qualName }) <- map opNameToOpName <$> mkQualOpName op
+  op'@(QualifiedName { qualModule, qualName }) <- mkQualOpName op
   t2' <- runTyp' t2
 
   for_ qualModule \qm ->

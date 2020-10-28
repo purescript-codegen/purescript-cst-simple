@@ -3,11 +3,8 @@ module CST.Simple.Names
        , properNameP
        , ident'
        , identP
-       , OpName
-       , unsafeOpName
        , opName'
        , opNameP
-       , opNameToOpName
        , moduleName'
        , moduleNameP
        , ModuleNameMapping
@@ -34,8 +31,8 @@ import Data.String.Regex.Flags as RegexFlags
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Symbol (class IsSymbol, SProxy, reflectSymbol)
 import Data.Traversable (traverse)
-import Language.PS.CST (Ident, ProperName, QualifiedName)
-import Language.PS.CST (Ident, ModuleName, ProperName, QualifiedName(..)) as E
+import Language.PS.CST (Ident, ModuleName, OpName, ProperName, QualifiedName(..)) as E
+import Language.PS.CST (Ident, OpName(..), ProperName, QualifiedName)
 import Language.PS.CST as CST
 
 properName' :: forall p. String -> Maybe (CST.ProperName p)
@@ -80,18 +77,10 @@ identRegex =
 
 -- opName
 
-newtype OpName = OpName String
-
-derive newtype instance opNameEq :: Eq OpName
-derive newtype instance opNameOrd :: Ord OpName
-
-instance opNameShow :: Show OpName where
-  show (OpName s) = "(OpName " <> show s <> ")"
-
-unsafeOpName :: String -> OpName
+unsafeOpName :: forall p. String -> OpName p
 unsafeOpName = OpName
 
-opName' :: String -> Maybe OpName
+opName' :: forall p. String -> Maybe (OpName p)
 opName' s =
   guard ( not String.null s
           && all isSymbolChar (toCharArray s)
@@ -100,18 +89,15 @@ opName' s =
 
 -- currently does not support non ascii symbols
 opNameP ::
-  forall s.
+  forall s p.
   NameFormat
   (OperatorChar :/ CCLNil)
   (OperatorChar :/ CCLNil)
   s =>
   IsSymbol s =>
   SProxy s ->
-  OpName
+  OpName p
 opNameP = OpName <<< reflectSymbol
-
-opNameToOpName :: forall p. OpName -> CST.OpName p
-opNameToOpName (OpName s) = CST.OpName s
 
 isSymbolChar :: Char -> Boolean
 isSymbolChar c =
@@ -163,7 +149,7 @@ qualNameIdent :: String -> Maybe (CST.QualifiedName Ident)
 qualNameIdent = qualName' ident'
 
 -- TODO support period in opName
-qualNameOp :: String -> Maybe (CST.QualifiedName OpName)
+qualNameOp :: forall p. String -> Maybe (CST.QualifiedName (OpName p))
 qualNameOp =  qualName' (opName' <=< unParen)
   where
     unParen s = do

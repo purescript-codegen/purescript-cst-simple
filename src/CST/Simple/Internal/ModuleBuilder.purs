@@ -189,9 +189,9 @@ mkQualIdent =
   mkQualName qualNameIdent
 
 mkQualOpName ::
-  forall m.
+  forall m p.
   MonadThrow CodegenError m =>
   String ->
-  m (QualifiedName OpName)
+  m (QualifiedName (OpName p))
 mkQualOpName =
   mkQualName qualNameOp
