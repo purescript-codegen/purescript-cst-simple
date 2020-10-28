@@ -4,10 +4,9 @@ module CST.Simple.NamesSpec
 
 import Prelude
 
-import CST.Simple.Names (QualifiedName(..), ident', identP, moduleName', moduleNameP, opName', opNameP, properName', properNameP, qualNameOp, qualNameProper)
+import CST.Simple.Names (QualifiedName(..), ident', moduleName', opName', properName', qualNameOp, qualNameProper)
 import CST.Simple.TestUtils (fooBarModuleName)
 import Data.Maybe (Maybe(..), isJust, isNothing)
-import Data.Symbol (SProxy(..))
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
@@ -33,15 +32,6 @@ pnameSpec = describe "pname" do
   it "should reject empty name" do
     properName' "" `shouldSatisfy` isNothing
 
-  it "should accept typelevel proper names" do
-    let _ = properNameP (SProxy :: _ "Foo")
-        _ = properNameP (SProxy :: _ "Foo'")
-        _ = properNameP (SProxy :: _ "Foo_")
-        -- should not compile:
-        -- _ = properNameP (SProxy :: _ "foo")
-        -- _ = properNameP (SProxy :: _ "F!")
-    pure unit
-
 inameSpec :: Spec Unit
 inameSpec = describe "iname" do
   it "should accept noncapitalized name" do
@@ -56,14 +46,6 @@ inameSpec = describe "iname" do
   it "should reject empty name" do
     ident' "" `shouldSatisfy` isNothing
 
-  it "should accept typelevel ident names" do
-    let _ = identP (SProxy :: _ "foo")
-        _ = identP (SProxy :: _ "_foo")
-        -- should not compile:
-        -- _ = identP (SProxy :: _ "Foo")
-        -- _ = identP (SProxy :: _ "f!")
-    pure unit
-
 opNameSpec :: Spec Unit
 opNameSpec = describe "opName" do
   it "should accept operator name" do
@@ -74,14 +56,6 @@ opNameSpec = describe "opName" do
 
   it "should reject empty name" do
     opName' "" `shouldSatisfy` isNothing
-
-  it "should accept typelevel operator names" do
-    let _ = opNameP (SProxy :: _ "<>")
-        _ = opNameP (SProxy :: _ "<")
-        -- should not compile:
-        -- _ = opNameP (SProxy :: _ "Foo")
-        -- _ = opNameP (SProxy :: _ "f!")
-    pure unit
 
 moduleNameSpec :: Spec Unit
 moduleNameSpec = describe "moduleName" do
@@ -98,17 +72,6 @@ moduleNameSpec = describe "moduleName" do
 
   it "should reject empty name" do
     moduleName' "" `shouldSatisfy` isNothing
-
-  it "should accept typelevel module names" do
-    Just (moduleNameP (SProxy :: _ "Foo")) `shouldEqual` moduleName' "Foo"
-    Just (moduleNameP (SProxy :: _ "Foo.Bar")) `shouldEqual` moduleName' "Foo.Bar"
-
-    -- should not compile:
-    -- let
-      -- _ = moduleNameP (SProxy :: _ "")
-      -- _ = moduleNameP (SProxy :: _ "Foo.bar")
-      -- _ = moduleNameP (SProxy :: _ "Foo..Bar")
-    pure unit
 
 qualNameSpec :: Spec Unit
 qualNameSpec = describe "qualName" do

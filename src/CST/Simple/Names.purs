@@ -5,14 +5,9 @@ module CST.Simple.Names
        , KindName
        , Namespace
        , properName'
-       , properNameP
        , ident'
-       , identP
        , opName'
-       , opNameP
        , moduleName'
-       , moduleNameP
-       , ModuleNameMapping
        , qualNameProper
        , qualNameIdent
        , qualNameOp
@@ -21,8 +16,6 @@ module CST.Simple.Names
 
 import Prelude
 
-import CST.Simple.Internal.SList (class SListMap, class SListMapping, class SListReflect1, SListProxy(..), reflectSList1)
-import CST.Simple.Internal.SymbolUtils (class NameFormat, class SplitWithChar, type (:/), CCLNil, DigitChar, LowercaseChar, OperatorChar, QuoteChar, UnderscoreChar, UppercaseChar)
 import Control.MonadPlus (guard)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Char.Unicode as Char
@@ -34,7 +27,6 @@ import Data.String.Regex (Regex)
 import Data.String.Regex as Regex
 import Data.String.Regex.Flags as RegexFlags
 import Data.String.Regex.Unsafe (unsafeRegex)
-import Data.Symbol (class IsSymbol, SProxy, reflectSymbol)
 import Data.Traversable (traverse)
 import Language.PS.CST (Ident, ModuleName, OpName, ProperName, QualifiedName(..)) as E
 import Language.PS.CST (Ident, OpName(..), ProperName, QualifiedName)
@@ -50,17 +42,6 @@ properName' :: forall p. String -> Maybe (CST.ProperName p)
 properName' s =
   CST.ProperName <$> filterRegex properNameRegex s
 
-properNameP ::
-  forall s p.
-  NameFormat
-  (UppercaseChar :/ CCLNil)
-  (UppercaseChar :/ LowercaseChar :/ DigitChar :/ UnderscoreChar :/ QuoteChar :/ CCLNil)
-  s =>
-  IsSymbol s =>
-  SProxy s ->
-  ProperName p
-properNameP = CST.ProperName <<< reflectSymbol
-
 properNameRegex :: Regex
 properNameRegex =
   unsafeRegex "^[A-Z][A-Za-z0-9_']*$" RegexFlags.noFlags
@@ -70,17 +51,6 @@ properNameRegex =
 ident' :: String -> Maybe Ident
 ident' s =
   CST.Ident <$> filterRegex identRegex s
-
-identP ::
-  forall s.
-  NameFormat
-  (LowercaseChar :/ UnderscoreChar :/ CCLNil)
-  (UppercaseChar :/ LowercaseChar :/ DigitChar :/ UnderscoreChar :/ QuoteChar :/ CCLNil)
-  s =>
-  IsSymbol s =>
-  SProxy s ->
-  Ident
-identP = CST.Ident <<< reflectSymbol
 
 identRegex :: Regex
 identRegex =
@@ -97,18 +67,6 @@ opName' s =
           && all isSymbolChar (toCharArray s)
         )
   $> OpName s
-
--- currently does not support non ascii symbols
-opNameP ::
-  forall s p.
-  NameFormat
-  (OperatorChar :/ CCLNil)
-  (OperatorChar :/ CCLNil)
-  s =>
-  IsSymbol s =>
-  SProxy s ->
-  OpName p
-opNameP = OpName <<< reflectSymbol
 
 isSymbolChar :: Char -> Boolean
 isSymbolChar c =
@@ -131,25 +89,6 @@ moduleName' s =
         -- in particular, no single quoute
         =<< traverse (properName') (String.split (String.Pattern ".") s)
       )
-
-data ModuleNameMapping
-
-instance moduleNameMapping ::
-  ( NameFormat
-    (UppercaseChar :/ CCLNil)
-    (UppercaseChar :/ LowercaseChar :/ DigitChar :/ CCLNil)
-    s
-  ) => SListMapping ModuleNameMapping s s
-
-moduleNameP ::
-  forall s l.
-  SplitWithChar "." s l =>
-  SListMap ModuleNameMapping l l =>
-  SListReflect1 l =>
-  SProxy s ->
-  ModuleName
-moduleNameP _ =
-  CST.ModuleName $ CST.ProperName <$> reflectSList1 (SListProxy :: _ l)
 
 -- qualName
 
