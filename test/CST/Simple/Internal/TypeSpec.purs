@@ -5,7 +5,7 @@ module CST.Simple.Internal.TypeSpec
 import Prelude
 
 import CST.Simple.Internal.Type (class AsTyp, Typ, cnst, runTyp', typApp, typCons, typForall, typOp, typRecord, typRow, typString, typVar, (*->), (*::), (*=>))
-import CST.Simple.TestUtils (build, buildA, buildModuleErr, cstTypCons, cstUnqualName, cstUnqualProperName, fooBarModuleName, intCSTType, shouldImport, stringCSTType)
+import CST.Simple.TestUtils (buildA, buildModuleErr, cstTypCons, cstUnqualName, cstUnqualProperName, fooBarModuleName, intCSTType, shouldImport, stringCSTType)
 import CST.Simple.Types (CodegenError(..))
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
