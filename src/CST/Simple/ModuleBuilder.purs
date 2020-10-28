@@ -4,9 +4,8 @@ module CST.Simple.ModuleBuilder
 
 import Prelude
 
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilderT, addDeclaration, mkPName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilderT, addDeclaration, mkProperName)
 import CST.Simple.Internal.Type (class AsTyp, runTyp')
-import CST.Simple.Names (pnameToProperName)
 import Data.Maybe (Maybe(..))
 import Language.PS.CST as CST
 
@@ -14,13 +13,13 @@ import Language.PS.CST as CST
 
 addTypeDecl :: forall m t. Monad m => AsTyp t => String -> t -> ModuleBuilderT m Unit
 addTypeDecl name t = do
-  pname <- mkPName name
+  dataHdName <- mkProperName name
   type_ <- runTyp' t
-  addDeclaration pname $
+  addDeclaration name $
     CST.DeclType
     { comments: Nothing
     , head: CST.DataHead
-      { dataHdName: pnameToProperName pname
+      { dataHdName
       , dataHdVars: []
       }
     , type_

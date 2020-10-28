@@ -1,10 +1,6 @@
 module CST.Simple.Names
-       ( PName
-       , unsafePName
-       , pname'
-       , pnameP
-       , pnameToProperName
-       , pnameToString
+       ( properName'
+       , properNameP
        , ident'
        , identP
        , OpName
@@ -38,50 +34,30 @@ import Data.String.Regex.Flags as RegexFlags
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Symbol (class IsSymbol, SProxy, reflectSymbol)
 import Data.Traversable (traverse)
-import Language.PS.CST (Ident, ModuleName, QualifiedName(..)) as E
+import Language.PS.CST (Ident, ProperName, QualifiedName)
+import Language.PS.CST (Ident, ModuleName, ProperName, QualifiedName(..)) as E
 import Language.PS.CST as CST
 
--- pname
+properName' :: forall p. String -> Maybe (CST.ProperName p)
+properName' s =
+  CST.ProperName <$> filterRegex properNameRegex s
 
-newtype PName = PName String
-
-derive newtype instance pnameEq :: Eq PName
-derive newtype instance pnameOrd :: Ord PName
-
-instance pnameShow :: Show PName where
-  show (PName s) = "(PName " <> show s <> ")"
-
-unsafePName :: String -> PName
-unsafePName = PName
-
-pname' :: String -> Maybe PName
-pname' s =
-  PName <$> filterRegex pnameRegex s
-
-pnameP ::
-  forall s.
+properNameP ::
+  forall s p.
   NameFormat
   (UppercaseChar :/ CCLNil)
   (UppercaseChar :/ LowercaseChar :/ DigitChar :/ UnderscoreChar :/ QuoteChar :/ CCLNil)
   s =>
   IsSymbol s =>
   SProxy s ->
-  PName
-pnameP = PName <<< reflectSymbol
+  ProperName p
+properNameP = CST.ProperName <<< reflectSymbol
 
-pnameToProperName :: forall p. PName -> CST.ProperName p
-pnameToProperName (PName s) = CST.ProperName s
-
-pnameToString :: PName -> String
-pnameToString (PName s) = s
-
-pnameRegex :: Regex
-pnameRegex =
+properNameRegex :: Regex
+properNameRegex =
   unsafeRegex "^[A-Z][A-Za-z0-9_']*$" RegexFlags.noFlags
 
 -- ident
-
-type Ident = CST.Ident
 
 ident' :: String -> Maybe Ident
 ident' s =
@@ -154,7 +130,9 @@ moduleName' :: String -> Maybe ModuleName
 moduleName' s =
   CST.ModuleName
   <$> ( NonEmptyArray.fromArray
-        =<< traverse (map pnameToProperName <<< pname') (String.split (String.Pattern ".") s)
+        -- TODO not all proper name chars allowed
+        -- in particular, no single quoute
+        =<< traverse (properName') (String.split (String.Pattern ".") s)
       )
 
 data ModuleNameMapping
@@ -178,8 +156,8 @@ moduleNameP _ =
 
 -- qualName
 
-qualNameProper :: String -> Maybe (CST.QualifiedName PName)
-qualNameProper = qualName' pname'
+qualNameProper :: forall p. String -> Maybe (QualifiedName (ProperName p))
+qualNameProper = qualName' properName'
 
 qualNameIdent :: String -> Maybe (CST.QualifiedName Ident)
 qualNameIdent = qualName' ident'

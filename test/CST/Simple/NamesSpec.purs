@@ -4,10 +4,11 @@ module CST.Simple.NamesSpec
 
 import Prelude
 
-import CST.Simple.Names (QualifiedName(..), ident', identP, moduleName', moduleNameP, opName', opNameP, pname', pnameP, qualNameOp, qualNameProper, unsafeOpName, unsafePName)
+import CST.Simple.Names (QualifiedName(..), ident', identP, moduleName', moduleNameP, opName', opNameP, properName', properNameP, qualNameOp, qualNameProper, unsafeOpName)
 import CST.Simple.TestUtils (fooBarModuleName)
 import Data.Maybe (Maybe(..), isJust, isNothing)
 import Data.Symbol (SProxy(..))
+import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 
@@ -22,23 +23,23 @@ namesSpec = describe "names" do
 pnameSpec :: Spec Unit
 pnameSpec = describe "pname" do
   it "should accept capitalized name" do
-    pname' "Foo" `shouldSatisfy` isJust
-    pname' "Foo'" `shouldSatisfy` isJust
-    pname' "Foo_" `shouldSatisfy` isJust
+    properName' "Foo" `shouldSatisfy` isJust
+    properName' "Foo'" `shouldSatisfy` isJust
+    properName' "Foo_" `shouldSatisfy` isJust
 
   it "should reject noncapitalized name" do
-    pname' "foo" `shouldSatisfy` isNothing
+    properName' "foo" `shouldSatisfy` isNothing
 
   it "should reject empty name" do
-    pname' "" `shouldSatisfy` isNothing
+    properName' "" `shouldSatisfy` isNothing
 
   it "should accept typelevel proper names" do
-    let _ = pnameP (SProxy :: _ "Foo")
-        _ = pnameP (SProxy :: _ "Foo'")
-        _ = pnameP (SProxy :: _ "Foo_")
+    let _ = properNameP (SProxy :: _ "Foo")
+        _ = properNameP (SProxy :: _ "Foo'")
+        _ = properNameP (SProxy :: _ "Foo_")
         -- should not compile:
-        -- _ = pnameP (SProxy :: _ "foo")
-        -- _ = pnameP (SProxy :: _ "F!")
+        -- _ = properNameP (SProxy :: _ "foo")
+        -- _ = properNameP (SProxy :: _ "F!")
     pure unit
 
 inameSpec :: Spec Unit
@@ -115,18 +116,18 @@ qualNameSpec = describe "qualName" do
     (qualNameProper "") `shouldSatisfy` isNothing
     (qualNameProper ".") `shouldSatisfy` isNothing
 
-  it "should accept unqualified pname" do
+  it "should accept unqualified properName" do
     (qualNameProper "Foo") `shouldEqual`
-      Just (QualifiedName { qualModule: Nothing, qualName: unsafePName "Foo" })
+      Just (QualifiedName { qualModule: Nothing, qualName: CST.ProperName "Foo" })
 
-  it "should read qualified pname" do
+  it "should read qualified properName" do
     (qualNameProper "Foo.Bar.Baz") `shouldEqual`
-      Just (QualifiedName { qualModule: Just fooBarModuleName, qualName: unsafePName "Baz" })
+      Just (QualifiedName { qualModule: Just fooBarModuleName, qualName: CST.ProperName "Baz" })
 
-  it "should accept unqualified opname" do
+  it "should accept unqualified oproperName" do
     (qualNameOp "(<>)") `shouldEqual`
       Just (QualifiedName { qualModule: Nothing, qualName: unsafeOpName "<>" })
 
-  it "should read qualified opname" do
+  it "should read qualified oproperName" do
     (qualNameOp "Foo.Bar.(<>)") `shouldEqual`
       Just (QualifiedName { qualModule: Just fooBarModuleName, qualName: unsafeOpName "<>" })

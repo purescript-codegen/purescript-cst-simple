@@ -26,8 +26,8 @@ module CST.Simple.Internal.Type
 
 import Prelude
 
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, addImport, addImportClass, addImportKind, addImportType, liftModuleBuilder, mkIdent, mkQualOpName, mkQualPName)
-import CST.Simple.Names (QualifiedName(..), opNameToOpName, pnameToProperName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, addImport, addImportClass, addImportKind, addImportType, liftModuleBuilder, mkIdent, mkQualOpName, mkQualProperName)
+import CST.Simple.Names (QualifiedName(..), opNameToOpName)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Foldable (foldl)
 import Data.Maybe (Maybe(..))
@@ -46,11 +46,11 @@ typVar s = Typ $ CST.TypeVar <$> mkIdent s
 
 typCons :: String -> Typ
 typCons s = Typ do
-  q@(QualifiedName { qualName }) <- mkQualPName s
+  q@(QualifiedName { qualName }) <- mkQualProperName s
   addImportType q
   pure $ CST.TypeConstructor $
     QualifiedName { qualModule: Nothing
-                  , qualName: pnameToProperName qualName
+                  , qualName
                   }
 
 typString :: String -> Typ
@@ -115,11 +115,11 @@ infixr 6 typArrow as *->
 typKinded :: forall t. AsTyp t => t -> String -> Typ
 typKinded t k = Typ do
   t' <- runTyp' t
-  q@(QualifiedName { qualName }) <- mkQualPName k
+  q@(QualifiedName { qualName }) <- mkQualProperName k
   addImportKind q
   pure $ CST.TypeKinded t' $ CST.KindName $
     QualifiedName { qualModule: Nothing
-                  , qualName: pnameToProperName qualName
+                  , qualName
                   }
 
 infixr 8 typKinded as *::
@@ -166,12 +166,12 @@ runConstraint (Constraint mb) = liftModuleBuilder mb
 
 cnst :: forall t. AsTyp t => String -> Array t -> Constraint
 cnst s args = Constraint do
-  q@(QualifiedName { qualName }) <- mkQualPName s
+  q@(QualifiedName { qualName }) <- mkQualProperName s
   addImportClass q
   args' <- traverse runTyp' args
   pure $ CST.Constraint
     { className: QualifiedName { qualModule: Nothing
-                               , qualName: pnameToProperName qualName
+                               , qualName
                                }
     , args: args'
     }

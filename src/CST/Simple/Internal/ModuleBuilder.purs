@@ -11,18 +11,18 @@ module CST.Simple.Internal.ModuleBuilder
        , addImportClass
        , addImport
        , addDeclaration
-       , mkPName
+       , mkProperName
        , mkIdent
        , mkQualName
-       , mkQualPName
-       , mkQualCSTIdent
+       , mkQualProperName
+       , mkQualIdent
        , mkQualOpName
        ) where
 
 import Prelude
 
 import CST.Simple.Internal.Utils (noteM)
-import CST.Simple.Names (Ident, ModuleName, OpName, PName, QualifiedName(..), ident', pname', pnameToProperName, pnameToString, qualNameIdent, qualNameOp, qualNameProper)
+import CST.Simple.Names (Ident, ModuleName, OpName, ProperName, QualifiedName(..), ident', properName', qualNameIdent, qualNameOp, qualNameProper)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except (ExceptT, mapExceptT, runExceptT)
@@ -50,7 +50,7 @@ import Language.PS.CST as CST
 type ModuleBuilderState =
   { imports :: Map ModuleName (Set CST.Import)
   , idecls :: List CST.Declaration
-  , pnames :: Set PName
+  , pnames :: Set String
   }
 
 newtype ModuleBuilderT m a =
@@ -66,7 +66,7 @@ derive newtype instance moduleBuilderTMonadError :: Monad m => MonadError Codege
 derive newtype instance moduleBuilderTMonadState :: Monad m =>
   MonadState { imports :: Map ModuleName (Set CST.Import)
              , idecls :: List CST.Declaration
-             , pnames :: Set PName
+             , pnames :: Set String
              } (ModuleBuilderT m)
 
 type ModuleBuilder a = ModuleBuilderT Identity a
@@ -111,26 +111,24 @@ buildModuleT' (ModuleBuilderT mb) = map (rmap toContent) <$> (runExceptT (runSta
                      }
 
 
-addImportType :: forall m. Monad m => QualifiedName PName -> ModuleBuilderT m Unit
+addImportType :: forall m. Monad m => QualifiedName (ProperName CST.ProperNameType_TypeName) -> ModuleBuilderT m Unit
 addImportType = addQualImport \n -> CST.ImportType n Nothing
 
-addImportKind :: forall m. Monad m => QualifiedName PName -> ModuleBuilderT m Unit
+addImportKind :: forall m. Monad m => QualifiedName (ProperName CST.ProperNameType_KindName) -> ModuleBuilderT m Unit
 addImportKind = addQualImport CST.ImportKind
 
-addImportClass :: forall m. Monad m => QualifiedName PName -> ModuleBuilderT m Unit
+addImportClass :: forall m. Monad m => QualifiedName (ProperName CST.ProperNameType_ClassName) -> ModuleBuilderT m Unit
 addImportClass = addQualImport CST.ImportClass
 
 addQualImport ::
   forall p m.
   Monad m =>
-  (CST.ProperName p -> CST.Import) ->
-  QualifiedName PName ->
+  (ProperName p -> CST.Import) ->
+  QualifiedName (CST.ProperName p) ->
   ModuleBuilderT m Unit
 addQualImport toCSTImport (QualifiedName { qualModule, qualName }) =
-  for_ qualModule (\m -> addImport m import_)
-
-  where
-    import_ = toCSTImport (pnameToProperName qualName)
+  for_ qualModule \m ->
+  addImport m (toCSTImport qualName)
 
 addImport :: forall m. Monad m => ModuleName -> CST.Import -> ModuleBuilderT m Unit
 addImport moduleName import_ =
@@ -138,7 +136,7 @@ addImport moduleName import_ =
                    }
           )
 
-addDeclaration :: forall m. Monad m => PName -> CST.Declaration -> ModuleBuilderT m Unit
+addDeclaration :: forall m. Monad m => String -> CST.Declaration -> ModuleBuilderT m Unit
 addDeclaration pname decl = do
   verifyNoDuplicate
   modify_ (\s -> s { idecls = decl : s.idecls
@@ -150,7 +148,7 @@ addDeclaration pname decl = do
     verifyNoDuplicate = do
       pnames <- gets _.pnames
       if Set.member pname pnames
-        then throwError $ DuplicateDeclName $ pnameToString pname
+        then throwError $ DuplicateDeclName $ pname
         else pure unit
 
 liftModuleBuilder :: forall m a. Monad m => ModuleBuilder a -> ModuleBuilderT m a
@@ -159,8 +157,8 @@ liftModuleBuilder (ModuleBuilderT x) =
 
 -- Names
 
-mkPName :: forall m. MonadThrow CodegenError m => String -> m PName
-mkPName s = noteM (InvalidProperName s) $ pname' s
+mkProperName :: forall m p. MonadThrow CodegenError m => String -> m (ProperName p)
+mkProperName s = noteM (InvalidProperName s) $ properName' s
 
 mkIdent :: forall m. MonadThrow CodegenError m => String -> m Ident
 mkIdent s = noteM (InvalidIdent s) $ ident' s
@@ -174,20 +172,20 @@ mkQualName ::
 mkQualName f s =
   noteM (InvalidQualifiedName s) $ f s
 
-mkQualPName ::
-  forall m.
+mkQualProperName ::
+  forall m p.
   MonadThrow CodegenError m =>
   String ->
-  m (QualifiedName PName)
-mkQualPName =
+  m (QualifiedName (ProperName p))
+mkQualProperName =
   mkQualName qualNameProper
 
-mkQualCSTIdent ::
+mkQualIdent ::
   forall m.
   MonadThrow CodegenError m =>
   String ->
-  m (QualifiedName CST.Ident)
-mkQualCSTIdent =
+  m (QualifiedName Ident)
+mkQualIdent =
   mkQualName qualNameIdent
 
 mkQualOpName ::
