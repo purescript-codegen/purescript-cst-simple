@@ -5,11 +5,8 @@ module CST.Simple.Names
        , pnameP
        , pnameToProperName
        , pnameToString
-       , IName
-       , iname'
-       , inameP
-       , inameToIdent
-       , inameToString
+       , ident'
+       , identP
        , OpName
        , unsafeOpName
        , opName'
@@ -41,7 +38,7 @@ import Data.String.Regex.Flags as RegexFlags
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Symbol (class IsSymbol, SProxy, reflectSymbol)
 import Data.Traversable (traverse)
-import Language.PS.CST (ModuleName(..), QualifiedName(..)) as E
+import Language.PS.CST (Ident, ModuleName(..), QualifiedName(..)) as E
 import Language.PS.CST (ModuleName(..), ProperName(..))
 import Language.PS.CST as CST
 
@@ -83,21 +80,15 @@ pnameRegex :: Regex
 pnameRegex =
   unsafeRegex "^[A-Z][A-Za-z0-9_']*$" RegexFlags.noFlags
 
--- iname
+-- ident
 
-newtype IName = IName String
+type Ident = CST.Ident
 
-derive newtype instance inameEq :: Eq IName
-derive newtype instance inameOrd :: Ord IName
+ident' :: String -> Maybe Ident
+ident' s =
+  CST.Ident <$> filterRegex identRegex s
 
-instance inameShow :: Show IName where
-  show (IName s) = "(IName " <> show s <> ")"
-
-iname' :: String -> Maybe IName
-iname' s =
-  IName <$> filterRegex inameRegex s
-
-inameP ::
+identP ::
   forall s.
   NameFormat
   (LowercaseChar :/ UnderscoreChar :/ CCLNil)
@@ -105,18 +96,12 @@ inameP ::
   s =>
   IsSymbol s =>
   SProxy s ->
-  IName
-inameP = IName <<< reflectSymbol
+  Ident
+identP = CST.Ident <<< reflectSymbol
 
-inameRegex :: Regex
-inameRegex =
+identRegex :: Regex
+identRegex =
   unsafeRegex "^[a-z_][A-Za-z0-9_]*$" RegexFlags.noFlags
-
-inameToIdent :: IName -> CST.Ident
-inameToIdent (IName s) = CST.Ident s
-
-inameToString :: IName -> String
-inameToString (IName s) = s
 
 -- opName
 
@@ -195,8 +180,8 @@ moduleNameP _ =
 qualNameProper :: String -> Maybe (CST.QualifiedName PName)
 qualNameProper = qualName' pname'
 
-qualNameIdent :: String -> Maybe (CST.QualifiedName IName)
-qualNameIdent = qualName' iname'
+qualNameIdent :: String -> Maybe (CST.QualifiedName Ident)
+qualNameIdent = qualName' ident'
 
 -- TODO support period in opName
 qualNameOp :: String -> Maybe (CST.QualifiedName OpName)

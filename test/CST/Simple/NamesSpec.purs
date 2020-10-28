@@ -4,7 +4,7 @@ module CST.Simple.NamesSpec
 
 import Prelude
 
-import CST.Simple.Names (QualifiedName(..), iname', inameP, moduleName', moduleNameP, opName', opNameP, pname', pnameP, qualNameOp, qualNameProper, unsafeOpName, unsafePName)
+import CST.Simple.Names (QualifiedName(..), ident', identP, moduleName', moduleNameP, opName', opNameP, pname', pnameP, qualNameOp, qualNameProper, unsafeOpName, unsafePName)
 import CST.Simple.TestUtils (fooBarModuleName)
 import Data.Maybe (Maybe(..), isJust, isNothing)
 import Data.Symbol (SProxy(..))
@@ -44,23 +44,23 @@ pnameSpec = describe "pname" do
 inameSpec :: Spec Unit
 inameSpec = describe "iname" do
   it "should accept noncapitalized name" do
-    iname' "foo" `shouldSatisfy` isJust
+    ident' "foo" `shouldSatisfy` isJust
 
   it "should accept preceeding underscore" do
-    iname' "_foo" `shouldSatisfy` isJust
+    ident' "_foo" `shouldSatisfy` isJust
 
   it "should reject capitalized name" do
-    iname' "Foo" `shouldSatisfy` isNothing
+    ident' "Foo" `shouldSatisfy` isNothing
 
   it "should reject empty name" do
-    iname' "" `shouldSatisfy` isNothing
+    ident' "" `shouldSatisfy` isNothing
 
   it "should accept typelevel ident names" do
-    let _ = inameP (SProxy :: _ "foo")
-        _ = inameP (SProxy :: _ "_foo")
+    let _ = identP (SProxy :: _ "foo")
+        _ = identP (SProxy :: _ "_foo")
         -- should not compile:
-        -- _ = inameP (SProxy :: _ "Foo")
-        -- _ = inameP (SProxy :: _ "f!")
+        -- _ = identP (SProxy :: _ "Foo")
+        -- _ = identP (SProxy :: _ "f!")
     pure unit
 
 opNameSpec :: Spec Unit

@@ -12,7 +12,7 @@ module CST.Simple.Internal.ModuleBuilder
        , addImport
        , addDeclaration
        , mkPName
-       , mkIName
+       , mkIdent
        , mkQualName
        , mkQualPName
        , mkQualCSTIdent
@@ -22,7 +22,7 @@ module CST.Simple.Internal.ModuleBuilder
 import Prelude
 
 import CST.Simple.Internal.Utils (noteM)
-import CST.Simple.Names (IName, ModuleName, OpName, PName, QualifiedName(..), iname', inameToIdent, pname', pnameToProperName, pnameToString, qualNameIdent, qualNameOp, qualNameProper)
+import CST.Simple.Names (Ident, ModuleName, OpName, PName, QualifiedName(..), ident', pname', pnameToProperName, pnameToString, qualNameIdent, qualNameOp, qualNameProper)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except (ExceptT, mapExceptT, runExceptT)
@@ -162,8 +162,8 @@ liftModuleBuilder (ModuleBuilderT x) =
 mkPName :: forall m. MonadThrow CodegenError m => String -> m PName
 mkPName s = noteM (InvalidProperName s) $ pname' s
 
-mkIName :: forall m. MonadThrow CodegenError m => String -> m IName
-mkIName s = noteM (InvalidIdent s) $ iname' s
+mkIdent :: forall m. MonadThrow CodegenError m => String -> m Ident
+mkIdent s = noteM (InvalidIdent s) $ ident' s
 
 mkQualName ::
   forall m n.
@@ -188,7 +188,7 @@ mkQualCSTIdent ::
   String ->
   m (QualifiedName CST.Ident)
 mkQualCSTIdent =
-  mkQualName (map (map inameToIdent) <<< qualNameIdent)
+  mkQualName qualNameIdent
 
 mkQualOpName ::
   forall m.

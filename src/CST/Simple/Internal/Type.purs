@@ -26,8 +26,8 @@ module CST.Simple.Internal.Type
 
 import Prelude
 
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, addImport, addImportClass, addImportKind, addImportType, liftModuleBuilder, mkIName, mkQualOpName, mkQualPName)
-import CST.Simple.Names (QualifiedName(..), inameToIdent, opNameToOpName, pnameToProperName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, addImport, addImportClass, addImportKind, addImportType, liftModuleBuilder, mkIdent, mkQualOpName, mkQualPName)
+import CST.Simple.Names (QualifiedName(..), opNameToOpName, pnameToProperName)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Foldable (foldl)
 import Data.Maybe (Maybe(..))
@@ -42,7 +42,7 @@ runTyp :: forall m. Monad m => Typ -> ModuleBuilderT m CST.Type
 runTyp (Typ mb) = liftModuleBuilder mb
 
 typVar :: String -> Typ
-typVar s = Typ $ CST.TypeVar <<< inameToIdent <$> mkIName s
+typVar s = Typ $ CST.TypeVar <$> mkIdent s
 
 typCons :: String -> Typ
 typCons s = Typ do
@@ -105,7 +105,7 @@ typForall vs t = case NonEmptyArray.fromArray vs of
   where
     t' = asTyp t
 
-    toTypeVarName v = CST.TypeVarName <<< inameToIdent <$> mkIName v
+    toTypeVarName v = CST.TypeVarName <$> mkIdent v
 
 typArrow :: forall t1 t2. AsTyp t1 => AsTyp t2 => t1 -> t2 -> Typ
 typArrow t1 t2 = Typ $ CST.TypeArr <$> runTyp' t1 <*> runTyp' t2
