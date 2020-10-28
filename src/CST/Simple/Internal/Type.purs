@@ -26,7 +26,7 @@ module CST.Simple.Internal.Type
 
 import Prelude
 
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkIdent, mkQualOpName, mkQualProperName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Foldable (foldl)
 import Data.Maybe (Maybe(..))
@@ -41,11 +41,11 @@ runTyp :: forall m. Monad m => Typ -> ModuleBuilderT m CST.Type
 runTyp (Typ mb) = liftModuleBuilder mb
 
 typVar :: String -> Typ
-typVar s = Typ $ CST.TypeVar <$> mkIdent s
+typVar s = Typ $ CST.TypeVar <$> mkName s
 
 typCons :: String -> Typ
 typCons s =
-  Typ $ CST.TypeConstructor <$> mkQualProperName s
+  Typ $ CST.TypeConstructor <$> mkQualName s
 
 typString :: String -> Typ
 typString = Typ <<< pure <<< CST.TypeString
@@ -99,7 +99,7 @@ typForall vs t = case NonEmptyArray.fromArray vs of
   where
     t' = asTyp t
 
-    toTypeVarName v = CST.TypeVarName <$> mkIdent v
+    toTypeVarName v = CST.TypeVarName <$> mkName v
 
 typArrow :: forall t1 t2. AsTyp t1 => AsTyp t2 => t1 -> t2 -> Typ
 typArrow t1 t2 = Typ $ CST.TypeArr <$> runTyp' t1 <*> runTyp' t2
@@ -109,7 +109,7 @@ infixr 6 typArrow as *->
 typKinded :: forall t. AsTyp t => t -> String -> Typ
 typKinded t k = Typ ado
   t' <- runTyp' t
-  k' <- mkQualProperName k
+  k' <- mkQualName k
   in CST.TypeKinded t' (CST.KindName k')
 
 infixr 8 typKinded as *::
@@ -117,7 +117,7 @@ infixr 8 typKinded as *::
 typOp :: forall t1 t2. AsTyp t1 => AsTyp t2 => t1 -> String -> t2 -> Typ
 typOp t1 op t2 = Typ $ CST.TypeOp
   <$> runTyp' t1
-  <*> mkQualOpName op
+  <*> mkQualName op
   <*> runTyp' t2
 
 typConstrained :: forall t. AsTyp t => Constraint -> t -> Typ
@@ -150,7 +150,7 @@ runConstraint (Constraint mb) = liftModuleBuilder mb
 
 cnst :: forall t. AsTyp t => String -> Array t -> Constraint
 cnst s args = Constraint $ ado
-  className <- mkQualProperName s
+  className <- mkQualName s
   args' <- traverse runTyp' args
   in CST.Constraint
     { className

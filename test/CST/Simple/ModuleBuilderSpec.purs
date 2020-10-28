@@ -4,9 +4,9 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
+import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.ModuleBuilder (addTypeDecl)
 import CST.Simple.TestUtils (build, buildModuleErr, intCSTType, requireOne)
-import CST.Simple.Types (CodegenError(..))
 import Data.Array as Array
 import Data.Maybe (Maybe(..))
 import Language.PS.CST as CST
@@ -20,10 +20,7 @@ moduleBuilderSpec = describe "ModuleBuilder" do
 typeDeclarationSpec :: Spec Unit
 typeDeclarationSpec = do
   it "should reject type declarations with invalid name" do
-    buildModuleErr (addTypeDecl "x" "Int") `shouldReturn` (InvalidProperName "x")
-
-  it "should reject type declarations with invalid value" do
-    buildModuleErr (addTypeDecl "X" "int") `shouldReturn` (InvalidQualifiedName "int")
+    buildModuleErr (addTypeDecl "x" "Int") `shouldReturn` (InvalidDataHeadName "x" (InvalidTypeName "x"))
 
   it "should reject duplicate declarations" do
     buildModuleErr (addTypeDecl "X" "Int" *> addTypeDecl "X" "String")

@@ -4,9 +4,9 @@ module CST.Simple.Internal.ExprSpec
 
 import Prelude
 
+import CST.Simple.Internal.CodegenError (CodegenError)
 import CST.Simple.Internal.Expr (Expr, exprIdent, exprString, runExpr)
 import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, fooBarModuleName, shouldImport)
-import CST.Simple.Types (CodegenError)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Maybe (Maybe(..))
 import Effect.Exception (Error)

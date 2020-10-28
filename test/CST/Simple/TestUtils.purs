@@ -17,9 +17,10 @@ module CST.Simple.TestUtils
 
 import Prelude
 
+import CST.Simple.Internal.CodegenError (CodegenError)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule')
 import CST.Simple.Names (ModuleName)
-import CST.Simple.Types (CodegenError, ModuleContent)
+import CST.Simple.Types (ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow)
 import Control.Monad.Except (throwError)
 import Data.Array as Array

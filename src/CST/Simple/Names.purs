@@ -3,22 +3,30 @@ module CST.Simple.Names
        , ConstructorName
        , ClassName
        , KindName
-       , Namespace
-       , properName'
+       , typeName'
+       , constructorName'
+       , className'
+       , kindName'
        , ident'
-       , opName'
+       , TypeOpName
+       , typeOpName'
        , moduleName'
-       , qualNameProper
-       , qualNameIdent
-       , qualNameOp
+       , qualName
+       , class ReadName
+       , readName
+       , class UnwrapQualName
+       , unwrapQualName
        , module E
        ) where
 
 import Prelude
 
+import CST.Simple.Internal.CodegenError (CodegenError(..))
 import Control.MonadPlus (guard)
 import Data.Array.NonEmpty as NonEmptyArray
+import Data.Bifunctor (bimap, lmap)
 import Data.Char.Unicode as Char
+import Data.Either (Either, note)
 import Data.Foldable (all, elem)
 import Data.Maybe (Maybe(..))
 import Data.String as String
@@ -28,9 +36,10 @@ import Data.String.Regex as Regex
 import Data.String.Regex.Flags as RegexFlags
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Traversable (traverse)
-import Language.PS.CST (Ident, ModuleName, OpName, ProperName, QualifiedName(..)) as E
-import Language.PS.CST (Ident, OpName(..), ProperName, QualifiedName)
+import Language.PS.CST (Ident, ModuleName, QualifiedName(..)) as E
+import Language.PS.CST (Ident, ModuleName, QualifiedName)
 import Language.PS.CST as CST
+import Type.Proxy (Proxy(..))
 
 type TypeName = CST.ProperName CST.ProperNameType_TypeName
 type ConstructorName = CST.ProperName CST.ProperNameType_ConstructorName
@@ -38,6 +47,20 @@ type ClassName = CST.ProperName CST.ProperNameType_ClassName
 type KindName = CST.ProperName CST.ProperNameType_KindName
 type Namespace = CST.ProperName CST.ProperNameType_Namespace
 
+typeName' :: String -> Maybe TypeName
+typeName' = properName'
+
+constructorName' :: String -> Maybe ConstructorName
+constructorName' = properName'
+
+className' :: String -> Maybe ClassName
+className' = properName'
+
+kindName' :: String -> Maybe KindName
+kindName' = properName'
+
+-- properName' is used to create variants of ProperName
+-- except for namespace which disallows `_` and `'`.
 properName' :: forall p. String -> Maybe (CST.ProperName p)
 properName' s =
   CST.ProperName <$> filterRegex properNameRegex s
@@ -45,6 +68,14 @@ properName' s =
 properNameRegex :: Regex
 properNameRegex =
   unsafeRegex "^[A-Z][A-Za-z0-9_']*$" RegexFlags.noFlags
+
+namespace' :: String -> Maybe Namespace
+namespace' s =
+  CST.ProperName <$> filterRegex namespaceRegex s
+
+namespaceRegex :: Regex
+namespaceRegex =
+  unsafeRegex "^[A-Z][A-Za-z0-9]*$" RegexFlags.noFlags
 
 -- ident
 
@@ -58,15 +89,14 @@ identRegex =
 
 -- opName
 
-unsafeOpName :: forall p. String -> OpName p
-unsafeOpName = OpName
+type TypeOpName = CST.OpName CST.OpNameType_TypeOpName
 
-opName' :: forall p. String -> Maybe (OpName p)
-opName' s =
+typeOpName' :: String -> Maybe TypeOpName
+typeOpName' s =
   guard ( not String.null s
           && all isSymbolChar (toCharArray s)
         )
-  $> OpName s
+  $> CST.OpName s
 
 isSymbolChar :: Char -> Boolean
 isSymbolChar c =
@@ -79,51 +109,103 @@ asciiSymbolChars = toCharArray ":!#$%&*+./<=>?@\\^|-~"
 
 -- moduleName
 
-type ModuleName = CST.ModuleName
-
 moduleName' :: String -> Maybe ModuleName
 moduleName' s =
   CST.ModuleName
   <$> ( NonEmptyArray.fromArray
-        -- TODO not all proper name chars allowed
-        -- in particular, no single quoute
-        =<< traverse (properName') (String.split (String.Pattern ".") s)
+        =<< traverse (namespace') (String.split (String.Pattern ".") s)
       )
 
--- qualName
-
-qualNameProper :: forall p. String -> Maybe (QualifiedName (ProperName p))
-qualNameProper = qualName' properName'
-
-qualNameIdent :: String -> Maybe (CST.QualifiedName Ident)
-qualNameIdent = qualName' ident'
-
 -- TODO support period in opName
-qualNameOp :: forall p. String -> Maybe (CST.QualifiedName (OpName p))
-qualNameOp =  qualName' (opName' <=< unParen)
-  where
-    unParen s = do
-      let p1 = String.splitAt 1 s
-      guard (p1.before == "(")
-      let p2 = String.splitAt (String.length s - 2) p1.after
-      guard (p2.after == ")")
-      pure p2.before
 
-qualName' :: forall a. (String -> Maybe a) -> String -> Maybe (CST.QualifiedName a)
-qualName' f s = do
-  CST.QualifiedName q <- qualName s
-  s' <- f q.qualName
-  pure $ CST.QualifiedName { qualModule: q.qualModule
-                           , qualName: s'
-                           }
-
-qualName :: String -> Maybe (CST.QualifiedName String)
+qualName ::
+  forall a.
+  UnwrapQualName a =>
+  ReadName a =>
+  String ->
+  Either CodegenError (QualifiedName a)
 qualName s = case String.lastIndexOf (String.Pattern ".") s of
   Just ndx -> ado
-    qualModule <- Just <$> moduleName' (String.take ndx s)
-    in CST.QualifiedName { qualModule, qualName: String.drop (ndx + 1) s }
+    qualModule <- Just <$> readQualModule (String.take ndx s)
+    qualName <- readQualName $ String.drop (ndx + 1) s
+    in CST.QualifiedName { qualModule, qualName }
   Nothing ->
-    Just $ CST.QualifiedName { qualModule: Nothing, qualName: s }
+    readName s <#> \n ->
+    CST.QualifiedName { qualModule: Nothing, qualName: n }
+
+  where
+    readQualModule n =
+      note (InvalidQualifiedModule s n) $ moduleName' n
+
+    unwrap n =
+      note (InvalidQualifiedName s n Nothing) $ unwrapQualName (Proxy :: _ a) n
+
+    readName' u n =
+      lmap
+        (InvalidQualifiedName s u <<< Just)
+        (readName n)
+
+    readQualName u = readName' u =<< unwrap u
+
+
+-- ReadName
+
+class ReadName a where
+  readName :: String -> Either CodegenError a
+
+instance readNameTypeName :: ReadName (CST.ProperName CST.ProperNameType_TypeName) where
+  readName s = note (InvalidTypeName s) (typeName' s)
+
+instance readNameConstructorName :: ReadName (CST.ProperName CST.ProperNameType_ConstructorName) where
+  readName s = note (InvalidConstructorName s) (constructorName' s)
+
+instance readNameClassName :: ReadName (CST.ProperName CST.ProperNameType_ClassName) where
+  readName s = note (InvalidClassName s) (className' s)
+
+instance readNameKindName :: ReadName (CST.ProperName CST.ProperNameType_KindName) where
+  readName s = note (InvalidKindName s) (kindName' s)
+
+instance readNameIdent :: ReadName Ident where
+  readName s = note (InvalidIdent s) (ident' s)
+
+instance readNameTypeOpName :: ReadName (CST.OpName CST.OpNameType_TypeOpName) where
+  readName s = note (InvalidTypeOpName s) (typeOpName' s)
+
+instance readNameQualName ::
+  ( UnwrapQualName a
+  , ReadName a
+  ) => ReadName (QualifiedName a) where
+  readName = qualName
+
+-- todo support type vars. add test when doing so
+instance readNameDataHead :: ReadName CST.DataHead where
+  readName s = bimap (InvalidDataHeadName s) toDataHead (readName s)
+    where
+      toDataHead dataHdName =
+        CST.DataHead
+        { dataHdName
+        , dataHdVars: []
+        }
+
+-- UnwrapQualName
+
+class UnwrapQualName a where
+  unwrapQualName :: Proxy a -> String -> Maybe String
+
+instance unwrapQualNameTypeName :: UnwrapQualName (CST.ProperName CST.ProperNameType_TypeName) where
+  unwrapQualName _ = Just
+
+instance unwrapQualNameClassName :: UnwrapQualName (CST.ProperName CST.ProperNameType_ClassName) where
+  unwrapQualName _ = Just
+
+instance unwrapQualNameKindName :: UnwrapQualName (CST.ProperName CST.ProperNameType_KindName) where
+  unwrapQualName _ = Just
+
+instance unwrapQualNameIdent :: UnwrapQualName Ident where
+  unwrapQualName _ = Just
+
+instance unwrapOpTypeName :: UnwrapQualName (CST.OpName CST.OpNameType_TypeOpName) where
+  unwrapQualName _ = unParen
 
 
 -- Utils
@@ -131,3 +213,11 @@ qualName s = case String.lastIndexOf (String.Pattern ".") s of
 filterRegex :: Regex -> String -> Maybe String
 filterRegex re s =
   guard (Regex.test re s) $> s
+
+unParen :: String -> Maybe String
+unParen s = do
+  let p1 = String.splitAt 1 s
+  guard (p1.before == "(")
+  let p2 = String.splitAt (String.length s - 2) p1.after
+  guard (p2.after == ")")
+  pure p2.before

@@ -10,10 +10,10 @@ module CST.Simple.ProjectBuilder
 
 import Prelude
 
+import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder)
 import CST.Simple.Internal.Utils (noteM)
 import CST.Simple.Names (moduleName')
-import CST.Simple.Types (CodegenError(..))
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError)
 import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.State (class MonadState, StateT, execStateT, state)

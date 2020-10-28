@@ -8,20 +8,16 @@ module CST.Simple.Internal.ModuleBuilder
        , liftModuleBuilder
        , addImport
        , addDeclaration
-       , mkProperName
-       , mkIdent
+       , mkName
        , mkQualName
-       , mkQualProperName
-       , mkQualIdent
-       , mkQualOpName
        ) where
 
 import Prelude
 
+import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Import (class AsImport, asImport)
-import CST.Simple.Internal.Utils (noteM)
-import CST.Simple.Names (Ident, ModuleName, OpName, ProperName, QualifiedName, ident', properName', qualNameIdent, qualNameOp, qualNameProper)
-import CST.Simple.Types (CodegenError(..), ModuleContent)
+import CST.Simple.Names (class ReadName, class UnwrapQualName, ModuleName, QualifiedName, readName)
+import CST.Simple.Types (ModuleContent)
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except (ExceptT, mapExceptT, runExceptT)
 import Control.Monad.Except.Trans (class MonadThrow)
@@ -30,7 +26,7 @@ import Control.Monad.State.Class (class MonadState)
 import Control.Monad.State.Trans (modify_)
 import Data.Array as Array
 import Data.Bifunctor (rmap)
-import Data.Either (Either)
+import Data.Either (Either(..))
 import Data.Foldable (for_)
 import Data.Identity (Identity)
 import Data.List (List, (:))
@@ -136,47 +132,28 @@ liftModuleBuilder (ModuleBuilderT x) =
 
 -- Names
 
-mkProperName :: forall m p. MonadThrow CodegenError m => String -> m (ProperName p)
-mkProperName s = noteM (InvalidProperName s) $ properName' s
-
-mkIdent :: forall m. MonadThrow CodegenError m => String -> m Ident
-mkIdent s = noteM (InvalidIdent s) $ ident' s
+mkName ::
+  forall m n.
+  Monad m =>
+  ReadName n =>
+  String ->
+  ModuleBuilderT m n
+mkName s = case readName s of
+  Left e ->
+    throwError e
+  Right r ->
+    pure r
 
 mkQualName ::
   forall m n.
   Monad m =>
   AsImport n =>
-  (String -> Maybe (QualifiedName n)) ->
+  UnwrapQualName n =>
+  ReadName n =>
   String ->
   ModuleBuilderT m (QualifiedName n)
-mkQualName f s = do
-  CST.QualifiedName q <- noteM (InvalidQualifiedName s) $ f s
+mkQualName s = do
+  CST.QualifiedName q <- mkName s
   for_ q.qualModule \m ->
     addImport m (asImport q.qualName)
   pure $ CST.QualifiedName (q { qualModule = Nothing })
-
-mkQualProperName ::
-  forall m p.
-  Monad m =>
-  AsImport (ProperName p) =>
-  String ->
-  ModuleBuilderT m (QualifiedName (ProperName p))
-mkQualProperName =
-  mkQualName qualNameProper
-
-mkQualIdent ::
-  forall m.
-  Monad m =>
-  String ->
-  ModuleBuilderT m (QualifiedName Ident)
-mkQualIdent =
-  mkQualName qualNameIdent
-
-mkQualOpName ::
-  forall m p.
-  Monad m =>
-  AsImport (OpName p) =>
-  String ->
-  ModuleBuilderT m (QualifiedName (OpName p))
-mkQualOpName =
-  mkQualName qualNameOp

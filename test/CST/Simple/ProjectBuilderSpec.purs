@@ -4,9 +4,9 @@ module CST.Simple.ProjectBuilderSpec
 
 import Prelude
 
+import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.ProjectBuilder (Project, ProjectBuilder, addModule, buildProject, getCSTModules)
 import CST.Simple.TestUtils (fooBarModuleName)
-import CST.Simple.Types (CodegenError(..))
 import Control.Monad.Error.Class (class MonadThrow, throwError)
 import Data.Either (Either(..), either)
 import Data.Maybe (Maybe(..))
