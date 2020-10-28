@@ -19,7 +19,7 @@ import Prelude
 
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule')
 import CST.Simple.Internal.Type (class AsTyp, runTyp')
-import CST.Simple.Names (ModuleName(..))
+import CST.Simple.Names (ModuleName)
 import CST.Simple.Types (CodegenError, ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow)
 import Control.Monad.Except (throwError)
@@ -69,7 +69,7 @@ shouldImport t import_ = do
 
 fooBarModuleName :: ModuleName
 fooBarModuleName =
-  ModuleName $ NonEmptyArray.cons' (CST.ProperName "Foo") [ CST.ProperName "Bar" ]
+  CST.ModuleName $ NonEmptyArray.cons' (CST.ProperName "Foo") [ CST.ProperName "Bar" ]
 
 intCSTType :: CST.Type
 intCSTType =

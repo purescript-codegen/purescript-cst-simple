@@ -38,8 +38,7 @@ import Data.String.Regex.Flags as RegexFlags
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Symbol (class IsSymbol, SProxy, reflectSymbol)
 import Data.Traversable (traverse)
-import Language.PS.CST (Ident, ModuleName(..), QualifiedName(..)) as E
-import Language.PS.CST (ModuleName(..), ProperName(..))
+import Language.PS.CST (Ident, ModuleName, QualifiedName(..)) as E
 import Language.PS.CST as CST
 
 -- pname
@@ -70,8 +69,8 @@ pnameP ::
   PName
 pnameP = PName <<< reflectSymbol
 
-pnameToProperName :: forall p. PName -> ProperName p
-pnameToProperName (PName s) = ProperName s
+pnameToProperName :: forall p. PName -> CST.ProperName p
+pnameToProperName (PName s) = CST.ProperName s
 
 pnameToString :: PName -> String
 pnameToString (PName s) = s
@@ -149,9 +148,11 @@ asciiSymbolChars = toCharArray ":!#$%&*+./<=>?@\\^|-~"
 
 -- moduleName
 
+type ModuleName = CST.ModuleName
+
 moduleName' :: String -> Maybe ModuleName
 moduleName' s =
-  ModuleName
+  CST.ModuleName
   <$> ( NonEmptyArray.fromArray
         =<< traverse (map pnameToProperName <<< pname') (String.split (String.Pattern ".") s)
       )
@@ -173,7 +174,7 @@ moduleNameP ::
   SProxy s ->
   ModuleName
 moduleNameP _ =
-  ModuleName $ ProperName <$> reflectSList1 (SListProxy :: _ l)
+  CST.ModuleName $ CST.ProperName <$> reflectSList1 (SListProxy :: _ l)
 
 -- qualName
 
