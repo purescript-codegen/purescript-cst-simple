@@ -5,9 +5,10 @@ module CST.Simple.Internal.ExprSpec
 import Prelude
 
 import CST.Simple.Internal.Expr (Expr, exprIdent, exprString, runExpr)
-import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent)
+import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, fooBarModuleName, shouldImport)
 import CST.Simple.Types (CodegenError)
 import Control.Monad.Error.Class (class MonadThrow)
+import Data.Maybe (Maybe(..))
 import Effect.Exception (Error)
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
@@ -21,13 +22,16 @@ exprSpec = describe "Expr" do
 
   it "should create qualified ident" do
     exprIdent "Foo.Bar.baz" `shouldMatchExpr`
-      CST.ExprIdent (cstUnqualIdent "foo")
+      CST.ExprIdent (cstUnqualIdent "baz")
 
-{-
   it "should import qualified ident" do
-    exprIdent "Foo.Bar.baz" `shouldImport`
-      CST.ExprIdent $ cstUnqualified "foo"
--}
+    exprIdent "Foo.Bar.baz" `shouldImportExpr`
+      CST.ImportDecl
+      { moduleName: fooBarModuleName
+      , names: [ CST.ImportValue (CST.Ident "baz")
+               ]
+      , qualification: Nothing
+      }
 
   it "should create string expr" do
     exprString "foo" `shouldMatchExpr`
@@ -40,3 +44,7 @@ shouldMatchExpr e cstExpr = do
 shouldErrorExpr :: forall m. MonadThrow Error m => Expr -> CodegenError -> m Unit
 shouldErrorExpr e err =
    buildModuleErr (runExpr e) `shouldReturn` err
+
+shouldImportExpr :: forall m. MonadThrow Error m => Expr-> CST.ImportDecl -> m Unit
+shouldImportExpr t import_ =
+  shouldImport (runExpr t) import_

@@ -6,9 +6,6 @@ module CST.Simple.Internal.ModuleBuilder
        , buildModule'
        , buildModuleT'
        , liftModuleBuilder
-       , addImportType
-       , addImportKind
-       , addImportClass
        , addImport
        , addDeclaration
        , mkProperName
@@ -21,8 +18,9 @@ module CST.Simple.Internal.ModuleBuilder
 
 import Prelude
 
+import CST.Simple.Internal.Import (class AsImport, asImport)
 import CST.Simple.Internal.Utils (noteM)
-import CST.Simple.Names (Ident, ModuleName, OpName, ProperName, QualifiedName(..), ident', properName', qualNameIdent, qualNameOp, qualNameProper)
+import CST.Simple.Names (Ident, ModuleName, OpName, ProperName, QualifiedName, ident', properName', qualNameIdent, qualNameOp, qualNameProper)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except (ExceptT, mapExceptT, runExceptT)
@@ -111,25 +109,6 @@ buildModuleT' (ModuleBuilderT mb) = map (rmap toContent) <$> (runExceptT (runSta
                      }
 
 
-addImportType :: forall m. Monad m => QualifiedName (ProperName CST.ProperNameType_TypeName) -> ModuleBuilderT m Unit
-addImportType = addQualImport \n -> CST.ImportType n Nothing
-
-addImportKind :: forall m. Monad m => QualifiedName (ProperName CST.ProperNameType_KindName) -> ModuleBuilderT m Unit
-addImportKind = addQualImport CST.ImportKind
-
-addImportClass :: forall m. Monad m => QualifiedName (ProperName CST.ProperNameType_ClassName) -> ModuleBuilderT m Unit
-addImportClass = addQualImport CST.ImportClass
-
-addQualImport ::
-  forall p m.
-  Monad m =>
-  (ProperName p -> CST.Import) ->
-  QualifiedName (CST.ProperName p) ->
-  ModuleBuilderT m Unit
-addQualImport toCSTImport (QualifiedName { qualModule, qualName }) =
-  for_ qualModule \m ->
-  addImport m (toCSTImport qualName)
-
 addImport :: forall m. Monad m => ModuleName -> CST.Import -> ModuleBuilderT m Unit
 addImport moduleName import_ =
   modify_ (\s -> s { imports = Map.insertWith append moduleName (Set.singleton import_) s.imports
@@ -165,33 +144,39 @@ mkIdent s = noteM (InvalidIdent s) $ ident' s
 
 mkQualName ::
   forall m n.
-  MonadThrow CodegenError m =>
+  Monad m =>
+  AsImport n =>
   (String -> Maybe (QualifiedName n)) ->
   String ->
-  m (QualifiedName n)
-mkQualName f s =
-  noteM (InvalidQualifiedName s) $ f s
+  ModuleBuilderT m (QualifiedName n)
+mkQualName f s = do
+  CST.QualifiedName q <- noteM (InvalidQualifiedName s) $ f s
+  for_ q.qualModule \m ->
+    addImport m (asImport q.qualName)
+  pure $ CST.QualifiedName (q { qualModule = Nothing })
 
 mkQualProperName ::
   forall m p.
-  MonadThrow CodegenError m =>
+  Monad m =>
+  AsImport (ProperName p) =>
   String ->
-  m (QualifiedName (ProperName p))
+  ModuleBuilderT m (QualifiedName (ProperName p))
 mkQualProperName =
   mkQualName qualNameProper
 
 mkQualIdent ::
   forall m.
-  MonadThrow CodegenError m =>
+  Monad m =>
   String ->
-  m (QualifiedName Ident)
+  ModuleBuilderT m (QualifiedName Ident)
 mkQualIdent =
   mkQualName qualNameIdent
 
 mkQualOpName ::
   forall m p.
-  MonadThrow CodegenError m =>
+  Monad m =>
+  AsImport (OpName p) =>
   String ->
-  m (QualifiedName (OpName p))
+  ModuleBuilderT m (QualifiedName (OpName p))
 mkQualOpName =
   mkQualName qualNameOp

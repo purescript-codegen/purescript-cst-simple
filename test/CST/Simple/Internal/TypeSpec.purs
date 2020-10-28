@@ -5,7 +5,7 @@ module CST.Simple.Internal.TypeSpec
 import Prelude
 
 import CST.Simple.Internal.Type (class AsTyp, Typ, cnst, runTyp', typApp, typCons, typForall, typOp, typRecord, typRow, typString, typVar, (*->), (*::), (*=>))
-import CST.Simple.TestUtils (buildA, buildModuleErr, cstTypCons, cstUnqualName, cstUnqualProperName, fooBarModuleName, intCSTType, shouldImport, stringCSTType)
+import CST.Simple.TestUtils (build, buildA, buildModuleErr, cstTypCons, cstUnqualName, cstUnqualProperName, fooBarModuleName, intCSTType, shouldImport, stringCSTType)
 import CST.Simple.Types (CodegenError(..))
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
@@ -27,7 +27,7 @@ typeSpec = describe "Type" do
       )
 
   it "should add qualified names to imports" do
-    "Foo.Bar.Baz" `shouldImport`
+    "Foo.Bar.Baz" `shouldImportType`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names: [ CST.ImportType (CST.ProperName "Baz") Nothing -- todo import data type
@@ -121,7 +121,7 @@ typeSpec = describe "Type" do
       (CST.TypeKinded (cstTypCons "Qux") (CST.KindName (cstUnqualProperName "Baz")))
 
   it "should import kinds" do
-    ("Qux" *:: "Foo.Bar.Baz") `shouldImport`
+    ("Qux" *:: "Foo.Bar.Baz") `shouldImportType`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names: [ CST.ImportKind (CST.ProperName "Baz")
@@ -138,7 +138,7 @@ typeSpec = describe "Type" do
       )
 
   it "should import type operators" do
-    (typOp "String" "Foo.Bar.(><)" "Int") `shouldImport`
+    (typOp "String" "Foo.Bar.(><)" "Int") `shouldImportType`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names: [ CST.ImportTypeOp (CST.OpName "><")
@@ -163,7 +163,7 @@ typeSpec = describe "Type" do
       )
 
   it "should import class constraints constrained types" do
-    (cnst "Foo.Bar.Baz" [ typVar "a" ] *=> typVar "a") `shouldImport`
+    (cnst "Foo.Bar.Baz" [ typVar "a" ] *=> typVar "a") `shouldImportType`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names:
@@ -183,3 +183,7 @@ shouldMatchType t cstType = do
 shouldErrorType :: forall t m. MonadThrow Error m => AsTyp t => t -> CodegenError -> m Unit
 shouldErrorType t err =
    buildModuleErr (runTyp' t) `shouldReturn` err
+
+shouldImportType :: forall t m. MonadThrow Error m => AsTyp t => t -> CST.ImportDecl -> m Unit
+shouldImportType t import_ =
+  shouldImport (runTyp' t) import_

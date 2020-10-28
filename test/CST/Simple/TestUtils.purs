@@ -18,7 +18,6 @@ module CST.Simple.TestUtils
 import Prelude
 
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule')
-import CST.Simple.Internal.Type (class AsTyp, runTyp')
 import CST.Simple.Names (ModuleName)
 import CST.Simple.Types (CodegenError, ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow)
@@ -62,9 +61,9 @@ requireMatch a f = case f a of
   Just b -> pure b
   Nothing -> throwError $ error $ "failed to match - "  <> show a
 
-shouldImport :: forall t m. MonadThrow Error m => AsTyp t => t -> CST.ImportDecl -> m Unit
-shouldImport t import_ = do
-  mod <- build (runTyp' t)
+shouldImport :: forall m a. MonadThrow Error m => ModuleBuilder a -> CST.ImportDecl -> m Unit
+shouldImport mb import_ = do
+  mod <- build mb
   mod.imports `shouldContain` import_
 
 fooBarModuleName :: ModuleName

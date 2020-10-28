@@ -26,12 +26,11 @@ module CST.Simple.Internal.Type
 
 import Prelude
 
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, addImport, addImportClass, addImportKind, addImportType, liftModuleBuilder, mkIdent, mkQualOpName, mkQualProperName)
-import CST.Simple.Names (QualifiedName(..))
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkIdent, mkQualOpName, mkQualProperName)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Foldable (foldl)
 import Data.Maybe (Maybe(..))
-import Data.Traversable (for_, traverse)
+import Data.Traversable (traverse)
 import Data.Tuple (uncurry)
 import Data.Tuple.Nested (type (/\))
 import Language.PS.CST as CST
@@ -45,13 +44,8 @@ typVar :: String -> Typ
 typVar s = Typ $ CST.TypeVar <$> mkIdent s
 
 typCons :: String -> Typ
-typCons s = Typ do
-  q@(QualifiedName { qualName }) <- mkQualProperName s
-  addImportType q
-  pure $ CST.TypeConstructor $
-    QualifiedName { qualModule: Nothing
-                  , qualName
-                  }
+typCons s =
+  Typ $ CST.TypeConstructor <$> mkQualProperName s
 
 typString :: String -> Typ
 typString = Typ <<< pure <<< CST.TypeString
@@ -113,28 +107,18 @@ typArrow t1 t2 = Typ $ CST.TypeArr <$> runTyp' t1 <*> runTyp' t2
 infixr 6 typArrow as *->
 
 typKinded :: forall t. AsTyp t => t -> String -> Typ
-typKinded t k = Typ do
+typKinded t k = Typ ado
   t' <- runTyp' t
-  q@(QualifiedName { qualName }) <- mkQualProperName k
-  addImportKind q
-  pure $ CST.TypeKinded t' $ CST.KindName $
-    QualifiedName { qualModule: Nothing
-                  , qualName
-                  }
+  k' <- mkQualProperName k
+  in CST.TypeKinded t' (CST.KindName k')
 
 infixr 8 typKinded as *::
 
 typOp :: forall t1 t2. AsTyp t1 => AsTyp t2 => t1 -> String -> t2 -> Typ
-typOp t1 op t2 = Typ do
-  t1' <- runTyp' t1
-  op'@(QualifiedName { qualModule, qualName }) <- mkQualOpName op
-  t2' <- runTyp' t2
-
-  for_ qualModule \qm ->
-    addImport qm $ CST.ImportTypeOp qualName
-  let op'' = QualifiedName { qualModule: Nothing, qualName }
-
-  pure $ CST.TypeOp t1' op'' t2'
+typOp t1 op t2 = Typ $ CST.TypeOp
+  <$> runTyp' t1
+  <*> mkQualOpName op
+  <*> runTyp' t2
 
 typConstrained :: forall t. AsTyp t => Constraint -> t -> Typ
 typConstrained c t = Typ $ CST.TypeConstrained
@@ -165,13 +149,10 @@ runConstraint :: forall m. Monad m => Constraint -> ModuleBuilderT m CST.Constra
 runConstraint (Constraint mb) = liftModuleBuilder mb
 
 cnst :: forall t. AsTyp t => String -> Array t -> Constraint
-cnst s args = Constraint do
-  q@(QualifiedName { qualName }) <- mkQualProperName s
-  addImportClass q
+cnst s args = Constraint $ ado
+  className <- mkQualProperName s
   args' <- traverse runTyp' args
-  pure $ CST.Constraint
-    { className: QualifiedName { qualModule: Nothing
-                               , qualName
-                               }
+  in CST.Constraint
+    { className
     , args: args'
     }
