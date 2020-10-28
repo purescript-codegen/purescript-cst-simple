@@ -1,5 +1,10 @@
 module CST.Simple.Names
-       ( properName'
+       ( TypeName
+       , ConstructorName
+       , ClassName
+       , KindName
+       , Namespace
+       , properName'
        , properNameP
        , ident'
        , identP
@@ -34,6 +39,12 @@ import Data.Traversable (traverse)
 import Language.PS.CST (Ident, ModuleName, OpName, ProperName, QualifiedName(..)) as E
 import Language.PS.CST (Ident, OpName(..), ProperName, QualifiedName)
 import Language.PS.CST as CST
+
+type TypeName = CST.ProperName CST.ProperNameType_TypeName
+type ConstructorName = CST.ProperName CST.ProperNameType_ConstructorName
+type ClassName = CST.ProperName CST.ProperNameType_ClassName
+type KindName = CST.ProperName CST.ProperNameType_KindName
+type Namespace = CST.ProperName CST.ProperNameType_Namespace
 
 properName' :: forall p. String -> Maybe (CST.ProperName p)
 properName' s =
