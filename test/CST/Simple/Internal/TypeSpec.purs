@@ -13,11 +13,11 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\))
 import Effect.Exception (Error)
 import Language.PS.CST as CST
-import Test.Spec (Spec, it)
+import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldReturn)
 
 typeSpec :: Spec Unit
-typeSpec = do
+typeSpec = describe "Type" do
   it "should accept qualified type declarations" do
     "Foo.Bar.Baz" `shouldMatchType`
       ( CST.TypeConstructor $ CST.QualifiedName
