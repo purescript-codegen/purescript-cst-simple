@@ -4,8 +4,8 @@ module CST.Simple.Internal.ExprSpec
 
 import Prelude
 
-import CST.Simple.Internal.Expr (Expr, exprString, runExpr)
-import CST.Simple.TestUtils (buildA, buildModuleErr)
+import CST.Simple.Internal.Expr (Expr, exprIdent, exprString, runExpr)
+import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent)
 import CST.Simple.Types (CodegenError)
 import Control.Monad.Error.Class (class MonadThrow)
 import Effect.Exception (Error)
@@ -15,6 +15,20 @@ import Test.Spec.Assertions (shouldReturn)
 
 exprSpec :: Spec Unit
 exprSpec = describe "Expr" do
+  it "should create unqualified ident" do
+    exprIdent "baz" `shouldMatchExpr`
+      CST.ExprIdent (cstUnqualIdent "baz")
+
+  it "should create qualified ident" do
+    exprIdent "Foo.Bar.baz" `shouldMatchExpr`
+      CST.ExprIdent (cstUnqualIdent "foo")
+
+{-
+  it "should import qualified ident" do
+    exprIdent "Foo.Bar.baz" `shouldImport`
+      CST.ExprIdent $ cstUnqualified "foo"
+-}
+
   it "should create string expr" do
     exprString "foo" `shouldMatchExpr`
       CST.ExprString "foo"

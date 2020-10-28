@@ -19,6 +19,7 @@ module CST.Simple.Names
        , moduleNameP
        , ModuleNameMapping
        , qualNameProper
+       , qualNameIdent
        , qualNameOp
        , module E
        ) where
@@ -189,11 +190,15 @@ moduleNameP ::
 moduleNameP _ =
   ModuleName $ ProperName <$> reflectSList1 (SListProxy :: _ l)
 
--- qaulName
+-- qualName
 
 qualNameProper :: String -> Maybe (CST.QualifiedName PName)
 qualNameProper = qualName' pname'
 
+qualNameIdent :: String -> Maybe (CST.QualifiedName IName)
+qualNameIdent = qualName' iname'
+
+-- TODO support period in opName
 qualNameOp :: String -> Maybe (CST.QualifiedName OpName)
 qualNameOp =  qualName' (opName' <=< unParen)
   where

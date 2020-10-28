@@ -15,18 +15,19 @@ module CST.Simple.Internal.ModuleBuilder
        , mkIName
        , mkQualName
        , mkQualPName
+       , mkQualCSTIdent
        , mkQualOpName
        ) where
 
 import Prelude
 
 import CST.Simple.Internal.Utils (noteM)
-import CST.Simple.Names (IName, ModuleName, OpName, PName, QualifiedName(..), iname', pname', pnameToProperName, pnameToString, qualNameOp, qualNameProper)
+import CST.Simple.Names (IName, ModuleName, OpName, PName, QualifiedName(..), iname', inameToIdent, pname', pnameToProperName, pnameToString, qualNameIdent, qualNameOp, qualNameProper)
 import CST.Simple.Types (CodegenError(..), ModuleContent)
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except (ExceptT, mapExceptT, runExceptT)
 import Control.Monad.Except.Trans (class MonadThrow)
-import Control.Monad.State (StateT, execStateT, gets, mapStateT, runStateT)
+import Control.Monad.State (StateT, gets, mapStateT, runStateT)
 import Control.Monad.State.Class (class MonadState)
 import Control.Monad.State.Trans (modify_)
 import Data.Array as Array
@@ -43,7 +44,7 @@ import Data.Newtype (unwrap)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple (snd, uncurry)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested (type (/\))
 import Language.PS.CST as CST
 
 type ModuleBuilderState =
@@ -180,6 +181,14 @@ mkQualPName ::
   m (QualifiedName PName)
 mkQualPName =
   mkQualName qualNameProper
+
+mkQualCSTIdent ::
+  forall m.
+  MonadThrow CodegenError m =>
+  String ->
+  m (QualifiedName CST.Ident)
+mkQualCSTIdent =
+  mkQualName (map (map inameToIdent) <<< qualNameIdent)
 
 mkQualOpName ::
   forall m.
