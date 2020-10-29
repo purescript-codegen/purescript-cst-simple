@@ -33,14 +33,6 @@ exprSpec = describe "Expr" do
       , qualification: Nothing
       }
 
-  it "should create unqualified constructor" do
-    exprCons "BazA" [] `shouldMatchExpr`
-      CST.ExprConstructor (cstUnqualProperName "BazA")
-
-  it "should create qualified constructor" do
-    exprCons "Foo.Bar.Baz(BazA)" [] `shouldMatchExpr`
-      CST.ExprConstructor (cstUnqualProperName "BazA")
-
   it "should import qualified ident" do
     exprIdent "Foo.Bar.baz" `shouldImportExpr`
       CST.ImportDecl
@@ -49,6 +41,27 @@ exprSpec = describe "Expr" do
                ]
       , qualification: Nothing
       }
+
+  it "should create unqualified constructor" do
+    exprCons "BazA" [] `shouldMatchExpr`
+      CST.ExprConstructor (cstUnqualProperName "BazA")
+
+  it "should create qualified constructor" do
+    exprCons "Foo.Bar.Baz(BazA)" [] `shouldMatchExpr`
+      CST.ExprConstructor (cstUnqualProperName "BazA")
+
+  it "should create constructor with args" do
+    exprCons "BazA"
+      [ exprIdent "a"
+      , exprIdent "b"
+      ]
+      `shouldMatchExpr`
+      CST.ExprApp
+      (CST.ExprApp
+        (CST.ExprConstructor (cstUnqualProperName "BazA"))
+        (CST.ExprIdent (cstUnqualIdent "a"))
+      )
+      (CST.ExprIdent (cstUnqualIdent "b"))
 
   it "should create string expr" do
     exprString "foo" `shouldMatchExpr`
