@@ -4,8 +4,9 @@ module CST.Simple.Internal.ExprSpec
 
 import Prelude
 
-import CST.Simple.Internal.CodegenError (CodegenError)
-import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNumber, exprString, runExpr)
+import CST.Simple.Internal.CodegenError (CodegenError(..))
+import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNumber, exprRecord, exprString, runExpr)
+import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualProperName, fooBarModuleName, shouldImport)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
@@ -103,6 +104,24 @@ exprSpec = describe "Expr" do
       CST.ExprArray
       [ CST.ExprNumber (Right 5.0)
       ]
+
+  it "should create record expr" do
+    exprRecord [ recField "foo" (exprInt 1)
+               , recField "bar" (exprInt 2)
+               , recPun "baz"
+               ]
+      `shouldMatchExpr`
+      CST.ExprRecord
+      [ CST.RecordField (CST.Label "foo") (CST.ExprNumber (Left 1))
+      , CST.RecordField (CST.Label "bar") (CST.ExprNumber (Left 2))
+      , CST.RecordPun (CST.Ident "baz")
+      ]
+
+  it "should reject invalid record puns" do
+    exprRecord [ recPun "!"
+               ]
+      `shouldErrorExpr`
+      InvalidIdent "!"
 
 shouldMatchExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchExpr e cstExpr = do

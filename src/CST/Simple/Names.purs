@@ -38,7 +38,7 @@ import Data.String.Regex as Regex
 import Data.String.Regex.Flags as RegexFlags
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Traversable (traverse)
-import Language.PS.CST (Ident, ModuleName, QualifiedName(..)) as E
+import Language.PS.CST (Ident, Label(..), ModuleName, QualifiedName(..)) as E
 import Language.PS.CST (Ident, ModuleName, QualifiedName)
 import Language.PS.CST as CST
 import Type.Proxy (Proxy(..))

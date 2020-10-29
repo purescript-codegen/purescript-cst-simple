@@ -23,11 +23,13 @@ module CST.Simple.Internal.Expr
        , exprInt
        , exprNumber
        , exprArray
+       , exprRecord
        ) where
 
 import Prelude
 
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
+import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
 import CST.Simple.Names (TypedConstructorName(..))
 import Control.Alt ((<|>))
 import Data.Either (Either(..))
@@ -123,3 +125,11 @@ exprApp i args = Expr $ foldl appExpr (runExpr i) args
   where
     appExpr a bExpr =
       CST.ExprApp <$> a <*> runExpr bExpr
+
+exprRecord :: Array (RecordLabeled Expr) -> Expr
+exprRecord ls =
+  Expr $ CST.ExprRecord <$> traverse run ls
+  where
+    run rl = do
+      rl' <- runRecordLabeled rl
+      traverse runExpr rl'
