@@ -5,9 +5,10 @@ module CST.Simple.Internal.ExprSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError)
-import CST.Simple.Internal.Expr (Expr, exprCons, exprIdent, exprString, runExpr)
+import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprIdent, exprInt, exprNumber, exprString, runExpr)
 import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualProperName, fooBarModuleName, shouldImport)
 import Control.Monad.Error.Class (class MonadThrow)
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Exception (Error)
 import Language.PS.CST as CST
@@ -63,9 +64,31 @@ exprSpec = describe "Expr" do
       )
       (CST.ExprIdent (cstUnqualIdent "b"))
 
+  it "should create boolean expr" do
+    exprBoolean true `shouldMatchExpr`
+      CST.ExprBoolean true
+
+  it "should create char expr" do
+    exprChar 'x' `shouldMatchExpr`
+      CST.ExprChar 'x'
+
   it "should create string expr" do
     exprString "foo" `shouldMatchExpr`
       CST.ExprString "foo"
+
+  it "should create int expr" do
+    exprInt 5 `shouldMatchExpr`
+      CST.ExprNumber (Left 5)
+
+  it "should create number expr" do
+    exprNumber 5.0 `shouldMatchExpr`
+      CST.ExprNumber (Right 5.0)
+
+  it "should create array expr" do
+    exprArray [ exprNumber 5.0 ] `shouldMatchExpr`
+      CST.ExprArray
+      [ CST.ExprNumber (Right 5.0)
+      ]
 
 shouldMatchExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchExpr e cstExpr = do
