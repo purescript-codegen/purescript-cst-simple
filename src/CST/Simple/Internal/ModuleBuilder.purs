@@ -18,6 +18,7 @@ import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Import (class AsImport, asImport)
 import CST.Simple.Names (class ReadName, class UnwrapQualName, ModuleName, QualifiedName, readName)
 import CST.Simple.Types (ModuleContent)
+import Control.Alt (class Alt)
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except (ExceptT, mapExceptT, runExceptT)
 import Control.Monad.Except.Trans (class MonadThrow)
@@ -62,6 +63,7 @@ derive newtype instance moduleBuilderTMonadState :: Monad m =>
              , idecls :: List CST.Declaration
              , pnames :: Set String
              } (ModuleBuilderT m)
+derive newtype instance moduleBuilderTAlt :: Monad m => Alt (ModuleBuilderT m)
 
 type ModuleBuilder a = ModuleBuilderT Identity a
 

@@ -5,7 +5,7 @@ module CST.Simple.NamesSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Names (QualifiedName(..), TypeName, TypeOpName, className', constructorName', ident', kindName', moduleName', qualName, typeName', typeOpName')
+import CST.Simple.Names (QualifiedName(..), TypeName, TypeOpName, TypedConstructorName(..), className', constructorName', ident', kindName', moduleName', qualName, typeName', typeOpName', typedConstructorName')
 import CST.Simple.TestUtils (fooBarModuleName)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), isJust, isNothing)
@@ -19,6 +19,7 @@ namesSpec = describe "names" do
   properNameSpec "constructorName" constructorName'
   properNameSpec "className" className'
   properNameSpec "kindName" kindName'
+  typedConstructorNameSpec
   identSpec
   typeOpNameSpec
   moduleNameSpec
@@ -41,6 +42,29 @@ properNameSpec label properName' = describe label do
 
   it "should reject empty name" do
     properName' "" `shouldSatisfy` isNothing
+
+typedConstructorNameSpec :: Spec Unit
+typedConstructorNameSpec = describe "typed constructor name" do
+  it "should accept typed constructor name" do
+    typedConstructorName' "Foo(Bar)" `shouldEqual` Just (TypedConstructorName (CST.ProperName "Foo") (CST.ProperName "Bar"))
+
+  it "should reject empty" do
+    typedConstructorName' "" `shouldSatisfy` isNothing
+
+  it "should reject missing closing paren" do
+    typedConstructorName' "Foo(Bar" `shouldSatisfy` isNothing
+
+  it "should reject missing wrong type name" do
+    typedConstructorName' "foo(Bar)" `shouldSatisfy` isNothing
+
+  it "should reject missing wrong constructor name" do
+    typedConstructorName' "Foo(bar)" `shouldSatisfy` isNothing
+
+  it "should reject missing empty type name" do
+    typedConstructorName' "(bar)" `shouldSatisfy` isNothing
+
+  it "should reject missing empty constructor name" do
+    typedConstructorName' "Foo()" `shouldSatisfy` isNothing
 
 identSpec :: Spec Unit
 identSpec = describe "ident" do

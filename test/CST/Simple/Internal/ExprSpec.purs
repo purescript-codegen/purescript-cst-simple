@@ -5,8 +5,8 @@ module CST.Simple.Internal.ExprSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError)
-import CST.Simple.Internal.Expr (Expr, exprIdent, exprString, runExpr)
-import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, fooBarModuleName, shouldImport)
+import CST.Simple.Internal.Expr (Expr, exprCons, exprIdent, exprString, runExpr)
+import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualProperName, fooBarModuleName, shouldImport)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Maybe (Maybe(..))
 import Effect.Exception (Error)
@@ -23,6 +23,23 @@ exprSpec = describe "Expr" do
   it "should create qualified ident" do
     exprIdent "Foo.Bar.baz" `shouldMatchExpr`
       CST.ExprIdent (cstUnqualIdent "baz")
+
+  it "should import qualified ident" do
+    exprIdent "Foo.Bar.baz" `shouldImportExpr`
+      CST.ImportDecl
+      { moduleName: fooBarModuleName
+      , names: [ CST.ImportValue (CST.Ident "baz")
+               ]
+      , qualification: Nothing
+      }
+
+  it "should create unqualified constructor" do
+    exprCons "BazA" [] `shouldMatchExpr`
+      CST.ExprConstructor (cstUnqualProperName "BazA")
+
+  it "should create qualified constructor" do
+    exprCons "Foo.Bar.Baz(BazA)" [] `shouldMatchExpr`
+      CST.ExprConstructor (cstUnqualProperName "BazA")
 
   it "should import qualified ident" do
     exprIdent "Foo.Bar.baz" `shouldImportExpr`

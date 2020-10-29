@@ -3,7 +3,7 @@ module CST.Simple.Internal.Import
        , asImport
        ) where
 
-import CST.Simple.Names (Ident)
+import CST.Simple.Names (Ident, TypedConstructorName(..))
 import Data.Maybe (Maybe(..))
 import Language.PS.CST as CST
 
@@ -27,3 +27,7 @@ instance asImportClass :: AsImport (CST.ProperName CST.ProperNameType_ClassName)
 
 instance asImportKind :: AsImport (CST.ProperName CST.ProperNameType_KindName) where
   asImport = CST.ImportKind
+
+instance asImportTypedConstructorName :: AsImport TypedConstructorName where
+  asImport (TypedConstructorName t _) =
+    CST.ImportType t (Just CST.DataAll)

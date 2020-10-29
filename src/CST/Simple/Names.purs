@@ -7,6 +7,8 @@ module CST.Simple.Names
        , constructorName'
        , className'
        , kindName'
+       , TypedConstructorName(..)
+       , typedConstructorName'
        , ident'
        , TypeOpName
        , typeOpName'
@@ -76,6 +78,24 @@ namespace' s =
 namespaceRegex :: Regex
 namespaceRegex =
   unsafeRegex "^[A-Z][A-Za-z0-9]*$" RegexFlags.noFlags
+
+-- TypedConstructorName
+
+data TypedConstructorName = TypedConstructorName TypeName ConstructorName
+
+instance typedConstructorNameShow :: Show TypedConstructorName where
+  show (TypedConstructorName t c) = "(TypedConstructorName " <> show t <> " " <> show c <> ")"
+
+derive instance typedConstructorNameEq :: Eq TypedConstructorName
+derive instance typedConstructorNameOrd :: Ord TypedConstructorName
+
+typedConstructorName' :: String -> Maybe TypedConstructorName
+typedConstructorName' s = do
+  openParenNdx <- String.indexOf (String.Pattern "(") s
+  let split1 = String.splitAt openParenNdx s
+  typeName <- typeName' split1.before
+  consName <- constructorName' =<< unParen split1.after
+  pure $ TypedConstructorName typeName consName
 
 -- ident
 
@@ -165,6 +185,9 @@ instance readNameClassName :: ReadName (CST.ProperName CST.ProperNameType_ClassN
 instance readNameKindName :: ReadName (CST.ProperName CST.ProperNameType_KindName) where
   readName s = note (InvalidKindName s) (kindName' s)
 
+instance readTypedConstructorName :: ReadName TypedConstructorName where
+  readName s = note (InvalidConstructorName s) (typedConstructorName' s)
+
 instance readNameIdent :: ReadName Ident where
   readName s = note (InvalidIdent s) (ident' s)
 
@@ -207,6 +230,8 @@ instance unwrapQualNameIdent :: UnwrapQualName Ident where
 instance unwrapOpTypeName :: UnwrapQualName (CST.OpName CST.OpNameType_TypeOpName) where
   unwrapQualName _ = unParen
 
+instance unwrapTypedConstructorName :: UnwrapQualName TypedConstructorName where
+  unwrapQualName _ = Just
 
 -- Utils
 
