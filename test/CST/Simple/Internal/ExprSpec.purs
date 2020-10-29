@@ -5,7 +5,7 @@ module CST.Simple.Internal.ExprSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError)
-import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprIdent, exprInt, exprNumber, exprString, runExpr)
+import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprInt, exprNumber, exprString, runExpr)
 import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualProperName, fooBarModuleName, shouldImport)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
@@ -44,15 +44,15 @@ exprSpec = describe "Expr" do
       }
 
   it "should create unqualified constructor" do
-    exprCons "BazA" [] `shouldMatchExpr`
+    exprCons "BazA" `shouldMatchExpr`
       CST.ExprConstructor (cstUnqualProperName "BazA")
 
   it "should create qualified constructor" do
-    exprCons "Foo.Bar.Baz(BazA)" [] `shouldMatchExpr`
+    exprCons "Foo.Bar.Baz(BazA)" `shouldMatchExpr`
       CST.ExprConstructor (cstUnqualProperName "BazA")
 
   it "should create constructor with args" do
-    exprCons "BazA"
+    exprConsN "BazA"
       [ exprIdent "a"
       , exprIdent "b"
       ]

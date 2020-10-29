@@ -3,7 +3,7 @@ module CST.Simple.Internal.Expr
        , runExpr
        , exprIdent
        , exprCons
-       , exprCons0
+       , exprConsN
        , exprCons1
        , exprCons2
        , exprCons3
@@ -37,15 +37,8 @@ runExpr (Expr mb) = liftModuleBuilder mb
 exprIdent :: String -> Expr
 exprIdent s = Expr $ CST.ExprIdent <$> mkQualName s
 
-exprCons :: String -> Array Expr -> Expr
-exprCons c args =
-  Expr $ foldl appExpr (runExpr $ exprCons0 c) args
-  where
-    appExpr a bExpr =
-      CST.ExprApp <$> a <*> runExpr bExpr
-
-exprCons0 :: String -> Expr
-exprCons0 c = Expr $ CST.ExprConstructor <$> (qualifiedCons <|> unqualifiedCons)
+exprCons :: String -> Expr
+exprCons c = Expr $ CST.ExprConstructor <$> (qualifiedCons <|> unqualifiedCons)
   where
     qualifiedCons =
       map getNamePart <$> mkQualName c
@@ -57,23 +50,30 @@ exprCons0 c = Expr $ CST.ExprConstructor <$> (qualifiedCons <|> unqualifiedCons)
 
     getNamePart (TypedConstructorName _ n) = n
 
+exprConsN :: String -> Array Expr -> Expr
+exprConsN c args =
+  Expr $ foldl appExpr (runExpr $ exprCons c) args
+  where
+    appExpr a bExpr =
+      CST.ExprApp <$> a <*> runExpr bExpr
+
 exprCons1 :: String -> Expr -> Expr
-exprCons1 c a1 = exprCons c [ a1 ]
+exprCons1 c a1 = exprConsN c [ a1 ]
 
 exprCons2 :: String -> Expr -> Expr -> Expr
-exprCons2 c a1 a2 = exprCons c [ a1, a2 ]
+exprCons2 c a1 a2 = exprConsN c [ a1, a2 ]
 
 exprCons3 :: String -> Expr -> Expr -> Expr -> Expr
-exprCons3 c a1 a2 a3 = exprCons c [ a1, a2, a3 ]
+exprCons3 c a1 a2 a3 = exprConsN c [ a1, a2, a3 ]
 
 exprCons4 :: String -> Expr -> Expr -> Expr -> Expr -> Expr
-exprCons4 c a1 a2 a3 a4 = exprCons c [ a1, a2, a3, a4 ]
+exprCons4 c a1 a2 a3 a4 = exprConsN c [ a1, a2, a3, a4 ]
 
 exprCons5 :: String -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr
-exprCons5 c a1 a2 a3 a4 a5 = exprCons c [ a1, a2, a3, a4, a5 ]
+exprCons5 c a1 a2 a3 a4 a5 = exprConsN c [ a1, a2, a3, a4, a5 ]
 
 exprCons6 :: String -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr
-exprCons6 c a1 a2 a3 a4 a5 a6 = exprCons c [ a1, a2, a3, a4, a5, a6 ]
+exprCons6 c a1 a2 a3 a4 a5 a6 = exprConsN c [ a1, a2, a3, a4, a5, a6 ]
 
 exprBoolean :: Boolean -> Expr
 exprBoolean = Expr <<< pure <<< CST.ExprBoolean
