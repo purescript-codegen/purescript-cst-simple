@@ -2,6 +2,13 @@ module CST.Simple.Internal.Expr
        ( Expr
        , runExpr
        , exprIdent
+       , exprIdentN
+       , exprIdent1
+       , exprIdent2
+       , exprIdent3
+       , exprIdent4
+       , exprIdent5
+       , exprIdent6
        , exprCons
        , exprConsN
        , exprCons1
@@ -37,6 +44,27 @@ runExpr (Expr mb) = liftModuleBuilder mb
 exprIdent :: String -> Expr
 exprIdent s = Expr $ CST.ExprIdent <$> mkQualName s
 
+exprIdentN :: String -> Array Expr -> Expr
+exprIdentN s args = exprApp (exprIdent s) args
+
+exprIdent1 :: String -> Expr -> Expr
+exprIdent1 c a1 = exprIdentN c [ a1 ]
+
+exprIdent2 :: String -> Expr -> Expr -> Expr
+exprIdent2 c a1 a2 = exprIdentN c [ a1, a2 ]
+
+exprIdent3 :: String -> Expr -> Expr -> Expr -> Expr
+exprIdent3 c a1 a2 a3 = exprIdentN c [ a1, a2, a3 ]
+
+exprIdent4 :: String -> Expr -> Expr -> Expr -> Expr -> Expr
+exprIdent4 c a1 a2 a3 a4 = exprIdentN c [ a1, a2, a3, a4 ]
+
+exprIdent5 :: String -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr
+exprIdent5 c a1 a2 a3 a4 a5 = exprIdentN c [ a1, a2, a3, a4, a5 ]
+
+exprIdent6 :: String -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr
+exprIdent6 c a1 a2 a3 a4 a5 a6 = exprIdentN c [ a1, a2, a3, a4, a5, a6 ]
+
 exprCons :: String -> Expr
 exprCons c = Expr $ CST.ExprConstructor <$> (qualifiedCons <|> unqualifiedCons)
   where
@@ -51,11 +79,7 @@ exprCons c = Expr $ CST.ExprConstructor <$> (qualifiedCons <|> unqualifiedCons)
     getNamePart (TypedConstructorName _ n) = n
 
 exprConsN :: String -> Array Expr -> Expr
-exprConsN c args =
-  Expr $ foldl appExpr (runExpr $ exprCons c) args
-  where
-    appExpr a bExpr =
-      CST.ExprApp <$> a <*> runExpr bExpr
+exprConsN c args = exprApp (exprCons c) args
 
 exprCons1 :: String -> Expr -> Expr
 exprCons1 c a1 = exprConsN c [ a1 ]
@@ -93,3 +117,9 @@ exprNumber = Expr <<< pure <<< CST.ExprNumber <<< Right
 exprArray :: Array Expr -> Expr
 exprArray es =
   Expr $ CST.ExprArray <$> traverse runExpr es
+
+exprApp :: Expr -> Array Expr -> Expr
+exprApp i args = Expr $ foldl appExpr (runExpr i) args
+  where
+    appExpr a bExpr =
+      CST.ExprApp <$> a <*> runExpr bExpr
