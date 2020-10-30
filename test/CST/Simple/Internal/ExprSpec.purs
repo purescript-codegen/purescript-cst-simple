@@ -20,15 +20,15 @@ import Test.Spec.Assertions (shouldReturn)
 exprSpec :: Spec Unit
 exprSpec = describe "Expr" do
   it "should create unqualified ident" do
-    exprIdent "baz" `shouldMatchExpr`
+    exprIdent "baz" `shouldMatchCSTExpr`
       CST.ExprIdent (cstUnqualIdent "baz")
 
   it "should create qualified ident" do
-    exprIdent "Foo.Bar.baz" `shouldMatchExpr`
+    exprIdent "Foo.Bar.baz" `shouldMatchCSTExpr`
       CST.ExprIdent (cstUnqualIdent "baz")
 
   it "should import qualified ident" do
-    exprIdent "Foo.Bar.baz" `shouldImportExpr`
+    exprIdent "Foo.Bar.baz" `exprShouldImport`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names: [ CST.ImportValue (CST.Ident "baz")
@@ -37,7 +37,7 @@ exprSpec = describe "Expr" do
       }
 
   it "should import qualified ident" do
-    exprIdent "Foo.Bar.baz" `shouldImportExpr`
+    exprIdent "Foo.Bar.baz" `exprShouldImport`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names: [ CST.ImportValue (CST.Ident "baz")
@@ -50,7 +50,7 @@ exprSpec = describe "Expr" do
       [ exprIdent "a"
       , exprIdent "b"
       ]
-      `shouldMatchExpr`
+      `shouldMatchCSTExpr`
       CST.ExprApp
       (CST.ExprApp
         (CST.ExprIdent (cstUnqualIdent "foo"))
@@ -60,11 +60,11 @@ exprSpec = describe "Expr" do
 
 
   it "should create unqualified constructor" do
-    exprCons "BazA" `shouldMatchExpr`
+    exprCons "BazA" `shouldMatchCSTExpr`
       CST.ExprConstructor (cstUnqualProperName "BazA")
 
   it "should create qualified constructor" do
-    exprCons "Foo.Bar.Baz(BazA)" `shouldMatchExpr`
+    exprCons "Foo.Bar.Baz(BazA)" `shouldMatchCSTExpr`
       CST.ExprConstructor (cstUnqualProperName "BazA")
 
   it "should create constructor with args" do
@@ -72,7 +72,7 @@ exprSpec = describe "Expr" do
       [ exprIdent "a"
       , exprIdent "b"
       ]
-      `shouldMatchExpr`
+      `shouldMatchCSTExpr`
       CST.ExprApp
       (CST.ExprApp
         (CST.ExprConstructor (cstUnqualProperName "BazA"))
@@ -81,27 +81,27 @@ exprSpec = describe "Expr" do
       (CST.ExprIdent (cstUnqualIdent "b"))
 
   it "should create boolean expr" do
-    exprBoolean true `shouldMatchExpr`
+    exprBoolean true `shouldMatchCSTExpr`
       CST.ExprBoolean true
 
   it "should create char expr" do
-    exprChar 'x' `shouldMatchExpr`
+    exprChar 'x' `shouldMatchCSTExpr`
       CST.ExprChar 'x'
 
   it "should create string expr" do
-    exprString "foo" `shouldMatchExpr`
+    exprString "foo" `shouldMatchCSTExpr`
       CST.ExprString "foo"
 
   it "should create int expr" do
-    exprInt 5 `shouldMatchExpr`
+    exprInt 5 `shouldMatchCSTExpr`
       CST.ExprNumber (Left 5)
 
   it "should create number expr" do
-    exprNumber 5.0 `shouldMatchExpr`
+    exprNumber 5.0 `shouldMatchCSTExpr`
       CST.ExprNumber (Right 5.0)
 
   it "should create array expr" do
-    exprArray [ exprNumber 5.0 ] `shouldMatchExpr`
+    exprArray [ exprNumber 5.0 ] `shouldMatchCSTExpr`
       CST.ExprArray
       [ CST.ExprNumber (Right 5.0)
       ]
@@ -111,7 +111,7 @@ exprSpec = describe "Expr" do
                , recField "bar" (exprInt 2)
                , recPun "baz"
                ]
-      `shouldMatchExpr`
+      `shouldMatchCSTExpr`
       CST.ExprRecord
       [ CST.RecordField (CST.Label "foo") (CST.ExprNumber (Left 1))
       , CST.RecordField (CST.Label "bar") (CST.ExprNumber (Left 2))
@@ -121,19 +121,19 @@ exprSpec = describe "Expr" do
   it "should reject invalid record puns" do
     exprRecord [ recPun "!"
                ]
-      `shouldErrorExpr`
+      `exprShouldError`
       InvalidIdent "!"
 
   it "should create typed expr" do
     exprTyped (exprInt 5) (typCons "Int")
-      `shouldMatchExpr`
+      `shouldMatchCSTExpr`
       CST.ExprTyped
       (CST.ExprNumber (Left 5))
       (CST.TypeConstructor (cstUnqualProperName "Int"))
 
   it "should create expr with operation" do
     (exprOp (exprInt 5) "Prelude.(+)" (exprInt 5))
-      `shouldMatchExpr`
+      `shouldMatchCSTExpr`
       CST.ExprOp
       (CST.ExprNumber (Left 5))
       (cstUnqualOpName "+")
@@ -141,24 +141,24 @@ exprSpec = describe "Expr" do
 
   it "should create exprOpName" do
     (exprOpName "Prelude.(+)")
-      `shouldMatchExpr`
+      `shouldMatchCSTExpr`
       CST.ExprOpName
       (cstUnqualOpName "+")
 
   it "should create negative expr" do
     (exprNegate (exprInt 5))
-      `shouldMatchExpr`
+      `shouldMatchCSTExpr`
       CST.ExprNegate
       (CST.ExprNumber (Left 5))
 
-shouldMatchExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
-shouldMatchExpr e cstExpr = do
+shouldMatchCSTExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
+shouldMatchCSTExpr e cstExpr = do
   buildA (runExpr e) `shouldReturn` cstExpr
 
-shouldErrorExpr :: forall m. MonadThrow Error m => Expr -> CodegenError -> m Unit
-shouldErrorExpr e err =
+exprShouldError :: forall m. MonadThrow Error m => Expr -> CodegenError -> m Unit
+exprShouldError e err =
    buildModuleErr (runExpr e) `shouldReturn` err
 
-shouldImportExpr :: forall m. MonadThrow Error m => Expr-> CST.ImportDecl -> m Unit
-shouldImportExpr t import_ =
+exprShouldImport :: forall m. MonadThrow Error m => Expr-> CST.ImportDecl -> m Unit
+exprShouldImport t import_ =
   shouldImport (runExpr t) import_
