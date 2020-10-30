@@ -5,17 +5,18 @@ module CST.Simple.Internal.ExprSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprString, exprTyped, runExpr)
+import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprString, exprTyped, runExpr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typCons)
-import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
+import CST.Simple.TestUtils (build', buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
 import Control.Monad.Error.Class (class MonadThrow)
+import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Exception (Error)
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldReturn)
+import Test.Spec.Assertions (shouldEqual, shouldReturn)
 
 exprSpec :: Spec Unit
 exprSpec = describe "Expr" do
@@ -151,9 +152,33 @@ exprSpec = describe "Expr" do
       CST.ExprNegate
       (CST.ExprNumber (Left 5))
 
+  it "should treat empty record access as identity" do
+    (exprRecordAccessN (exprIdent "a") [])
+      `shouldBeEquivExpr`
+      (exprIdent "a")
+
+  it "should create record accesor" do
+    (exprRecordAccessN (exprIdent "a") ["x", "y", "z"])
+      `shouldMatchCSTExpr`
+      CST.ExprRecordAccessor
+      { recExpr: CST.ExprIdent (cstUnqualIdent "a")
+      , recPath: CST.Label <$> NonEmptyArray.cons' "x" [ "y", "z" ]
+      }
+
+  it "should create record accesor from string" do
+    (exprRecordAccess (exprIdent "a") "x.y.z")
+      `shouldBeEquivExpr`
+      (exprRecordAccessN (exprIdent "a") ["x", "y", "z"])
+
 shouldMatchCSTExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchCSTExpr e cstExpr = do
   buildA (runExpr e) `shouldReturn` cstExpr
+
+shouldBeEquivExpr :: forall m. MonadThrow Error m => Expr -> Expr -> m Unit
+shouldBeEquivExpr e1 e2 = do
+  e1' <- build' (runExpr e1)
+  e2' <- build' (runExpr e2)
+  e1' `shouldEqual` e2'
 
 exprShouldError :: forall m. MonadThrow Error m => Expr -> CodegenError -> m Unit
 exprShouldError e err =

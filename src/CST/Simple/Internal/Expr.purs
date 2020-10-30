@@ -28,6 +28,8 @@ module CST.Simple.Internal.Expr
        , exprOp
        , exprOpName
        , exprNegate
+       , exprRecordAccess
+       , exprRecordAccessN
        ) where
 
 import Prelude
@@ -37,9 +39,11 @@ import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
 import CST.Simple.Internal.Type (Typ, runTyp)
 import CST.Simple.Names (TypedConstructorName(..))
 import Control.Alt ((<|>))
+import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..))
 import Data.Foldable (foldl)
 import Data.Maybe (Maybe(..))
+import Data.String as String
 import Data.Traversable (traverse)
 import Language.PS.CST as CST
 
@@ -158,3 +162,20 @@ exprOpName opStr =
 exprNegate :: Expr -> Expr
 exprNegate e =
   Expr $ CST.ExprNegate <$> runExpr e
+
+exprRecordAccess :: Expr -> String -> Expr
+exprRecordAccess e p =
+  exprRecordAccessN e (String.split (String.Pattern ".") p)
+
+exprRecordAccessN :: Expr -> Array String -> Expr
+exprRecordAccessN e p =
+  case NonEmptyArray.fromArray p of
+    Just p' ->
+      Expr ado
+      recExpr <- runExpr e
+      in CST.ExprRecordAccessor
+         { recExpr
+         , recPath: CST.Label <$> p'
+         }
+    Nothing ->
+      e
