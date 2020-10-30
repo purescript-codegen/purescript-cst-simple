@@ -5,7 +5,7 @@ module CST.Simple.Internal.ExprSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNumber, exprOp, exprRecord, exprString, exprTyped, runExpr)
+import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNumber, exprOp, exprOpName, exprRecord, exprString, exprTyped, runExpr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typCons)
 import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
@@ -138,6 +138,12 @@ exprSpec = describe "Expr" do
       (CST.ExprNumber (Left 5))
       (cstUnqualOpName "+")
       (CST.ExprNumber (Left 5))
+
+  it "should create exprOpName" do
+    (exprOpName "Prelude.(+)")
+      `shouldMatchExpr`
+      CST.ExprOpName
+      (cstUnqualOpName "+")
 
 shouldMatchExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchExpr e cstExpr = do
