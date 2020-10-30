@@ -5,8 +5,9 @@ module CST.Simple.Internal.ExprSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNumber, exprRecord, exprString, runExpr)
+import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNumber, exprRecord, exprString, exprTyped, runExpr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
+import CST.Simple.Internal.Type (typCons)
 import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualProperName, fooBarModuleName, shouldImport)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Either (Either(..))
@@ -122,6 +123,13 @@ exprSpec = describe "Expr" do
                ]
       `shouldErrorExpr`
       InvalidIdent "!"
+
+  it "should create typed expr" do
+    exprTyped (exprInt 5) (typCons "Int")
+      `shouldMatchExpr`
+      CST.ExprTyped
+      (CST.ExprNumber (Left 5))
+      (CST.TypeConstructor (cstUnqualProperName "Int"))
 
 shouldMatchExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchExpr e cstExpr = do

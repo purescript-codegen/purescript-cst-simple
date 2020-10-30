@@ -24,12 +24,14 @@ module CST.Simple.Internal.Expr
        , exprNumber
        , exprArray
        , exprRecord
+       , exprTyped
        ) where
 
 import Prelude
 
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
 import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
+import CST.Simple.Internal.Type (Typ, runTyp)
 import CST.Simple.Names (TypedConstructorName(..))
 import Control.Alt ((<|>))
 import Data.Either (Either(..))
@@ -133,3 +135,7 @@ exprRecord ls =
     run rl = do
       rl' <- runRecordLabeled rl
       traverse runExpr rl'
+
+exprTyped :: Expr -> Typ -> Expr
+exprTyped e t =
+  Expr $ CST.ExprTyped <$> runExpr e <*> runTyp t
