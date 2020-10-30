@@ -27,6 +27,7 @@ module CST.Simple.Internal.Expr
        , exprTyped
        , exprOp
        , exprOpName
+       , exprNegate
        ) where
 
 import Prelude
@@ -153,3 +154,7 @@ exprOpName :: String -> Expr
 exprOpName opStr =
   Expr $ CST.ExprOpName
   <$> mkQualName opStr
+
+exprNegate :: Expr -> Expr
+exprNegate e =
+  Expr $ CST.ExprNegate <$> runExpr e

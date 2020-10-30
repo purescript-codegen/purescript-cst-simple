@@ -5,7 +5,7 @@ module CST.Simple.Internal.ExprSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNumber, exprOp, exprOpName, exprRecord, exprString, exprTyped, runExpr)
+import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprString, exprTyped, runExpr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typCons)
 import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
@@ -144,6 +144,12 @@ exprSpec = describe "Expr" do
       `shouldMatchExpr`
       CST.ExprOpName
       (cstUnqualOpName "+")
+
+  it "should create negative expr" do
+    (exprNegate (exprInt 5))
+      `shouldMatchExpr`
+      CST.ExprNegate
+      (CST.ExprNumber (Left 5))
 
 shouldMatchExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchExpr e cstExpr = do
