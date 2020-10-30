@@ -12,6 +12,7 @@ module CST.Simple.TestUtils
        , cstTypCons
        , cstUnqualProperName
        , cstUnqualIdent
+       , cstUnqualOpName
        , cstUnqualName
        ) where
 
@@ -93,6 +94,9 @@ cstUnqualProperName = cstUnqualName <<< CST.ProperName
 
 cstUnqualIdent :: String -> CST.QualifiedName CST.Ident
 cstUnqualIdent = cstUnqualName <<< CST.Ident
+
+cstUnqualOpName :: forall p. String -> CST.QualifiedName (CST.OpName p)
+cstUnqualOpName = cstUnqualName <<< CST.OpName
 
 cstUnqualName :: forall n. n -> CST.QualifiedName n
 cstUnqualName qualName =

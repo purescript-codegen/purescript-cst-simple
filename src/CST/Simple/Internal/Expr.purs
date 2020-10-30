@@ -25,6 +25,7 @@ module CST.Simple.Internal.Expr
        , exprArray
        , exprRecord
        , exprTyped
+       , exprOp
        ) where
 
 import Prelude
@@ -139,3 +140,10 @@ exprRecord ls =
 exprTyped :: Expr -> Typ -> Expr
 exprTyped e t =
   Expr $ CST.ExprTyped <$> runExpr e <*> runTyp t
+
+exprOp :: Expr -> String -> Expr -> Expr
+exprOp e1 opStr e2 =
+  Expr $ CST.ExprOp
+  <$> runExpr e1
+  <*> mkQualName opStr
+  <*> runExpr e2

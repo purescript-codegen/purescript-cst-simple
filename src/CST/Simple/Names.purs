@@ -12,6 +12,8 @@ module CST.Simple.Names
        , ident'
        , TypeOpName
        , typeOpName'
+       , ValueOpName
+       , valueOpName'
        , moduleName'
        , qualName
        , class ReadName
@@ -112,7 +114,15 @@ identRegex =
 type TypeOpName = CST.OpName CST.OpNameType_TypeOpName
 
 typeOpName' :: String -> Maybe TypeOpName
-typeOpName' s =
+typeOpName' = opName'
+
+type ValueOpName = CST.OpName CST.OpNameType_ValueOpName
+
+valueOpName' :: String -> Maybe ValueOpName
+valueOpName' = opName'
+
+opName' :: forall p. String -> Maybe (CST.OpName p)
+opName' s =
   guard ( not String.null s
           && all isSymbolChar (toCharArray s)
         )
@@ -194,6 +204,9 @@ instance readNameIdent :: ReadName Ident where
 instance readNameTypeOpName :: ReadName (CST.OpName CST.OpNameType_TypeOpName) where
   readName s = note (InvalidTypeOpName s) (typeOpName' s)
 
+instance readNameValueOpName :: ReadName (CST.OpName CST.OpNameType_ValueOpName) where
+  readName s = note (InvalidValueOpName s) (valueOpName' s)
+
 instance readNameQualName ::
   ( UnwrapQualName a
   , ReadName a
@@ -228,6 +241,9 @@ instance unwrapQualNameIdent :: UnwrapQualName Ident where
   unwrapQualName _ = Just
 
 instance unwrapOpTypeName :: UnwrapQualName (CST.OpName CST.OpNameType_TypeOpName) where
+  unwrapQualName _ = unParen
+
+instance unwrapOpValueName :: UnwrapQualName (CST.OpName CST.OpNameType_ValueOpName) where
   unwrapQualName _ = unParen
 
 instance unwrapTypedConstructorName :: UnwrapQualName TypedConstructorName where

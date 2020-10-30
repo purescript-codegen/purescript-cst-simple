@@ -19,6 +19,7 @@ data CodegenError =
   | InvalidKindName String
   | InvalidIdent String
   | InvalidTypeOpName String
+  | InvalidValueOpName String
   | InvalidQualifiedModule String String
   | InvalidQualifiedName String String (Maybe CodegenError)
   | DuplicateDeclName String
