@@ -30,6 +30,11 @@ module CST.Simple.Internal.Expr
        , exprNegate
        , exprRecordAccess
        , exprRecordAccessN
+       , exprRecordUpdate
+       , RecordUpdate
+       , runRecordUpdate
+       , recordUpdate
+       , recordUpdateBranch
        ) where
 
 import Prelude
@@ -39,6 +44,8 @@ import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
 import CST.Simple.Internal.Type (Typ, runTyp)
 import CST.Simple.Names (TypedConstructorName(..))
 import Control.Alt ((<|>))
+import Data.Array as Array
+import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..))
 import Data.Foldable (foldl)
@@ -179,3 +186,34 @@ exprRecordAccessN e p =
          }
     Nothing ->
       e
+
+exprRecordUpdate :: Expr -> Array RecordUpdate -> Expr
+exprRecordUpdate e es = Expr ado
+  e' <- runExpr e
+  es' <- runRecordUpdates es
+  in foldl CST.ExprRecordUpdate e' es'
+
+-- record update
+
+newtype RecordUpdate =
+  RecordUpdate (ModuleBuilder (Maybe CST.RecordUpdate))
+
+runRecordUpdate :: forall m. Monad m => RecordUpdate -> ModuleBuilderT m (Maybe CST.RecordUpdate)
+runRecordUpdate (RecordUpdate mb) =
+  liftModuleBuilder mb
+
+runRecordUpdates :: forall m. Monad m => Array RecordUpdate -> ModuleBuilderT m (Maybe (NonEmptyArray CST.RecordUpdate))
+runRecordUpdates es =
+  NonEmptyArray.fromArray
+  <<< Array.catMaybes
+  <$> traverse runRecordUpdate es
+
+recordUpdate :: String -> Expr -> RecordUpdate
+recordUpdate l expr =
+  RecordUpdate $ Just <<< CST.RecordUpdateLeaf (CST.Label l) <$> runExpr expr
+
+recordUpdateBranch :: String -> Array RecordUpdate -> RecordUpdate
+recordUpdateBranch l es =
+  RecordUpdate
+  $ map (CST.RecordUpdateBranch (CST.Label l))
+  <$> runRecordUpdates es

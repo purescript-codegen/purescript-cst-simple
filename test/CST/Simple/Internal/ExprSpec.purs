@@ -5,7 +5,7 @@ module CST.Simple.Internal.ExprSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprString, exprTyped, runExpr)
+import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typCons)
 import CST.Simple.TestUtils (build', buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
@@ -169,6 +169,34 @@ exprSpec = describe "Expr" do
     (exprRecordAccess (exprIdent "a") "x.y.z")
       `shouldBeEquivExpr`
       (exprRecordAccessN (exprIdent "a") ["x", "y", "z"])
+
+  it "should create record update" do
+    (exprRecordUpdate (exprIdent "a")
+     [ recordUpdate "x" (exprIdent "x'")
+     , recordUpdateBranch "y"
+       [ recordUpdate "z" (exprIdent "z'")
+       ]
+     ]
+    ) `shouldMatchCSTExpr`
+      CST.ExprRecordUpdate
+      (CST.ExprIdent (cstUnqualIdent "a"))
+      ( NonEmptyArray.cons'
+        (CST.RecordUpdateLeaf (CST.Label "x") (CST.ExprIdent (cstUnqualIdent "x'")))
+        [ CST.RecordUpdateBranch (CST.Label "y")
+          (NonEmptyArray.singleton (CST.RecordUpdateLeaf (CST.Label "z") (CST.ExprIdent (cstUnqualIdent "z'"))))
+        ]
+      )
+
+  it "should ignore empty record update branch" do
+    (exprRecordUpdate (exprIdent "a")
+     [ recordUpdate "x" (exprIdent "x'")
+     , recordUpdateBranch "y" []
+     ]
+    ) `shouldBeEquivExpr`
+      (exprRecordUpdate (exprIdent "a")
+       [ recordUpdate "x" (exprIdent "x'")
+       ]
+      )
 
 shouldMatchCSTExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchCSTExpr e cstExpr = do
