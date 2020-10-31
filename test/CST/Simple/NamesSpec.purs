@@ -71,8 +71,11 @@ identSpec = describe "ident" do
   it "should accept noncapitalized name" do
     ident' "foo" `shouldSatisfy` isJust
 
-  it "should accept preceeding underscore" do
+  it "should accept preceding underscore" do
     ident' "_foo" `shouldSatisfy` isJust
+
+  it "should accept prime" do
+    ident' "foo'" `shouldSatisfy` isJust
 
   it "should reject capitalized name" do
     ident' "Foo" `shouldSatisfy` isNothing

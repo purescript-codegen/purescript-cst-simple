@@ -107,7 +107,7 @@ ident' s =
 
 identRegex :: Regex
 identRegex =
-  unsafeRegex "^[a-z_][A-Za-z0-9_]*$" RegexFlags.noFlags
+  unsafeRegex "^[a-z_][A-Za-z0-9_']*$" RegexFlags.noFlags
 
 -- opName
 
