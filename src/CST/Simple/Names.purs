@@ -231,6 +231,9 @@ class UnwrapQualName a where
 instance unwrapQualNameTypeName :: UnwrapQualName (CST.ProperName CST.ProperNameType_TypeName) where
   unwrapQualName _ = Just
 
+instance unwrapQualNameConstructorName :: UnwrapQualName (CST.ProperName CST.ProperNameType_ConstructorName) where
+  unwrapQualName _ = Just
+
 instance unwrapQualNameClassName :: UnwrapQualName (CST.ProperName CST.ProperNameType_ClassName) where
   unwrapQualName _ = Just
 
