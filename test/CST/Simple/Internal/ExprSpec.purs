@@ -4,8 +4,9 @@ module CST.Simple.Internal.ExprSpec
 
 import Prelude
 
+import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr)
+import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr, (*->))
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typCons)
 import CST.Simple.TestUtils (build', buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
@@ -197,6 +198,16 @@ exprSpec = describe "Expr" do
        [ recordUpdate "x" (exprIdent "x'")
        ]
       )
+
+  it "should create lambda" do
+      ([ bndrVar "x" ] *-> exprIdent "x")
+        `shouldMatchCSTExpr`
+        CST.ExprLambda
+        { binders:
+          NonEmptyArray.singleton (CST.BinderVar (CST.Ident "x"))
+        , body:
+          CST.ExprIdent (cstUnqualIdent "x")
+        }
 
 shouldMatchCSTExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchCSTExpr e cstExpr = do

@@ -32,6 +32,8 @@ module CST.Simple.Internal.Expr
        , exprRecordAccessN
        , exprRecordUpdate
        , exprApp
+       , exprLambda
+       , (*->)
        , RecordUpdate
        , runRecordUpdate
        , recordUpdate
@@ -40,6 +42,7 @@ module CST.Simple.Internal.Expr
 
 import Prelude
 
+import CST.Simple.Internal.Binder (Binder, runBinder)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
 import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
 import CST.Simple.Internal.Type (Typ, runTyp)
@@ -193,6 +196,17 @@ exprRecordUpdate e es = Expr ado
   e' <- runExpr e
   es' <- runRecordUpdates es
   in foldl CST.ExprRecordUpdate e' es'
+
+exprLambda :: Array Binder -> Expr -> Expr
+exprLambda bs b = case NonEmptyArray.fromArray bs of
+  Just bs' -> Expr ado
+    binders <- traverse runBinder bs'
+    body <- runExpr b
+    in CST.ExprLambda { binders, body }
+  Nothing ->
+    b
+
+infixr 6 exprLambda as *->
 
 -- record update
 
