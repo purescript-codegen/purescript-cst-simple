@@ -201,14 +201,14 @@ exprSpec = describe "Expr" do
       )
 
   it "should create lambda" do
-      ([ bndrVar "x" ] *-> exprIdent "x")
-        `shouldMatchCSTExpr`
-        CST.ExprLambda
-        { binders:
-          NonEmptyArray.singleton (CST.BinderVar (CST.Ident "x"))
-        , body:
-          CST.ExprIdent (cstUnqualIdent "x")
-        }
+    ([ bndrVar "x" ] *-> exprIdent "x")
+      `shouldMatchCSTExpr`
+      CST.ExprLambda
+      { binders:
+        NonEmptyArray.singleton (CST.BinderVar (CST.Ident "x"))
+      , body:
+        CST.ExprIdent (cstUnqualIdent "x")
+      }
 
 shouldMatchCSTExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchCSTExpr e cstExpr = do
