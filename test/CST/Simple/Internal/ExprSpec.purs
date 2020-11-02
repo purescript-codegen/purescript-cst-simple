@@ -7,7 +7,7 @@ import Prelude
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*->))
-import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr)
+import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typCons)
 import CST.Simple.TestUtils (build', buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
@@ -208,6 +208,14 @@ exprSpec = describe "Expr" do
         NonEmptyArray.singleton (CST.BinderVar (CST.Ident "x"))
       , body:
         CST.ExprIdent (cstUnqualIdent "x")
+      }
+
+  it "should create if then else" do
+    (exprIfThenElse (exprIdent "x") (exprIdent "y") (exprIdent "z")) `shouldMatchCSTExpr`
+      CST.ExprIf
+      { cond: CST.ExprIdent (cstUnqualIdent "x")
+      , true_: CST.ExprIdent (cstUnqualIdent "y")
+      , false_: CST.ExprIdent (cstUnqualIdent "z")
       }
 
 shouldMatchCSTExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit

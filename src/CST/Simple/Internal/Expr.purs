@@ -33,6 +33,7 @@ module CST.Simple.Internal.Expr
        , exprRecordUpdate
        , exprApp
        , exprLambda
+       , exprIfThenElse
        , RecordUpdate
        , runRecordUpdate
        , recordUpdate
@@ -205,6 +206,13 @@ exprLambda bs b = case NonEmptyArray.fromArray bs of
     in CST.ExprLambda { binders, body }
   Nothing ->
     b
+
+exprIfThenElse :: Expr -> Expr -> Expr -> Expr
+exprIfThenElse c t_ f_ = Expr ado
+  cond <- runExpr c
+  true_ <- runExpr t_
+  false_ <- runExpr f_
+  in CST.ExprIf { cond, true_, false_ }
 
 -- record update
 
