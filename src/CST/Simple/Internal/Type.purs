@@ -12,12 +12,9 @@ module CST.Simple.Internal.Type
        , typApp
        , typForall
        , typArrow
-       , (*->)
        , typKinded
-       , (*::)
        , typOp
        , typConstrained
-       , (*=>)
        , Constraint
        , cnst
        ) where
@@ -103,15 +100,11 @@ typForall vs t = case NonEmptyArray.fromArray vs of
 typArrow :: Type -> Type -> Type
 typArrow t1 t2 = Type $ CST.TypeArr <$> runType t1 <*> runType t2
 
-infixr 6 typArrow as *->
-
 typKinded :: Type -> String -> Type
 typKinded t k = Type ado
   t' <- runType t
   k' <- mkQualName k
   in CST.TypeKinded t' (CST.KindName k')
-
-infixr 8 typKinded as *::
 
 typOp :: Type -> String -> Type -> Type
 typOp t1 op t2 = Type $ CST.TypeOp
@@ -123,8 +116,6 @@ typConstrained :: Constraint -> Type -> Type
 typConstrained c t = Type $ CST.TypeConstrained
   <$> runConstraint c
   <*> runType t
-
-infixr 10 typConstrained as *=>
 
 -- Constraint
 

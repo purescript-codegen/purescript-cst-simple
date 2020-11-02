@@ -33,7 +33,6 @@ module CST.Simple.Internal.Expr
        , exprRecordUpdate
        , exprApp
        , exprLambda
-       , (*->)
        , RecordUpdate
        , runRecordUpdate
        , recordUpdate
@@ -197,6 +196,7 @@ exprRecordUpdate e es = Expr ado
   es' <- runRecordUpdates es
   in foldl CST.ExprRecordUpdate e' es'
 
+-- See CST.Simple.((*->))
 exprLambda :: Array Binder -> Expr -> Expr
 exprLambda bs b = case NonEmptyArray.fromArray bs of
   Just bs' -> Expr ado
@@ -205,8 +205,6 @@ exprLambda bs b = case NonEmptyArray.fromArray bs of
     in CST.ExprLambda { binders, body }
   Nothing ->
     b
-
-infixr 6 exprLambda as *->
 
 -- record update
 
