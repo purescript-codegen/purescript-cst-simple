@@ -45,7 +45,7 @@ import Prelude
 import CST.Simple.Internal.Binder (Binder, runBinder)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
 import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
-import CST.Simple.Internal.Type (Typ, runTyp)
+import CST.Simple.Internal.Type (Type, runType)
 import CST.Simple.Names (TypedConstructorName(..))
 import Control.Alt ((<|>))
 import Data.Array as Array
@@ -154,9 +154,9 @@ exprRecord ls =
       rl' <- runRecordLabeled rl
       traverse runExpr rl'
 
-exprTyped :: Expr -> Typ -> Expr
+exprTyped :: Expr -> Type -> Expr
 exprTyped e t =
-  Expr $ CST.ExprTyped <$> runExpr e <*> runTyp t
+  Expr $ CST.ExprTyped <$> runExpr e <*> runType t
 
 exprOp :: Expr -> String -> Expr -> Expr
 exprOp e1 opStr e2 =

@@ -15,14 +15,14 @@ module CST.Simple.Internal.CommonOp
 
 import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.Expr (Expr, exprLambda)
-import CST.Simple.Internal.Type (Constraint, Typ, typArrow, typConstrained, typKinded)
+import CST.Simple.Internal.Type (Constraint, Type, typArrow, typConstrained, typKinded)
 
 class RightSingleArrow a b c | a b -> c, c -> a b where
   rightSingleArrow :: a -> b -> c
 
 infixr 6 rightSingleArrow as *->
 
-instance rightSingleArrowType :: RightSingleArrow Typ Typ Typ where
+instance rightSingleArrowType :: RightSingleArrow Type Type Type where
   rightSingleArrow = typArrow
 
 instance rightSingleArrowExpr :: RightSingleArrow (Array Binder) Expr Expr where
@@ -42,7 +42,7 @@ class RightDoubleArrow a b c | a b -> c, c -> a b where
 
 infixr 10 rightDoubleArrow as *=>
 
-instance rightDoubleArrowType :: RightDoubleArrow Constraint Typ Typ where
+instance rightDoubleArrowType :: RightDoubleArrow Constraint Type Type where
   rightDoubleArrow = typConstrained
 
 --
@@ -52,5 +52,5 @@ class DoubleColon a b c | a b -> c, c -> a b where
 
 infixr 8 doubleColon as *::
 
-instance doubleColonType :: DoubleColon Typ String Typ where
+instance doubleColonType :: DoubleColon Type String Type where
   doubleColon = typKinded

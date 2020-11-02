@@ -18,7 +18,7 @@ import Prelude
 
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName)
 import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
-import CST.Simple.Internal.Type (Typ, runTyp)
+import CST.Simple.Internal.Type (Type, runType)
 import Data.Either (Either(..))
 import Data.Traversable (traverse)
 import Language.PS.CST as CST
@@ -71,9 +71,9 @@ bndrRecord bs =
   Binder $ CST.BinderRecord
   <$> traverse (traverse runBinder <=< runRecordLabeled) bs
 
-bndrTyped :: Binder -> Typ -> Binder
+bndrTyped :: Binder -> Type -> Binder
 bndrTyped b t =
-  Binder $ CST.BinderTyped <$> runBinder b <*> runTyp t
+  Binder $ CST.BinderTyped <$> runBinder b <*> runType t
 
 bndrOp :: Binder -> String -> Binder -> Binder
 bndrOp b1 op b2 =

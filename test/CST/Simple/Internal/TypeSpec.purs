@@ -5,7 +5,7 @@ module CST.Simple.Internal.TypeSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.Type (class AsTyp, Typ, cnst, runTyp', typApp, typCons, typForall, typOp, typRecord, typRow, typString, typVar, (*->), (*::), (*=>))
+import CST.Simple.Internal.Type (class AsType, Type, cnst, runType', typApp, typCons, typForall, typOp, typRecord, typRow, typString, typVar, (*->), (*::), (*=>))
 import CST.Simple.TestUtils (buildA, buildModuleErr, cstTypCons, cstUnqualName, cstUnqualProperName, fooBarModuleName, intCSTType, shouldImport, stringCSTType)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
@@ -75,7 +75,7 @@ typeSpec = describe "Type" do
     typRecord [] (Just "Z") `shouldErrorType` InvalidIdent "Z"
 
   it "should treat empty typApp as typCons" do
-    appType <- evalTyp $ typApp "Foo.Bar.Baz" ([] :: Array Typ)
+    appType <- evalTyp $ typApp "Foo.Bar.Baz" ([] :: Array Type)
     consType <- evalTyp $ typCons "Foo.Bar.Baz"
     appType `shouldEqual` consType
 
@@ -172,18 +172,18 @@ typeSpec = describe "Type" do
       , qualification: Nothing
       }
 
-evalTyp :: forall t m. MonadThrow Error m => AsTyp t => t -> m CST.Type
+evalTyp :: forall t m. MonadThrow Error m => AsType t => t -> m CST.Type
 evalTyp t = do
-  buildA (runTyp' t)
+  buildA (runType' t)
 
-shouldMatchType :: forall t m. MonadThrow Error m => AsTyp t => t -> CST.Type -> m Unit
+shouldMatchType :: forall t m. MonadThrow Error m => AsType t => t -> CST.Type -> m Unit
 shouldMatchType t cstType = do
   evalTyp t `shouldReturn` cstType
 
-shouldErrorType :: forall t m. MonadThrow Error m => AsTyp t => t -> CodegenError -> m Unit
+shouldErrorType :: forall t m. MonadThrow Error m => AsType t => t -> CodegenError -> m Unit
 shouldErrorType t err =
-   buildModuleErr (runTyp' t) `shouldReturn` err
+   buildModuleErr (runType' t) `shouldReturn` err
 
-shouldImportType :: forall t m. MonadThrow Error m => AsTyp t => t -> CST.ImportDecl -> m Unit
+shouldImportType :: forall t m. MonadThrow Error m => AsType t => t -> CST.ImportDecl -> m Unit
 shouldImportType t import_ =
-  shouldImport (runTyp' t) import_
+  shouldImport (runType' t) import_
