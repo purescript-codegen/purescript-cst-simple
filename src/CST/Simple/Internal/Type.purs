@@ -1,7 +1,7 @@
 module CST.Simple.Internal.Type
        ( Type
        , runType
-       , runType'
+       , typ
        , typVar
        , typCons
        , typString
@@ -18,8 +18,6 @@ module CST.Simple.Internal.Type
        , typOp
        , typConstrained
        , (*=>)
-       , class AsType
-       , asType
        , Constraint
        , cnst
        ) where
@@ -39,6 +37,9 @@ newtype Type = Type (ModuleBuilder CST.Type)
 
 runType :: forall m. Monad m => Type -> ModuleBuilderT m CST.Type
 runType (Type mb) = liftModuleBuilder mb
+
+typ :: String -> Type
+typ = typCons
 
 typVar :: String -> Type
 typVar s = Type $ CST.TypeVar <$> mkName s
@@ -81,65 +82,49 @@ typLabelled f pairs tailName = Type ado
 
     toRowTail s = runType (typVar s)
 
-typApp :: forall c a. AsType c => AsType a => c -> Array a -> Type
-typApp c as = Type $ foldl f (runType (asType c)) as
+typApp :: Type -> Array Type -> Type
+typApp c as = Type $ foldl f (runType c) as
   where
     f acc' a' = CST.TypeApp
       <$> acc'
-      <*> runType' a'
+      <*> runType a'
 
-typForall :: forall t. AsType t => Array String -> t -> Type
+typForall :: Array String -> Type -> Type
 typForall vs t = case NonEmptyArray.fromArray vs of
   Just vs' ->
     Type $
-    CST.TypeForall <$> traverse toTypeeVarName vs' <*> runType t'
+    CST.TypeForall <$> traverse toTypeeVarName vs' <*> runType t
   Nothing ->
-    t'
+    t
 
   where
-    t' = asType t
-
     toTypeeVarName v = CST.TypeVarName <$> mkName v
 
-typArrow :: forall t1 t2. AsType t1 => AsType t2 => t1 -> t2 -> Type
-typArrow t1 t2 = Type $ CST.TypeArr <$> runType' t1 <*> runType' t2
+typArrow :: Type -> Type -> Type
+typArrow t1 t2 = Type $ CST.TypeArr <$> runType t1 <*> runType t2
 
 infixr 6 typArrow as *->
 
-typKinded :: forall t. AsType t => t -> String -> Type
+typKinded :: Type -> String -> Type
 typKinded t k = Type ado
-  t' <- runType' t
+  t' <- runType t
   k' <- mkQualName k
   in CST.TypeKinded t' (CST.KindName k')
 
 infixr 8 typKinded as *::
 
-typOp :: forall t1 t2. AsType t1 => AsType t2 => t1 -> String -> t2 -> Type
+typOp :: Type -> String -> Type -> Type
 typOp t1 op t2 = Type $ CST.TypeOp
-  <$> runType' t1
+  <$> runType t1
   <*> mkQualName op
-  <*> runType' t2
+  <*> runType t2
 
-typConstrained :: forall t. AsType t => Constraint -> t -> Type
+typConstrained :: Constraint -> Type -> Type
 typConstrained c t = Type $ CST.TypeConstrained
   <$> runConstraint c
-  <*> runType' t
+  <*> runType t
 
 infixr 10 typConstrained as *=>
-
--- AsType
-
-class AsType a where
-  asType :: a -> Type
-
-instance asTypeType :: AsType Type where
-  asType = identity
-
-instance asTypeString :: AsType String where
-  asType = typCons
-
-runType' :: forall m a. Monad m => AsType a => a -> ModuleBuilderT m CST.Type
-runType' = runType <<< asType
 
 -- Constraint
 
@@ -148,10 +133,10 @@ newtype Constraint = Constraint (ModuleBuilder CST.Constraint)
 runConstraint :: forall m. Monad m => Constraint -> ModuleBuilderT m CST.Constraint
 runConstraint (Constraint mb) = liftModuleBuilder mb
 
-cnst :: forall t. AsType t => String -> Array t -> Constraint
+cnst :: String -> Array Type -> Constraint
 cnst s args = Constraint $ ado
   className <- mkQualName s
-  args' <- traverse runType' args
+  args' <- traverse runType args
   in CST.Constraint
     { className
     , args: args'
