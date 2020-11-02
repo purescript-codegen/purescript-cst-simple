@@ -31,6 +31,7 @@ module CST.Simple.Internal.Expr
        , exprRecordAccess
        , exprRecordAccessN
        , exprRecordUpdate
+       , exprApp
        , RecordUpdate
        , runRecordUpdate
        , recordUpdate
