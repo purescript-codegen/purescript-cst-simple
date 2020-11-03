@@ -251,7 +251,7 @@ exprSpec = describe "Expr" do
 
   it "should create case of N" do
     (exprCaseOfN [ exprIdent "x" ]
-      [ caseOfBranchN [ bndrVar "y" ] (exprIdent "y")
+      [ [ bndrVar "y" ] *-> exprIdent "y"
       ]
     ) `shouldBeEquivExpr`
       ( exprCaseOf1 (exprIdent "x")

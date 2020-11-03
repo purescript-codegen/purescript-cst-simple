@@ -11,10 +11,13 @@ module CST.Simple.Internal.CommonOp
        , class DoubleColon
        , doubleColon
        , (*::)
+       -- Helpers
+       , class RightSingleArrowBindersExpr
+       , rightSingleArrowBindersExpr
        ) where
 
 import CST.Simple.Internal.Binder (Binder)
-import CST.Simple.Internal.Expr (CaseOfBranch, Expr, caseOfBranch1, exprLambda)
+import CST.Simple.Internal.Expr (CaseOfBranch, Expr, caseOfBranch1, caseOfBranchN, exprLambda)
 import CST.Simple.Internal.Type (Constraint, Type, typArrow, typConstrained, typKinded)
 
 
@@ -26,11 +29,13 @@ infixr 6 rightSingleArrow as *->
 instance rightSingleArrowType :: RightSingleArrow Type Type Type where
   rightSingleArrow = typArrow
 
-instance rightSingleArrowExpr :: RightSingleArrow (Array Binder) Expr Expr where
-  rightSingleArrow = exprLambda
-
-instance rightSingleArrowCaseOfBranch :: RightSingleArrow Binder Expr CaseOfBranch where
+else instance rightSingleArrowCaseOfBranch1 :: RightSingleArrow Binder Expr CaseOfBranch where
   rightSingleArrow = caseOfBranch1
+
+else instance rightSingleArrowBindersExprI ::
+  RightSingleArrowBindersExpr a =>
+  RightSingleArrow (Array Binder) Expr a where
+  rightSingleArrow = rightSingleArrowBindersExpr
 
 --
 
@@ -58,3 +63,14 @@ infixr 8 doubleColon as *::
 
 instance doubleColonType :: DoubleColon Type String Type where
   doubleColon = typKinded
+
+-- Helpers
+
+class RightSingleArrowBindersExpr a where
+  rightSingleArrowBindersExpr :: Array Binder -> Expr -> a
+
+instance rightSingleArrowBindersExprExpr :: RightSingleArrowBindersExpr Expr where
+  rightSingleArrowBindersExpr = exprLambda
+
+instance rightSingleArrowBindersExprCaseOfBranch :: RightSingleArrowBindersExpr CaseOfBranch where
+  rightSingleArrowBindersExpr = caseOfBranchN
