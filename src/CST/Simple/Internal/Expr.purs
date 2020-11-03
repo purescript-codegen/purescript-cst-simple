@@ -36,6 +36,11 @@ module CST.Simple.Internal.Expr
        , exprIfThenElse
        , exprCaseOfN
        , exprCaseOf1
+       , exprCaseOf2
+       , exprCaseOf3
+       , exprCaseOf4
+       , exprCaseOf5
+       , exprCaseOf6
        , RecordUpdate
        , runRecordUpdate
        , recordUpdate
@@ -44,6 +49,11 @@ module CST.Simple.Internal.Expr
        , runCaseOfBranch
        , caseOfBranchN
        , caseOfBranch1
+       , caseOfBranch2
+       , caseOfBranch3
+       , caseOfBranch4
+       , caseOfBranch5
+       , caseOfBranch6
        ) where
 
 import Prelude
@@ -229,7 +239,22 @@ exprCaseOfN es bs = Expr ado
   in CST.ExprCase { head, branches }
 
 exprCaseOf1 :: Expr -> Array CaseOfBranch -> Expr
-exprCaseOf1 e = exprCaseOfN [ e ]
+exprCaseOf1 e1 = exprCaseOfN [ e1 ]
+
+exprCaseOf2 :: Expr -> Expr -> Array CaseOfBranch -> Expr
+exprCaseOf2 e1 e2 = exprCaseOfN [ e1, e2 ]
+
+exprCaseOf3 :: Expr -> Expr -> Expr -> Array CaseOfBranch -> Expr
+exprCaseOf3 e1 e2 e3 = exprCaseOfN [ e1, e2, e3 ]
+
+exprCaseOf4 :: Expr -> Expr -> Expr -> Expr -> Array CaseOfBranch -> Expr
+exprCaseOf4 e1 e2 e3 e4 = exprCaseOfN [ e1, e2, e3, e4 ]
+
+exprCaseOf5 :: Expr -> Expr -> Expr -> Expr -> Expr -> Array CaseOfBranch -> Expr
+exprCaseOf5 e1 e2 e3 e4 e5 = exprCaseOfN [ e1, e2, e3, e4, e5 ]
+
+exprCaseOf6 :: Expr -> Expr -> Expr -> Expr -> Expr -> Expr -> Array CaseOfBranch -> Expr
+exprCaseOf6 e1 e2 e3 e4 e5 e6 = exprCaseOfN [ e1, e2, e3, e4, e5, e6 ]
 
 -- record update
 
@@ -285,4 +310,19 @@ caseOfBranchN bis b = CaseOfBranch ado
 
 
 caseOfBranch1 :: Binder -> Expr -> CaseOfBranch
-caseOfBranch1 bi b = caseOfBranchN [ bi ] b
+caseOfBranch1 bi1 b = caseOfBranchN [ bi1 ] b
+
+caseOfBranch2 :: Binder -> Binder -> Expr -> CaseOfBranch
+caseOfBranch2 bi1 bi2 b = caseOfBranchN [ bi1, bi2 ] b
+
+caseOfBranch3 :: Binder -> Binder -> Binder -> Expr -> CaseOfBranch
+caseOfBranch3 bi1 bi2 bi3 b = caseOfBranchN [ bi1, bi2, bi3 ] b
+
+caseOfBranch4 :: Binder -> Binder -> Binder -> Binder -> Expr -> CaseOfBranch
+caseOfBranch4   bi1 bi2 bi3 bi4 b = caseOfBranchN [ bi1, bi2, bi3, bi4 ] b
+
+caseOfBranch5 :: Binder -> Binder -> Binder -> Binder -> Binder -> Expr -> CaseOfBranch
+caseOfBranch5  bi1 bi2 bi3 bi4 bi5 b = caseOfBranchN [ bi1, bi2, bi3, bi4, bi5 ] b
+
+caseOfBranch6 :: Binder -> Binder -> Binder -> Binder -> Binder -> Binder -> Expr -> CaseOfBranch
+caseOfBranch6 bi1 bi2 bi3 bi4 bi5 bi6 b = caseOfBranchN [ bi1, bi2, bi3, bi4, bi5, bi6 ] b
