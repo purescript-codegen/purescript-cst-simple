@@ -34,18 +34,26 @@ module CST.Simple.Internal.Expr
        , exprApp
        , exprLambda
        , exprIfThenElse
+       , exprCaseOfN
+       , exprCaseOf1
        , RecordUpdate
        , runRecordUpdate
        , recordUpdate
        , recordUpdateBranch
+       , CaseOfBranch
+       , runCaseOfBranch
+       , caseOfBranchN
+       , caseOfBranch1
        ) where
 
 import Prelude
 
 import CST.Simple.Internal.Binder (Binder, runBinder)
+import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
 import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
 import CST.Simple.Internal.Type (Type, runType)
+import CST.Simple.Internal.Utils (noteM)
 import CST.Simple.Names (TypedConstructorName(..))
 import Control.Alt ((<|>))
 import Data.Array as Array
@@ -214,6 +222,15 @@ exprIfThenElse c t_ f_ = Expr ado
   false_ <- runExpr f_
   in CST.ExprIf { cond, true_, false_ }
 
+exprCaseOfN :: Array Expr -> Array CaseOfBranch -> Expr
+exprCaseOfN es bs = Expr ado
+  head <- noteM MissingCaseOfHeadBinders =<< NonEmptyArray.fromArray <$> traverse runExpr es
+  branches <- noteM MissingCaseOfBranches =<< NonEmptyArray.fromArray <$> traverse runCaseOfBranch bs
+  in CST.ExprCase { head, branches }
+
+exprCaseOf1 :: Expr -> Array CaseOfBranch -> Expr
+exprCaseOf1 e = exprCaseOfN [ e ]
+
 -- record update
 
 newtype RecordUpdate =
@@ -238,3 +255,34 @@ recordUpdateBranch l es =
   RecordUpdate
   $ map (CST.RecordUpdateBranch (CST.Label l))
   <$> runRecordUpdates es
+
+-- case branch
+
+newtype CaseOfBranch =
+  CaseOfBranch (ModuleBuilder { binders :: NonEmptyArray CST.Binder
+                              , body :: CST.Guarded
+                              }
+               )
+
+runCaseOfBranch ::
+  forall m. Monad m =>
+  CaseOfBranch ->
+  ModuleBuilderT m { binders :: NonEmptyArray CST.Binder
+                   , body :: CST.Guarded
+                   }
+runCaseOfBranch (CaseOfBranch mb) = liftModuleBuilder mb
+
+-- See (*->)
+caseOfBranchN :: Array Binder -> Expr -> CaseOfBranch
+caseOfBranchN bis b = CaseOfBranch ado
+  binders <- noteM MissingCaseOfBranchBinders =<< runBinders
+  body <- mkBody
+  in { binders, body }
+
+  where
+    runBinders = NonEmptyArray.fromArray <$> traverse runBinder bis
+    mkBody = runExpr b <#> \expr -> CST.Unconditional { expr, whereBindings: [] }
+
+
+caseOfBranch1 :: Binder -> Expr -> CaseOfBranch
+caseOfBranch1 bi b = caseOfBranchN [ bi ] b

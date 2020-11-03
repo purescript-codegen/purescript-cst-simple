@@ -22,6 +22,9 @@ data CodegenError =
   | InvalidValueOpName String
   | InvalidQualifiedModule String String
   | InvalidQualifiedName String String (Maybe CodegenError)
+  | MissingCaseOfHeadBinders
+  | MissingCaseOfBranches
+  | MissingCaseOfBranchBinders
   | DuplicateDeclName String
 
   | MultiCodegenError (Array CodegenError)

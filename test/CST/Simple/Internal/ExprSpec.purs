@@ -7,7 +7,7 @@ import Prelude
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*->))
-import CST.Simple.Internal.Expr (Expr, exprArray, exprBoolean, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr)
+import CST.Simple.Internal.Expr (Expr, caseOfBranchN, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typCons)
 import CST.Simple.TestUtils (build', buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
@@ -217,6 +217,47 @@ exprSpec = describe "Expr" do
       , true_: CST.ExprIdent (cstUnqualIdent "y")
       , false_: CST.ExprIdent (cstUnqualIdent "z")
       }
+
+  it "should error on case of with no branches" do
+    exprCaseOf1 (exprIdent "x") []
+      `exprShouldError` MissingCaseOfBranches
+
+  it "should error on case of with no head" do
+    exprCaseOfN []
+      [ caseOfBranchN [] (exprIdent "y")
+      ] `exprShouldError` MissingCaseOfHeadBinders
+
+  it "should error on case branch with no binders" do
+    exprCaseOf1 (exprIdent "x")
+      [ caseOfBranchN [] (exprIdent "y")
+      ] `exprShouldError` MissingCaseOfBranchBinders
+
+
+  it "should create case of 1" do
+    (exprCaseOf1 (exprIdent "x")
+      [ bndrVar "y" *-> exprIdent "y"
+      ]
+    ) `shouldMatchCSTExpr`
+      CST.ExprCase
+      { head: NonEmptyArray.singleton $ CST.ExprIdent (cstUnqualIdent "x")
+      , branches: NonEmptyArray.singleton
+        { binders: NonEmptyArray.singleton (CST.BinderVar (CST.Ident "y"))
+        , body: CST.Unconditional
+          { expr: CST.ExprIdent (cstUnqualIdent "y")
+          , whereBindings: []
+          }
+        }
+      }
+
+  it "should create case of N" do
+    (exprCaseOfN [ exprIdent "x" ]
+      [ caseOfBranchN [ bndrVar "y" ] (exprIdent "y")
+      ]
+    ) `shouldBeEquivExpr`
+      ( exprCaseOf1 (exprIdent "x")
+        [ bndrVar "y" *-> exprIdent "y"
+        ]
+      )
 
 shouldMatchCSTExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchCSTExpr e cstExpr = do
