@@ -7,7 +7,7 @@ import Prelude
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*-), (*->), (*::), (*<-), (*=))
-import CST.Simple.Internal.Expr (Expr, caseOfBranchN, doDiscard, doLet, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprDo, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprLetIn, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr, whr)
+import CST.Simple.Internal.Expr (Expr, caseOfBranchN, doDiscard, doLet, exprAdo, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprDo, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprLetIn, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr, whr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typ, typCons)
 import CST.Simple.TestUtils (build', buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
@@ -354,6 +354,20 @@ exprSpec = describe "Expr" do
             , CST.DoDiscard $ CST.ExprNumber (Left 3)
             ]
           )
+
+  it "should create do expression" do
+    exprAdo
+      [ bndrVar "z" *<- exprInt 3
+      ] (exprInt 3) `shouldMatchCSTExpr`
+        CST.ExprAdo
+          { statements:
+            [ CST.DoBind
+              { binder: CST.BinderVar (CST.Ident "z")
+              , expr: CST.ExprNumber (Left 3)
+              }
+            ]
+          , result: CST.ExprNumber (Left 3)
+          }
 
 shouldMatchCSTExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchCSTExpr e cstExpr = do

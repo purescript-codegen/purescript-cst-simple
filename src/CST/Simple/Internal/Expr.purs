@@ -43,6 +43,7 @@ module CST.Simple.Internal.Expr
        , exprCaseOf6
        , exprLetIn
        , exprDo
+       , exprAdo
        , RecordUpdate
        , runRecordUpdate
        , recordUpdate
@@ -86,7 +87,6 @@ import CST.Simple.Internal.Type (Type, runType)
 import CST.Simple.Internal.Utils (noteM)
 import CST.Simple.Names (TypedConstructorName(..))
 import Control.Alt ((<|>))
-import Control.Monad.Error.Class (throwError)
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NonEmptyArray
@@ -293,6 +293,12 @@ exprDo ds = Expr
     <<< NonEmptyArray.fromArray
     <<< Array.catMaybes
     <$> traverse runDoStatement ds
+
+exprAdo :: Array DoStatement -> Expr -> Expr
+exprAdo ds r = Expr ado
+  statements <- Array.catMaybes <$> traverse runDoStatement ds
+  result <- runExpr r
+  in CST.ExprAdo { statements, result }
 
 -- record update
 
