@@ -23,7 +23,7 @@ module CST.Simple.Internal.CommonOp
        ) where
 
 import CST.Simple.Internal.Binder (Binder)
-import CST.Simple.Internal.Expr (CaseOfBranch, Expr, LetBinding, Where, caseOfBranch1, caseOfBranchN, exprLambda, grdUncond, grd_, letName, letPattern, letSig, whr_)
+import CST.Simple.Internal.Expr (CaseOfBranch, Expr, LetBinding, Where, caseOfBranch1, caseOfBranchN, exprLambda, grdUncond, letName, letPattern, letSig, whr_)
 import CST.Simple.Internal.NamedBinders (NamedBinders(..), namedBinders1, nbAddBinder)
 import CST.Simple.Internal.Type (Constraint, Type, typArrow, typConstrained, typKinded)
 
