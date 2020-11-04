@@ -7,7 +7,7 @@ import Prelude
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*-), (*->), (*::), (*=))
-import CST.Simple.Internal.Expr (Expr, caseOfBranchN, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprLetIn, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr)
+import CST.Simple.Internal.Expr (Expr, caseOfBranchN, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprLetIn, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr, whr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typ, typCons)
 import CST.Simple.TestUtils (build', buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
@@ -266,6 +266,9 @@ exprSpec = describe "Expr" do
      exprLetIn
        [ "x" *:: typ "Int"
        , "x" *= exprInt 3
+           `whr`
+           [ "x'" *= exprInt 5
+           ]
 
        , "y" *- bndrVar "a" *= exprInt 3
 
@@ -283,7 +286,16 @@ exprSpec = describe "Expr" do
            , binders: []
            , guarded: CST.Unconditional
              { expr: CST.ExprNumber (Left 3)
-             , whereBindings: []
+             , whereBindings:
+               [ CST.LetBindingName
+                 { name: CST.Ident "x'"
+                 , binders: []
+                 , guarded: CST.Unconditional
+                   { expr: CST.ExprNumber (Left 5)
+                   , whereBindings: []
+                   }
+                 }
+               ]
              }
            }
         , CST.LetBindingName
@@ -293,7 +305,9 @@ exprSpec = describe "Expr" do
              ]
            , guarded: CST.Unconditional
              { expr: CST.ExprNumber (Left 3)
-             , whereBindings: []
+             , whereBindings:
+               [
+               ]
              }
            }
          , CST.LetBindingPattern

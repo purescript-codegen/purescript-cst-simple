@@ -23,7 +23,7 @@ module CST.Simple.Internal.CommonOp
        ) where
 
 import CST.Simple.Internal.Binder (Binder)
-import CST.Simple.Internal.Expr (CaseOfBranch, Expr, LetBinding, caseOfBranch1, caseOfBranchN, exprLambda, grd_, letName, letPattern, letSig, whr_)
+import CST.Simple.Internal.Expr (CaseOfBranch, Expr, LetBinding, Where, caseOfBranch1, caseOfBranchN, exprLambda, grdUncond, grd_, letName, letPattern, letSig, whr_)
 import CST.Simple.Internal.NamedBinders (NamedBinders(..), namedBinders1, nbAddBinder)
 import CST.Simple.Internal.Type (Constraint, Type, typArrow, typConstrained, typKinded)
 
@@ -80,11 +80,17 @@ class Equals a b c | a b -> c where
 
 infixr 6 equals as *=
 
-instance equalsLetBinding :: Equals String Expr LetBinding where
-  equals s e = letName s [] (grd_ e)
+instance equalsLetBindingSE :: Equals String Expr LetBinding where
+  equals s e = equals (NamedBinders s []) e
 
-instance equalsLetBinding' :: Equals NamedBinders Expr LetBinding where
-  equals (NamedBinders s bs) e = letName s bs (grd_ e)
+instance equalsLetBindingNE :: Equals NamedBinders Expr LetBinding where
+  equals nb e = equals nb (whr_ e)
+
+instance equalsLetBindingSW :: Equals String Where LetBinding where
+  equals s w = equals (NamedBinders s []) w
+
+instance equalsLetBindingNW :: Equals NamedBinders Where LetBinding where
+  equals (NamedBinders s bs) w = letName s bs (grdUncond w)
 
 instance equalsLetBindingPattern :: Equals Binder Expr LetBinding where
   equals b e = letPattern b (whr_ e)
