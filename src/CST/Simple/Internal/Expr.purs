@@ -41,6 +41,7 @@ module CST.Simple.Internal.Expr
        , exprCaseOf4
        , exprCaseOf5
        , exprCaseOf6
+       , exprLetIn
        , RecordUpdate
        , runRecordUpdate
        , recordUpdate
@@ -54,6 +55,19 @@ module CST.Simple.Internal.Expr
        , caseOfBranch4
        , caseOfBranch5
        , caseOfBranch6
+       , LetBinding
+       , runLetBinding
+       , letSig
+       , letName
+       , letPattern
+       , Where
+       , runWhere
+       , whr_
+       , whr
+       , Guarded
+       , runGuarded
+       , grd_
+       , grdUncond
        ) where
 
 import Prelude
@@ -256,6 +270,15 @@ exprCaseOf5 e1 e2 e3 e4 e5 = exprCaseOfN [ e1, e2, e3, e4, e5 ]
 exprCaseOf6 :: Expr -> Expr -> Expr -> Expr -> Expr -> Expr -> Array CaseOfBranch -> Expr
 exprCaseOf6 e1 e2 e3 e4 e5 e6 = exprCaseOfN [ e1, e2, e3, e4, e5, e6 ]
 
+exprLetIn :: Array LetBinding -> Expr -> Expr
+exprLetIn lbs e = case NonEmptyArray.fromArray lbs of
+  Just lbs' -> Expr ado
+    bindings <- traverse runLetBinding lbs'
+    body <- runExpr e
+    in CST.ExprLet { bindings, body }
+  Nothing ->
+    e
+
 -- record update
 
 newtype RecordUpdate =
@@ -326,3 +349,66 @@ caseOfBranch5  bi1 bi2 bi3 bi4 bi5 b = caseOfBranchN [ bi1, bi2, bi3, bi4, bi5 ]
 
 caseOfBranch6 :: Binder -> Binder -> Binder -> Binder -> Binder -> Binder -> Expr -> CaseOfBranch
 caseOfBranch6 bi1 bi2 bi3 bi4 bi5 bi6 b = caseOfBranchN [ bi1, bi2, bi3, bi4, bi5, bi6 ] b
+
+-- let binding
+
+newtype LetBinding =
+  LetBinding (ModuleBuilder CST.LetBinding)
+
+runLetBinding :: forall m. Monad m => LetBinding -> ModuleBuilderT m CST.LetBinding
+runLetBinding (LetBinding mb) = liftModuleBuilder mb
+
+letSig :: String -> Type -> LetBinding
+letSig i t = LetBinding ado
+  ident <- mkName i
+  type_ <- runType t
+  in CST.LetBindingSignature { ident, type_ }
+
+letName :: String -> Array Binder -> Guarded -> LetBinding
+letName n bs g = LetBinding ado
+  name <- mkName n
+  binders <- traverse runBinder bs
+  guarded <- runGuarded g
+  in CST.LetBindingName { name
+                        , binders
+                        , guarded
+                        }
+
+letPattern :: Binder -> Where -> LetBinding
+letPattern b w = LetBinding ado
+  binder <- runBinder b
+  where_ <- runWhere w
+  in CST.LetBindingPattern { binder, where_ }
+
+-- where
+
+newtype Where =
+  Where (ModuleBuilder CST.Where)
+
+runWhere :: forall m. Monad m => Where -> ModuleBuilderT m CST.Where
+runWhere (Where mb) = liftModuleBuilder mb
+
+whr :: Expr -> Array LetBinding -> Where
+whr e bs = Where ado
+  expr <- runExpr e
+  whereBindings <- traverse runLetBinding bs
+  in { expr, whereBindings }
+
+whr_ :: Expr -> Where
+whr_ e = whr e []
+
+-- guarded
+
+newtype Guarded =
+  Guarded (ModuleBuilder CST.Guarded)
+
+runGuarded :: forall m. Monad m => Guarded -> ModuleBuilderT m CST.Guarded
+runGuarded (Guarded mb) = liftModuleBuilder mb
+
+grd_ :: Expr -> Guarded
+grd_ = grdUncond <<< whr_
+
+grdUncond :: Where -> Guarded
+grdUncond w = Guarded $ CST.Unconditional <$> runWhere w
+
+-- todo grdGuarded

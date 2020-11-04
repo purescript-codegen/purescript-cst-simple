@@ -6,10 +6,10 @@ import Prelude
 
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.CommonOp ((*->))
-import CST.Simple.Internal.Expr (Expr, caseOfBranchN, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr)
+import CST.Simple.Internal.CommonOp ((*-), (*->), (*::), (*=))
+import CST.Simple.Internal.Expr (Expr, caseOfBranchN, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprLetIn, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
-import CST.Simple.Internal.Type (typCons)
+import CST.Simple.Internal.Type (typ, typCons)
 import CST.Simple.TestUtils (build', buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
@@ -258,6 +258,54 @@ exprSpec = describe "Expr" do
         [ bndrVar "y" *-> exprIdent "y"
         ]
       )
+
+  it "should treat empty let in as identity" do
+    exprLetIn [] (exprIdent "x") `shouldBeEquivExpr` exprIdent "x"
+
+  it "should treat create let in" do
+     exprLetIn
+       [ "x" *:: typ "Int"
+       , "x" *= exprInt 3
+
+       , "y" *- bndrVar "a" *= exprInt 3
+
+       , bndrVar "z" *= exprInt 3
+       ] (exprIdent "x") `shouldMatchCSTExpr`
+       CST.ExprLet
+       { bindings: NonEmptyArray.cons'
+         ( CST.LetBindingSignature
+           { ident: CST.Ident "x"
+           , type_: CST.TypeConstructor (cstUnqualProperName "Int")
+           }
+         )
+         [ CST.LetBindingName
+           { name: CST.Ident "x"
+           , binders: []
+           , guarded: CST.Unconditional
+             { expr: CST.ExprNumber (Left 3)
+             , whereBindings: []
+             }
+           }
+        , CST.LetBindingName
+           { name: CST.Ident "y"
+           , binders:
+             [ CST.BinderVar (CST.Ident "a")
+             ]
+           , guarded: CST.Unconditional
+             { expr: CST.ExprNumber (Left 3)
+             , whereBindings: []
+             }
+           }
+         , CST.LetBindingPattern
+           { binder: CST.BinderVar (CST.Ident "z")
+           , where_:
+             { expr: CST.ExprNumber (Left 3)
+             , whereBindings: []
+             }
+           }
+         ]
+       , body: CST.ExprIdent (cstUnqualIdent "x")
+       }
 
 shouldMatchCSTExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchCSTExpr e cstExpr = do
