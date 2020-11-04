@@ -7,6 +7,7 @@ import Prelude
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*-), (*->), (*::), (*<-), (*=))
+import CST.Simple.Internal.CommonWords (_ado, _do, _in)
 import CST.Simple.Internal.Expr (Expr, caseOfBranchN, doDiscard, doLet, exprAdo, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprDo, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprLetIn, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr, whr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typ, typCons)
@@ -368,6 +369,21 @@ exprSpec = describe "Expr" do
             ]
           , result: CST.ExprNumber (Left 3)
           }
+
+  --
+  it "should allow_do" do
+    (_do [ bndrVar "z" *<- exprInt 3 ])
+      `shouldBeEquivExpr`
+        exprDo [ bndrVar "z" *<- exprInt 3 ]
+
+  it "should allow _ado" do
+    ( _ado
+      [ bndrVar "z" *<- exprInt 3
+      ] `_in` exprInt 3
+    ) `shouldBeEquivExpr`
+      exprAdo
+        [ bndrVar "z" *<- exprInt 3
+        ] (exprInt 3)
 
 shouldMatchCSTExpr :: forall m. MonadThrow Error m => Expr -> CST.Expr -> m Unit
 shouldMatchCSTExpr e cstExpr = do
