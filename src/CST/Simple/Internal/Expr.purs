@@ -42,6 +42,7 @@ module CST.Simple.Internal.Expr
        , exprCaseOf5
        , exprCaseOf6
        , exprLetIn
+       , exprDo
        , RecordUpdate
        , runRecordUpdate
        , recordUpdate
@@ -68,6 +69,11 @@ module CST.Simple.Internal.Expr
        , runGuarded
        , grd_
        , grdUncond
+       , DoStatement
+       , runDoStatement
+       , doLet
+       , doDiscard
+       , doBind
        ) where
 
 import Prelude
@@ -80,6 +86,7 @@ import CST.Simple.Internal.Type (Type, runType)
 import CST.Simple.Internal.Utils (noteM)
 import CST.Simple.Names (TypedConstructorName(..))
 import Control.Alt ((<|>))
+import Control.Monad.Error.Class (throwError)
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NonEmptyArray
@@ -279,6 +286,14 @@ exprLetIn lbs e = case NonEmptyArray.fromArray lbs of
   Nothing ->
     e
 
+exprDo :: Array DoStatement -> Expr
+exprDo ds = Expr
+  $ noteM MissingDoStatements
+    =<< map CST.ExprDo
+    <<< NonEmptyArray.fromArray
+    <<< Array.catMaybes
+    <$> traverse runDoStatement ds
+
 -- record update
 
 newtype RecordUpdate =
@@ -412,3 +427,28 @@ grdUncond :: Where -> Guarded
 grdUncond w = Guarded $ CST.Unconditional <$> runWhere w
 
 -- todo grdGuarded
+
+-- do statement
+
+newtype DoStatement =
+  DoStatement (ModuleBuilder (Maybe CST.DoStatement))
+
+runDoStatement :: forall m. Monad m => DoStatement -> ModuleBuilderT m (Maybe CST.DoStatement)
+runDoStatement (DoStatement mb) = liftModuleBuilder mb
+
+doLet :: Array LetBinding -> DoStatement
+doLet lbs = DoStatement case NonEmptyArray.fromArray lbs of
+  Just lbs' ->
+    Just <<< CST.DoLet <$> traverse runLetBinding lbs'
+  Nothing ->
+    pure Nothing
+
+doDiscard :: Expr -> DoStatement
+doDiscard =
+  DoStatement <<< map (Just <<< CST.DoDiscard) <<< runExpr
+
+doBind :: Binder -> Expr -> DoStatement
+doBind b e = DoStatement ado
+  binder <- runBinder b
+  expr <- runExpr e
+  in Just $ CST.DoBind { binder, expr }

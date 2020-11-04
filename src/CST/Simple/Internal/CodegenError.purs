@@ -25,6 +25,7 @@ data CodegenError =
   | MissingCaseOfHeadBinders
   | MissingCaseOfBranches
   | MissingCaseOfBranchBinders
+  | MissingDoStatements
   | DuplicateDeclName String
 
   | MultiCodegenError (Array CodegenError)
