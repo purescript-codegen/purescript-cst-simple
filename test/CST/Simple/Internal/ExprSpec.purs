@@ -11,7 +11,7 @@ import CST.Simple.Internal.CommonWords (_ado, _do, _in, _let, _letd)
 import CST.Simple.Internal.Expr (Expr, caseOfBranchN, doDiscard, doLet, exprAdo, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprDo, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprLetIn, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr, whr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typ, typCons)
-import CST.Simple.TestUtils (build', buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldImport)
+import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldBeEquiv, shouldImport)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..))
@@ -19,7 +19,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Exception (Error)
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldEqual, shouldReturn)
+import Test.Spec.Assertions (shouldReturn)
 
 exprSpec :: Spec Unit
 exprSpec = describe "Expr" do
@@ -402,10 +402,7 @@ shouldMatchCSTExpr e cstExpr = do
   buildA (runExpr e) `shouldReturn` cstExpr
 
 shouldBeEquivExpr :: forall m. MonadThrow Error m => Expr -> Expr -> m Unit
-shouldBeEquivExpr e1 e2 = do
-  e1' <- build' (runExpr e1)
-  e2' <- build' (runExpr e2)
-  e1' `shouldEqual` e2'
+shouldBeEquivExpr = shouldBeEquiv runExpr
 
 exprShouldError :: forall m. MonadThrow Error m => Expr -> CodegenError -> m Unit
 exprShouldError e err =

@@ -6,6 +6,8 @@ module CST.Simple.TestUtils
        , requireOne
        , requireMatch
        , shouldImport
+       , shouldMatchCST
+       , shouldBeEquiv
        , fooBarModuleName
        , intCSTType
        , stringCSTType
@@ -32,7 +34,7 @@ import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\))
 import Effect.Exception (Error, error)
 import Language.PS.CST as CST
-import Test.Spec.Assertions (shouldContain)
+import Test.Spec.Assertions (shouldContain, shouldEqual, shouldReturn)
 
 build :: forall m a. MonadThrow Error m => ModuleBuilder a -> m ModuleContent
 build = map snd <<< build'
@@ -67,6 +69,16 @@ shouldImport :: forall m a. MonadThrow Error m => ModuleBuilder a -> CST.ImportD
 shouldImport mb import_ = do
   mod <- build mb
   mod.imports `shouldContain` import_
+
+shouldMatchCST :: forall a cst m. MonadThrow Error m => Show cst => Eq cst => (a -> ModuleBuilder cst) -> a -> cst -> m Unit
+shouldMatchCST f a cst = do
+  buildA (f a) `shouldReturn` cst
+
+shouldBeEquiv :: forall a b m. MonadThrow Error m => Show b => Eq b => (a -> ModuleBuilder b) -> a -> a -> m Unit
+shouldBeEquiv run a1 a2 = do
+  a1' <- build' (run a1)
+  a2' <- build' (run a2)
+  a1' `shouldEqual` a2'
 
 fooBarModuleName :: ModuleName
 fooBarModuleName =
