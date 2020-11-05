@@ -74,7 +74,7 @@ typLabelled f pairs tailName = Type ado
   in f { rowLabels, rowTail }
 
   where
-    toRowLabel l typ = runType typ <#> \type_ ->
+    toRowLabel l t = runType t <#> \type_ ->
       { label: CST.Label l, type_ }
 
     toRowTail s = runType (typVar s)
