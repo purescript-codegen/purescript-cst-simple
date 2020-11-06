@@ -4,9 +4,10 @@ module CST.Simple.Internal.DeclSpec
 
 import Prelude
 
+import CST.Simple.Internal.CommonOp ((*::))
 import CST.Simple.Internal.Declaration (Declaration, dataCtor, declData, runDeclaration)
 import CST.Simple.Internal.Kind (knd)
-import CST.Simple.Internal.TypeVarBinding (tvb, tvbKinded)
+import CST.Simple.Internal.TypeVarBinding (tvb)
 import CST.Simple.TestUtils (cstUnqualProperName, shouldMatchCST)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Maybe (Maybe(..))
@@ -17,7 +18,7 @@ import Test.Spec (Spec, it)
 declSpec :: Spec Unit
 declSpec = do
   it "should create data decl" do
-    declData "Foo" [ tvb "a", tvbKinded "b" (knd "Symbol") ]
+    declData "Foo" [ tvb "a", "b" *:: knd "Symbol" ]
       [ dataCtor "Bar" []
       ] `shouldMatchCSTDecl`
       CST.DeclData

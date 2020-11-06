@@ -24,8 +24,10 @@ module CST.Simple.Internal.CommonOp
 
 import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.Expr (CaseOfBranch, DoStatement, Expr, LetBinding, Where, caseOfBranch1, caseOfBranchN, doBind, exprLambda, grdUncond, letName, letPattern, letSig, whr_)
+import CST.Simple.Internal.Kind (Kind)
 import CST.Simple.Internal.NamedBinders (NamedBinders(..), namedBinders1, nbAddBinder)
 import CST.Simple.Internal.Type (Constraint, Type, typArrow, typConstrained, typKinded)
+import CST.Simple.Internal.TypeVarBinding (TypeVarBinding, tvbKinded)
 
 class RightSingleArrow a b c | a b -> c where
   rightSingleArrow :: a -> b -> c
@@ -72,6 +74,9 @@ infixr 8 doubleColon as *::
 
 instance doubleColonType :: DoubleColon Type String Type where
   doubleColon = typKinded
+
+instance doubleColonTypeVarBinding :: DoubleColon String Kind TypeVarBinding where
+  doubleColon = tvbKinded
 
 instance doubleColonLetBinding :: DoubleColon String Type LetBinding where
   doubleColon = letSig
