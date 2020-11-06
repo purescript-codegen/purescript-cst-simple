@@ -6,6 +6,7 @@ import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*->), (*::), (*=>))
+import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (Type, cnst, runType, typ, typApp, typCons, typForall, typOp, typRecord, typRow, typString, typVar)
 import CST.Simple.TestUtils (buildA, buildModuleErr, cstTypCons, cstUnqualName, cstUnqualProperName, fooBarModuleName, intCSTType, shouldImport, stringCSTType)
 import Control.Monad.Error.Class (class MonadThrow)
@@ -118,11 +119,11 @@ typeSpec = describe "Type" do
       (intCSTType `CST.TypeArr` (stringCSTType `CST.TypeArr` intCSTType))
 
   it "should create kinded types" do
-    (typ "Qux" *:: "Foo.Bar.Baz") `shouldMatchType`
+    (typ "Qux" *:: knd "Foo.Bar.Baz") `shouldMatchType`
       (CST.TypeKinded (cstTypCons "Qux") (CST.KindName (cstUnqualProperName "Baz")))
 
   it "should import kinds" do
-    (typ "Qux" *:: "Foo.Bar.Baz") `shouldImportType`
+    (typ "Qux" *:: knd "Foo.Bar.Baz") `shouldImportType`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names: [ CST.ImportKind (CST.ProperName "Baz")

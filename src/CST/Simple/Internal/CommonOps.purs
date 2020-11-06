@@ -72,7 +72,7 @@ class DoubleColon a b c | a b -> c where
 
 infixr 8 doubleColon as *::
 
-instance doubleColonType :: DoubleColon Type String Type where
+instance doubleColonType :: DoubleColon Type Kind Type where
   doubleColon = typKinded
 
 instance doubleColonTypeVarBinding :: DoubleColon String Kind TypeVarBinding where

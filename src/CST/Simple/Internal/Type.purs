@@ -21,6 +21,7 @@ module CST.Simple.Internal.Type
 
 import Prelude
 
+import CST.Simple.Internal.Kind (Kind, runKind)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Foldable (foldl)
@@ -100,11 +101,10 @@ typForall vs t = case NonEmptyArray.fromArray vs of
 typArrow :: Type -> Type -> Type
 typArrow t1 t2 = Type $ CST.TypeArr <$> runType t1 <*> runType t2
 
-typKinded :: Type -> String -> Type
-typKinded t k = Type ado
-  t' <- runType t
-  k' <- mkQualName k
-  in CST.TypeKinded t' (CST.KindName k')
+typKinded :: Type -> Kind -> Type
+typKinded t k = Type $ CST.TypeKinded
+  <$> runType t
+  <*> runKind k
 
 typOp :: Type -> String -> Type -> Type
 typOp t1 op t2 = Type $ CST.TypeOp
