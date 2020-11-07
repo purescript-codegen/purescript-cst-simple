@@ -2,6 +2,7 @@ module CST.Simple.Internal.Declaration
        ( Declaration
        , runDeclaration
        , declData
+       , declType
        , DataCtor
        , dataCtor
        , runDataCtor
@@ -27,6 +28,14 @@ declData n vs cs = Declaration ado
   head <- mkDHead n vs
   constructors <- traverse runDataCtor cs
   in CST.DeclData { comments: Nothing, head, constructors }
+
+declType :: String -> Array TypeVarBinding -> Type -> Declaration
+declType n vs t = Declaration ado
+  head <- mkDHead n vs
+  type_ <- runType t
+  in CST.DeclType { comments: Nothing, head, type_ }
+
+--
 
 newtype DataCtor =
   DataCtor (ModuleBuilder CST.DataCtor)

@@ -5,8 +5,9 @@ module CST.Simple.Internal.DeclSpec
 import Prelude
 
 import CST.Simple.Internal.CommonOp ((*::))
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declData, runDeclaration)
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declData, declType, runDeclaration)
 import CST.Simple.Internal.Kind (knd)
+import CST.Simple.Internal.Type (typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
 import CST.Simple.TestUtils (cstUnqualProperName, shouldMatchCST)
 import Control.Monad.Error.Class (class MonadThrow)
@@ -36,6 +37,20 @@ declSpec = do
           , dataCtorFields: []
           }
         ]
+      }
+
+  it "should create type decl" do
+    declType "Foo" [ tvb "a" ] (typVar "a")
+      `shouldMatchCSTDecl`
+      CST.DeclType
+      { comments: Nothing
+      , head: CST.DataHead
+        { dataHdName: CST.ProperName "Foo"
+        , dataHdVars:
+          [ CST.TypeVarName (CST.Ident "a")
+          ]
+        }
+      , type_: CST.TypeVar (CST.Ident "a")
       }
 
 shouldMatchCSTDecl :: forall m. MonadThrow Error m => Declaration -> CST.Declaration -> m Unit
