@@ -207,12 +207,6 @@ instance readNameTypeOpName :: ReadName (CST.OpName CST.OpNameType_TypeOpName) w
 instance readNameValueOpName :: ReadName (CST.OpName CST.OpNameType_ValueOpName) where
   readName s = note (InvalidValueOpName s) (valueOpName' s)
 
-instance readNameQualName ::
-  ( UnwrapQualName a
-  , ReadName a
-  ) => ReadName (QualifiedName a) where
-  readName = qualName
-
 -- todo support type vars. add test when doing so
 instance readNameDataHead :: ReadName CST.DataHead where
   readName s = bimap (InvalidDataHeadName s) toDataHead (readName s)

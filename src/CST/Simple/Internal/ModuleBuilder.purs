@@ -16,11 +16,12 @@ import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Import (class AsImport, asImport)
-import CST.Simple.Names (class ReadName, class UnwrapQualName, ModuleName, QualifiedName, readName)
+import CST.Simple.Internal.Utils (exceptM)
+import CST.Simple.Names (class ReadName, class UnwrapQualName, ModuleName, QualifiedName, qualName, readName)
 import CST.Simple.Types (ModuleContent)
 import Control.Alt (class Alt)
 import Control.Monad.Error.Class (class MonadError, throwError)
-import Control.Monad.Except (ExceptT, mapExceptT, runExceptT)
+import Control.Monad.Except (ExceptT, except, lift, mapExceptT, runExceptT)
 import Control.Monad.Except.Trans (class MonadThrow)
 import Control.Monad.State (StateT, gets, mapStateT, runStateT)
 import Control.Monad.State.Class (class MonadState)
@@ -140,11 +141,7 @@ mkName ::
   ReadName n =>
   String ->
   ModuleBuilderT m n
-mkName s = case readName s of
-  Left e ->
-    throwError e
-  Right r ->
-    pure r
+mkName = exceptM <<< readName
 
 mkQualName ::
   forall m n.
@@ -155,7 +152,7 @@ mkQualName ::
   String ->
   ModuleBuilderT m (QualifiedName n)
 mkQualName s = do
-  CST.QualifiedName q <- mkName s
+  CST.QualifiedName q <- exceptM $ qualName s
   for_ q.qualModule \m ->
     addImport m (asImport q.qualName)
   pure $ CST.QualifiedName (q { qualModule = Nothing })

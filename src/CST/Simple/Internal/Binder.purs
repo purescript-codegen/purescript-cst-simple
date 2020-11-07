@@ -16,9 +16,10 @@ module CST.Simple.Internal.Binder
 
 import Prelude
 
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
 import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
 import CST.Simple.Internal.Type (Type, runType)
+import CST.Simple.Names (TypedConstructorName(..))
 import Data.Either (Either(..))
 import Data.Traversable (traverse)
 import Language.PS.CST as CST
@@ -39,9 +40,12 @@ bndrNamed i b = Binder ado
 
 bndrConstructor :: String -> Array Binder -> Binder
 bndrConstructor n as = Binder ado
-  name <- mkName n
+  name <- map getNamePart <$> mkQualName n
   args <- traverse runBinder as
   in CST.BinderConstructor { name, args }
+
+  where
+    getNamePart (TypedConstructorName _ n') = n'
 
 bndrBoolean :: Boolean -> Binder
 bndrBoolean =
@@ -77,4 +81,4 @@ bndrTyped b t =
 
 bndrOp :: Binder -> String -> Binder -> Binder
 bndrOp b1 op b2 =
-  Binder $ CST.BinderOp <$> runBinder b1 <*> mkName op <*> runBinder b2
+  Binder $ CST.BinderOp <$> runBinder b1 <*> mkQualName op <*> runBinder b2
