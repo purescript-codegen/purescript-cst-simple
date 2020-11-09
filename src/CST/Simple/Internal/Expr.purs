@@ -75,6 +75,7 @@ module CST.Simple.Internal.Expr
        , doLet
        , doDiscard
        , doBind
+       , valueBindingFields
        ) where
 
 import Prelude
@@ -386,14 +387,8 @@ letSig i t = LetBinding ado
   in CST.LetBindingSignature { ident, type_ }
 
 letName :: String -> Array Binder -> Guarded -> LetBinding
-letName n bs g = LetBinding ado
-  name <- mkName n
-  binders <- traverse runBinder bs
-  guarded <- runGuarded g
-  in CST.LetBindingName { name
-                        , binders
-                        , guarded
-                        }
+letName name binders guarded =
+  LetBinding $ CST.LetBindingName <$> valueBindingFields name binders guarded
 
 letPattern :: Binder -> Where -> LetBinding
 letPattern b w = LetBinding ado
@@ -458,3 +453,12 @@ doBind b e = DoStatement ado
   binder <- runBinder b
   expr <- runExpr e
   in Just $ CST.DoBind { binder, expr }
+
+-- value binding fields
+
+valueBindingFields :: String -> Array Binder -> Guarded -> ModuleBuilder CST.ValueBindingFields
+valueBindingFields name' binders' guarded' = ado
+  name <- mkName name'
+  binders <- traverse runBinder binders'
+  guarded <- runGuarded guarded'
+  in { name, binders, guarded }

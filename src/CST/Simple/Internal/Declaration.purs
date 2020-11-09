@@ -10,6 +10,7 @@ module CST.Simple.Internal.Declaration
        , declDerive
        , declDeriveNewtype
        , declSignature
+       , declValue
        , DataCtor
        , dataCtor
        , runDataCtor
@@ -24,9 +25,9 @@ module CST.Simple.Internal.Declaration
 
 import Prelude
 
-import CST.Simple.Internal.Binder (Binder, runBinder)
+import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.Expr (Guarded, runGuarded)
+import CST.Simple.Internal.Expr (Guarded, valueBindingFields)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
 import CST.Simple.Internal.Type (Constraint, Type, runConstraint, runType)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding, runTypeVarBinding)
@@ -103,6 +104,13 @@ declSignature ident' type_' = Declaration ado
   type_ <- runType type_'
   in CST.DeclSignature { comments: Nothing, ident, type_ }
 
+declValue :: String -> Array Binder -> Guarded -> Declaration
+declValue name binders guarded = Declaration ado
+  fields <- valueBindingFields name binders guarded
+  in CST.DeclValue { comments: Nothing
+                   , valueBindingFields: fields
+                   }
+
 --
 
 newtype DataCtor =
@@ -171,11 +179,5 @@ instanceBSig ident' type_' = InstanceBinding ado
 
 --
 instanceBName :: String -> Array Binder -> Guarded -> InstanceBinding
-instanceBName name' binders' guarded' = InstanceBinding ado
-  name <- mkName name'
-  binders <- traverse runBinder binders'
-  guarded <- runGuarded guarded'
-  in CST.InstanceBindingName { name
-                             , binders
-                             , guarded
-                             }
+instanceBName name binders guarded =
+  InstanceBinding $ CST.InstanceBindingName <$> valueBindingFields name binders guarded

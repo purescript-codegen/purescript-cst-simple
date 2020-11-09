@@ -6,14 +6,15 @@ import Prelude
 
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CommonOp ((*->), (*::))
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declDerive, declDeriveNewtype, declInstance, declInstanceChain, declNewtype, declSignature, declType, instanceBName, instanceBSig, instance_, runDeclaration)
-import CST.Simple.Internal.Expr (exprIdent, grd_)
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declDerive, declDeriveNewtype, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, instanceBName, instanceBSig, instance_, runDeclaration)
+import CST.Simple.Internal.Expr (exprIdent, exprInt, grd_)
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (cnst, typCons, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
 import CST.Simple.TestUtils (cstUnqualIdent, cstUnqualProperName, shouldMatchCST)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\))
 import Effect.Exception (Error)
@@ -211,6 +212,19 @@ declarationSpec = do
       , type_: CST.TypeConstructor (cstUnqualProperName "Int")
       }
 
+  it "should create value decl" do
+    declValue "foo" [ bndrVar "a" ] (grd_ (exprInt 3))
+      `shouldMatchCSTDecl`
+      CST.DeclValue
+      { comments: Nothing
+      , valueBindingFields:
+        { name: CST.Ident "foo"
+        , binders: [ CST.BinderVar (CST.Ident "a") ]
+        , guarded: CST.Unconditional { whereBindings: []
+                                     , expr: CST.ExprNumber (Left 3)
+                                     }
+        }
+      }
 
 shouldMatchCSTDecl :: forall m. MonadThrow Error m => Declaration -> CST.Declaration -> m Unit
 shouldMatchCSTDecl = shouldMatchCST runDeclaration
