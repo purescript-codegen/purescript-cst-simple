@@ -10,6 +10,7 @@ module CST.Simple.Internal.ModuleBuilder
        , addDeclaration
        , mkName
        , mkQualName
+       , mkQualConstructorName
        ) where
 
 import Prelude
@@ -17,9 +18,9 @@ import Prelude
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Import (class AsImport, asImport)
 import CST.Simple.Internal.Utils (exceptM)
-import CST.Simple.Names (class ReadName, class UnwrapQualName, ModuleName, QualifiedName, qualName, readName)
+import CST.Simple.Names (class ReadName, class UnwrapQualName, ConstructorName, ModuleName, QualifiedName, TypedConstructorName(..), qualName, readName)
 import CST.Simple.Types (ModuleContent)
-import Control.Alt (class Alt)
+import Control.Alt (class Alt, (<|>))
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except (ExceptT, mapExceptT, runExceptT)
 import Control.Monad.Except.Trans (class MonadThrow)
@@ -156,3 +157,20 @@ mkQualName s = do
   for_ q.qualModule \m ->
     addImport m (asImport q.qualName)
   pure $ CST.QualifiedName (q { qualModule = Nothing })
+
+mkQualConstructorName ::
+  forall m.
+  Monad m =>
+  String ->
+  ModuleBuilderT m (QualifiedName ConstructorName)
+mkQualConstructorName c = qualifiedCons <|> unqualifiedCons
+  where
+    qualifiedCons =
+      map getNamePart <$> mkQualName c
+
+    unqualifiedCons = mkName c <#> \name ->
+      CST.QualifiedName { qualModule: Nothing
+                        , qualName: name
+                        }
+
+    getNamePart (TypedConstructorName _ n) = n

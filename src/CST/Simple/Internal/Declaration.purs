@@ -11,6 +11,7 @@ module CST.Simple.Internal.Declaration
        , declDeriveNewtype
        , declSignature
        , declValue
+       , declInfix
        , DataCtor
        , dataCtor
        , runDataCtor
@@ -21,6 +22,11 @@ module CST.Simple.Internal.Declaration
        , runInstanceBinding
        , instanceBSig
        , instanceBName
+       , FixityOp
+       , runFixityOp
+       , fixityOpValue
+       , fixityOpType
+       , module E
        ) where
 
 import Prelude
@@ -28,17 +34,21 @@ import Prelude
 import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Expr (Guarded, valueBindingFields)
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualConstructorName, mkQualName)
 import CST.Simple.Internal.Type (Constraint, Type, runConstraint, runType)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding, runTypeVarBinding)
 import CST.Simple.Internal.Utils (requireNonEmptyArray)
+import Control.Alt ((<|>))
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Data.Array as Array
 import Data.Array.NonEmpty as NonEmptyArray
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse)
 import Data.Tuple (uncurry)
 import Data.Tuple.Nested (type (/\))
+import Language.PS.CST (Fixity(..)) as E
+import Language.PS.CST (Fixity)
 import Language.PS.CST as CST
 
 newtype Declaration =
@@ -111,6 +121,18 @@ declValue name binders guarded = Declaration ado
                    , valueBindingFields: fields
                    }
 
+declInfix :: Fixity -> Int -> FixityOp -> Declaration
+declInfix keyword precedence operator' = Declaration ado
+  operator <- runFixityOp operator'
+  in CST.DeclFixity
+     { comments: Nothing
+     , fixityFields:
+       { keyword
+       , precedence
+       , operator
+       }
+     }
+
 --
 
 newtype DataCtor =
@@ -177,7 +199,24 @@ instanceBSig ident' type_' = InstanceBinding ado
   type_ <- runType type_'
   in CST.InstanceBindingSignature { ident, type_ }
 
---
 instanceBName :: String -> Array Binder -> Guarded -> InstanceBinding
 instanceBName name binders guarded =
   InstanceBinding $ CST.InstanceBindingName <$> valueBindingFields name binders guarded
+
+newtype FixityOp =
+  FixityOp (ModuleBuilder CST.FixityOp)
+
+runFixityOp :: forall m. Monad m => FixityOp -> ModuleBuilderT m CST.FixityOp
+runFixityOp (FixityOp mb) = liftModuleBuilder mb
+
+fixityOpValue :: String -> String -> FixityOp
+fixityOpValue name' opName' = FixityOp ado
+  name <- (Left <$> mkQualName name') <|> (Right <$> mkQualConstructorName name')
+  opName <- mkName opName'
+  in CST.FixityValue name opName
+
+fixityOpType :: String -> String -> FixityOp
+fixityOpType name' opName' = FixityOp ado
+  name <- mkQualName name'
+  opName <- mkName opName'
+  in CST.FixityType name opName

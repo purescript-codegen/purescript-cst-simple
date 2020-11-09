@@ -82,12 +82,10 @@ import Prelude
 
 import CST.Simple.Internal.Binder (Binder, runBinder)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualConstructorName, mkQualName)
 import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
 import CST.Simple.Internal.Type (Type, runType)
 import CST.Simple.Internal.Utils (noteM)
-import CST.Simple.Names (TypedConstructorName(..))
-import Control.Alt ((<|>))
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NonEmptyArray
@@ -128,17 +126,7 @@ exprIdent6 :: String -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr
 exprIdent6 c a1 a2 a3 a4 a5 a6 = exprIdentN c [ a1, a2, a3, a4, a5, a6 ]
 
 exprCons :: String -> Expr
-exprCons c = Expr $ CST.ExprConstructor <$> (qualifiedCons <|> unqualifiedCons)
-  where
-    qualifiedCons =
-      map getNamePart <$> mkQualName c
-
-    unqualifiedCons = mkName c <#> \name ->
-      CST.QualifiedName { qualModule: Nothing
-                        , qualName: name
-                        }
-
-    getNamePart (TypedConstructorName _ n) = n
+exprCons c = Expr $ CST.ExprConstructor <$> mkQualConstructorName c
 
 exprConsN :: String -> Array Expr -> Expr
 exprConsN c args = exprApp (exprCons c) args

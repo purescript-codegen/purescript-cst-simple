@@ -6,7 +6,7 @@ import Prelude
 
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CommonOp ((*->), (*::))
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declDerive, declDeriveNewtype, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, instanceBName, instanceBSig, instance_, runDeclaration)
+import CST.Simple.Internal.Declaration (Declaration, Fixity(..), dataCtor, declClass, declData, declDerive, declDeriveNewtype, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, fixityOpType, fixityOpValue, instanceBName, instanceBSig, instance_, runDeclaration)
 import CST.Simple.Internal.Expr (exprIdent, exprInt, grd_)
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (cnst, typCons, typVar)
@@ -223,6 +223,42 @@ declarationSpec = do
         , guarded: CST.Unconditional { whereBindings: []
                                      , expr: CST.ExprNumber (Left 3)
                                      }
+        }
+      }
+
+  it "should create infix value ident" do
+    declInfix Infixl 5 (fixityOpValue "foo" "<+>")
+     `shouldMatchCSTDecl`
+      CST.DeclFixity
+      { comments: Nothing
+      , fixityFields:
+        { keyword: CST.Infixl
+        , precedence: 5
+        , operator: CST.FixityValue (Left (cstUnqualIdent "foo")) (CST.OpName "<+>")
+        }
+      }
+
+  it "should create infix value proper name" do
+    declInfix Infix 5 (fixityOpValue "Foo.Bar.Baz(Baz)" "<+>")
+     `shouldMatchCSTDecl`
+      CST.DeclFixity
+      { comments: Nothing
+      , fixityFields:
+        { keyword: CST.Infix
+        , precedence: 5
+        , operator: CST.FixityValue (Right (cstUnqualProperName "Baz")) (CST.OpName "<+>")
+        }
+      }
+
+  it "should create infix value type" do
+    declInfix Infix 5 (fixityOpType "Foo.Bar.Baz" "<+>")
+     `shouldMatchCSTDecl`
+      CST.DeclFixity
+      { comments: Nothing
+      , fixityFields:
+        { keyword: CST.Infix
+        , precedence: 5
+        , operator: CST.FixityType (cstUnqualProperName "Baz") (CST.OpName "<+>")
         }
       }
 
