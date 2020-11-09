@@ -8,7 +8,7 @@ module CST.Simple.Internal.TypeVarBinding
 import Prelude
 
 import CST.Simple.Internal.Kind (Kind, runKind)
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName)
 import Language.PS.CST as CST
 
 newtype TypeVarBinding =
@@ -18,8 +18,8 @@ runTypeVarBinding :: forall m. Monad m => TypeVarBinding -> ModuleBuilderT m CST
 runTypeVarBinding (TypeVarBinding mb) = liftModuleBuilder mb
 
 tvb :: String -> TypeVarBinding
-tvb ident = TypeVarBinding $ pure $ CST.TypeVarName (CST.Ident ident)
+tvb ident = TypeVarBinding $ CST.TypeVarName <$> mkName ident
 
 tvbKinded :: String -> Kind -> TypeVarBinding
 tvbKinded ident kind_ =
-  TypeVarBinding $ CST.TypeVarKinded (CST.Ident ident) <$> runKind kind_
+  TypeVarBinding $ CST.TypeVarKinded <$> mkName ident <*> runKind kind_
