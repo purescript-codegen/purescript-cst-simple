@@ -9,6 +9,7 @@ module CST.Simple.Internal.Declaration
        , declInstanceChain
        , declDerive
        , declDeriveNewtype
+       , declSignature
        , DataCtor
        , dataCtor
        , runDataCtor
@@ -95,6 +96,12 @@ declDerive' :: CST.DeclDeriveType -> String -> Array Constraint -> String -> Arr
 declDerive' deriveType name constraints class' types = Declaration ado
   head <- mkInstanceHead name constraints class' types
   in CST.DeclDerive { comments: Nothing, deriveType, head }
+
+declSignature :: String -> Type -> Declaration
+declSignature ident' type_' = Declaration ado
+  ident <- mkName ident'
+  type_ <- runType type_'
+  in CST.DeclSignature { comments: Nothing, ident, type_ }
 
 --
 

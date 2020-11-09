@@ -6,10 +6,10 @@ import Prelude
 
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CommonOp ((*->), (*::))
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declDerive, declDeriveNewtype, declInstance, declInstanceChain, declNewtype, declType, instanceBName, instanceBSig, instance_, runDeclaration)
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declDerive, declDeriveNewtype, declInstance, declInstanceChain, declNewtype, declSignature, declType, instanceBName, instanceBSig, instance_, runDeclaration)
 import CST.Simple.Internal.Expr (exprIdent, grd_)
 import CST.Simple.Internal.Kind (knd)
-import CST.Simple.Internal.Type (cnst, typVar)
+import CST.Simple.Internal.Type (cnst, typCons, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
 import CST.Simple.TestUtils (cstUnqualIdent, cstUnqualProperName, shouldMatchCST)
 import Control.Monad.Error.Class (class MonadThrow)
@@ -200,6 +200,15 @@ declarationSpec = do
           , instTypes: NonEmptyArray.singleton
             (CST.TypeVar (CST.Ident "a"))
           }
+      }
+
+  it "should create signature" do
+    declSignature "foo" (typCons "Int")
+      `shouldMatchCSTDecl`
+      CST.DeclSignature
+      { comments: Nothing
+      , ident: CST.Ident "foo"
+      , type_: CST.TypeConstructor (cstUnqualProperName "Int")
       }
 
 
