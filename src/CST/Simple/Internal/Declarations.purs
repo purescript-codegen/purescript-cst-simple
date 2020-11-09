@@ -3,6 +3,7 @@ module CST.Simple.Internal.Declaration
        , runDeclaration
        , declData
        , declType
+       , declNewtype
        , DataCtor
        , dataCtor
        , runDataCtor
@@ -34,6 +35,13 @@ declType n vs t = Declaration ado
   head <- mkDHead n vs
   type_ <- runType t
   in CST.DeclType { comments: Nothing, head, type_ }
+
+declNewtype :: String -> Array TypeVarBinding -> String -> Type -> Declaration
+declNewtype n vs c t = Declaration ado
+  head <- mkDHead n vs
+  name <- mkName c
+  type_ <- runType t
+  in CST.DeclNewtype { comments: Nothing, head, name, type_ }
 
 --
 

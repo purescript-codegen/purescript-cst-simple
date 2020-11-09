@@ -5,7 +5,7 @@ module CST.Simple.Internal.DeclSpec
 import Prelude
 
 import CST.Simple.Internal.CommonOp ((*::))
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declData, declType, runDeclaration)
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declData, declNewtype, declType, runDeclaration)
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
@@ -50,6 +50,21 @@ declSpec = do
           [ CST.TypeVarName (CST.Ident "a")
           ]
         }
+      , type_: CST.TypeVar (CST.Ident "a")
+      }
+
+  it "should create newtype decl" do
+    declNewtype "Foo" [ tvb "a" ] "Bar" (typVar "a")
+      `shouldMatchCSTDecl`
+      CST.DeclNewtype
+      { comments: Nothing
+      , head: CST.DataHead
+        { dataHdName: CST.ProperName "Foo"
+        , dataHdVars:
+          [ CST.TypeVarName (CST.Ident "a")
+          ]
+        }
+      , name: CST.ProperName "Bar"
       , type_: CST.TypeVar (CST.Ident "a")
       }
 
