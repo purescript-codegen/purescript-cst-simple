@@ -16,6 +16,7 @@ module CST.Simple.Internal.Type
        , typOp
        , typConstrained
        , Constraint
+       , runConstraint
        , cnst
        ) where
 

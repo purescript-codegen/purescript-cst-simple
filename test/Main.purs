@@ -2,7 +2,7 @@ module Test.Main where
 
 import Prelude
 
-import CST.Simple.Internal.DeclSpec (declSpec)
+import CST.Simple.Internal.DeclarationSpec (declarationSpec)
 import CST.Simple.Internal.ExprSpec (exprSpec)
 import CST.Simple.Internal.TypeSpec (typeSpec)
 import CST.Simple.ModuleBuilderSpec (moduleBuilderSpec)
@@ -18,6 +18,6 @@ main = launchAff_ $ runSpec [consoleReporter] do
   namesSpec
   typeSpec
   exprSpec
-  declSpec
+  declarationSpec
   projectBuilderSpec
   moduleBuilderSpec
