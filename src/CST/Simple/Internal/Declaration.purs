@@ -6,9 +6,13 @@ module CST.Simple.Internal.Declaration
        , declNewtype
        , declClass
        , declInstance
+       , declInstanceChain
        , DataCtor
        , dataCtor
        , runDataCtor
+       , Instance
+       , runInstance
+       , instance_
        , InstanceBinding
        , runInstanceBinding
        , instanceBSig
@@ -71,21 +75,13 @@ declClass n vs ss fds ms = Declaration ado
       in { ident, type_ }
 
 declInstance :: String -> Array Constraint -> String -> Array Type -> Array InstanceBinding -> Declaration
-declInstance name' constraints' class' types' body' = Declaration ado
-  head <- mkInstanceHead name' constraints' class' types'
-  body <- traverse runInstanceBinding body'
-  in CST.DeclInstanceChain
-     { comments: Nothing
-     , instances: NonEmptyArray.singleton { head, body }
-     }
-{-
-{ instName :: Ident
-  , instConstraints :: Array Constraint
-  , instClass :: QualifiedName (ProperName ProperNameType_ClassName)
-  , instTypes :: NonEmptyArray Type
-  }
--}
+declInstance name' constraints' class' types' body' =
+  declInstanceChain (instance_ name' constraints' class' types' body') []
 
+declInstanceChain :: Instance -> Array Instance -> Declaration
+declInstanceChain i1 is = Declaration ado
+  instances <- traverse runInstance (NonEmptyArray.cons' i1 is)
+  in CST.DeclInstanceChain { comments: Nothing, instances }
 --
 
 newtype DataCtor =
@@ -127,6 +123,18 @@ mkInstanceHead name' constraints' class' types' = ado
   instClass <- mkQualName class'
   instTypes <- requireNonEmptyArray MissingInstanceHeadTypes =<< traverse runType types'
   in { instName, instConstraints, instClass, instTypes }
+
+newtype Instance =
+  Instance (ModuleBuilder CST.Instance)
+
+runInstance :: forall m. Monad m => Instance -> ModuleBuilderT m CST.Instance
+runInstance (Instance mb) = liftModuleBuilder mb
+
+instance_ :: String -> Array Constraint -> String -> Array Type -> Array InstanceBinding -> Instance
+instance_ name' constraints' class' types' body' = Instance ado
+  head <- mkInstanceHead name' constraints' class' types'
+  body <- traverse runInstanceBinding body'
+  in { head, body }
 
 newtype InstanceBinding =
   InstanceBinding (ModuleBuilder CST.InstanceBinding)

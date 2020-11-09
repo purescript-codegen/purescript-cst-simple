@@ -6,7 +6,7 @@ import Prelude
 
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CommonOp ((*->), (*::))
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declInstance, declNewtype, declType, instanceBName, instanceBSig, runDeclaration)
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declInstance, declInstanceChain, declNewtype, declType, instanceBName, instanceBSig, instance_, runDeclaration)
 import CST.Simple.Internal.Expr (exprIdent, grd_)
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (cnst, typVar)
@@ -107,6 +107,40 @@ declarationSpec = do
       [ instanceBSig "foo" (typVar "a")
       , instanceBName "foo" [ bndrVar "a" ] (grd_ $ exprIdent "a")
       ]
+      `shouldMatchCSTDecl`
+      CST.DeclInstanceChain
+      { comments: Nothing
+      , instances: NonEmptyArray.singleton
+        { head:
+          { instClass: cstUnqualProperName "Foo"
+          , instConstraints:
+            [ CST.Constraint { className: cstUnqualProperName "Bar", args: [] }
+            ]
+          , instName: CST.Ident "fooI"
+          , instTypes: NonEmptyArray.singleton
+            (CST.TypeVar (CST.Ident "a"))
+          }
+        , body:
+          [ CST.InstanceBindingSignature
+            { ident: CST.Ident "foo"
+            , type_: CST.TypeVar (CST.Ident "a")
+            }
+          , CST.InstanceBindingName
+            { name: CST.Ident "foo"
+            , binders: [ CST.BinderVar (CST.Ident "a") ]
+            , guarded: CST.Unconditional { whereBindings: [], expr: CST.ExprIdent (cstUnqualIdent "a")}
+            }
+          ]
+        }
+      }
+
+  it "should create instance chain" do
+    declInstanceChain
+      (instance_ "fooI" [ cnst "Bar" [] ] "Foo" [ typVar "a" ]
+        [ instanceBSig "foo" (typVar "a")
+        , instanceBName "foo" [ bndrVar "a" ] (grd_ $ exprIdent "a")
+        ]
+      ) []
       `shouldMatchCSTDecl`
       CST.DeclInstanceChain
       { comments: Nothing
