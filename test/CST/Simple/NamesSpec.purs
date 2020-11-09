@@ -83,6 +83,9 @@ identSpec = describe "ident" do
   it "should reject empty name" do
     ident' "" `shouldSatisfy` isNothing
 
+  it "should reject reserved words" do
+    ident' "do" `shouldSatisfy` isNothing
+
 typeOpNameSpec :: Spec Unit
 typeOpNameSpec = describe "opName" do
   it "should accept operator name" do

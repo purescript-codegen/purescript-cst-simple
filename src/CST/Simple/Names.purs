@@ -43,6 +43,7 @@ import Data.Traversable (traverse)
 import Language.PS.CST (Ident, Label(..), ModuleName, QualifiedName(..)) as E
 import Language.PS.CST (Ident, ModuleName, QualifiedName)
 import Language.PS.CST as CST
+import Language.PS.CST.ReservedNames (isReservedName)
 import Type.Proxy (Proxy(..))
 
 type TypeName = CST.ProperName CST.ProperNameType_TypeName
@@ -103,7 +104,7 @@ typedConstructorName' s = do
 
 ident' :: String -> Maybe Ident
 ident' s =
-  CST.Ident <$> filterRegex identRegex s
+  guard (not (isReservedName s) && Regex.test identRegex s) $> CST.Ident s
 
 identRegex :: Regex
 identRegex =
