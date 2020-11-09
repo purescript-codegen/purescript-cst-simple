@@ -4,12 +4,14 @@ module CST.Simple.Internal.DeclarationSpec
 
 import Prelude
 
+import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CommonOp ((*->), (*::))
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declNewtype, declType, runDeclaration)
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declInstance, declNewtype, declType, instanceBName, instanceBSig, runDeclaration)
+import CST.Simple.Internal.Expr (exprIdent, grd_)
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (cnst, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
-import CST.Simple.TestUtils (cstUnqualProperName, shouldMatchCST)
+import CST.Simple.TestUtils (cstUnqualIdent, cstUnqualProperName, shouldMatchCST)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Maybe (Maybe(..))
@@ -98,6 +100,38 @@ declarationSpec = do
           , type_: CST.TypeArr (CST.TypeVar (CST.Ident "a")) (CST.TypeVar (CST.Ident "b"))
           }
         ]
+      }
+
+  it "should create single instance" do
+    declInstance "fooI" [ cnst "Bar" [] ] "Foo" [ typVar "a" ]
+      [ instanceBSig "foo" (typVar "a")
+      , instanceBName "foo" [ bndrVar "a" ] (grd_ $ exprIdent "a")
+      ]
+      `shouldMatchCSTDecl`
+      CST.DeclInstanceChain
+      { comments: Nothing
+      , instances: NonEmptyArray.singleton
+        { head:
+          { instClass: cstUnqualProperName "Foo"
+          , instConstraints:
+            [ CST.Constraint { className: cstUnqualProperName "Bar", args: [] }
+            ]
+          , instName: CST.Ident "fooI"
+          , instTypes: NonEmptyArray.singleton
+            (CST.TypeVar (CST.Ident "a"))
+          }
+        , body:
+          [ CST.InstanceBindingSignature
+            { ident: CST.Ident "foo"
+            , type_: CST.TypeVar (CST.Ident "a")
+            }
+          , CST.InstanceBindingName
+            { name: CST.Ident "foo"
+            , binders: [ CST.BinderVar (CST.Ident "a") ]
+            , guarded: CST.Unconditional { whereBindings: [], expr: CST.ExprIdent (cstUnqualIdent "a")}
+            }
+          ]
+        }
       }
 
 

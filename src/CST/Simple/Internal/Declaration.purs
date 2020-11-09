@@ -5,16 +5,25 @@ module CST.Simple.Internal.Declaration
        , declType
        , declNewtype
        , declClass
+       , declInstance
        , DataCtor
        , dataCtor
        , runDataCtor
+       , InstanceBinding
+       , runInstanceBinding
+       , instanceBSig
+       , instanceBName
        ) where
 
 import Prelude
 
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName)
+import CST.Simple.Internal.Binder (Binder, runBinder)
+import CST.Simple.Internal.CodegenError (CodegenError(..))
+import CST.Simple.Internal.Expr (Guarded, runGuarded)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
 import CST.Simple.Internal.Type (Constraint, Type, runConstraint, runType)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding, runTypeVarBinding)
+import CST.Simple.Internal.Utils (requireNonEmptyArray)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Data.Array as Array
 import Data.Array.NonEmpty as NonEmptyArray
@@ -60,6 +69,23 @@ declClass n vs ss fds ms = Declaration ado
       ident <- mkName i
       type_ <- runType t
       in { ident, type_ }
+
+declInstance :: String -> Array Constraint -> String -> Array Type -> Array InstanceBinding -> Declaration
+declInstance name' constraints' class' types' body' = Declaration ado
+  head <- mkInstanceHead name' constraints' class' types'
+  body <- traverse runInstanceBinding body'
+  in CST.DeclInstanceChain
+     { comments: Nothing
+     , instances: NonEmptyArray.singleton { head, body }
+     }
+{-
+{ instName :: Ident
+  , instConstraints :: Array Constraint
+  , instClass :: QualifiedName (ProperName ProperNameType_ClassName)
+  , instTypes :: NonEmptyArray Type
+  }
+-}
+
 --
 
 newtype DataCtor =
@@ -93,3 +119,34 @@ mkClassFundep :: Array String -> Array String -> ModuleBuilder (Maybe CST.ClassF
 mkClassFundep is os = runMaybeT $ CST.FundepDetermines
   <$> (MaybeT $ NonEmptyArray.fromArray <$> traverse mkName is)
   <*> (MaybeT $ NonEmptyArray.fromArray <$> traverse mkName os)
+
+mkInstanceHead :: String -> Array Constraint -> String -> Array Type -> ModuleBuilder CST.InstanceHead
+mkInstanceHead name' constraints' class' types' = ado
+  instName <- mkName name'
+  instConstraints <- traverse runConstraint constraints'
+  instClass <- mkQualName class'
+  instTypes <- requireNonEmptyArray MissingInstanceHeadTypes =<< traverse runType types'
+  in { instName, instConstraints, instClass, instTypes }
+
+newtype InstanceBinding =
+  InstanceBinding (ModuleBuilder CST.InstanceBinding)
+
+runInstanceBinding :: forall m. Monad m => InstanceBinding -> ModuleBuilderT m CST.InstanceBinding
+runInstanceBinding (InstanceBinding mb) = liftModuleBuilder mb
+
+instanceBSig :: String -> Type -> InstanceBinding
+instanceBSig ident' type_' = InstanceBinding ado
+  ident <- mkName ident'
+  type_ <- runType type_'
+  in CST.InstanceBindingSignature { ident, type_ }
+
+--
+instanceBName :: String -> Array Binder -> Guarded -> InstanceBinding
+instanceBName name' binders' guarded' = InstanceBinding ado
+  name <- mkName name'
+  binders <- traverse runBinder binders'
+  guarded <- runGuarded guarded'
+  in CST.InstanceBindingName { name
+                             , binders
+                             , guarded
+                             }
