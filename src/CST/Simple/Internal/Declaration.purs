@@ -7,6 +7,8 @@ module CST.Simple.Internal.Declaration
        , declClass
        , declInstance
        , declInstanceChain
+       , declDerive
+       , declDeriveNewtype
        , DataCtor
        , dataCtor
        , runDataCtor
@@ -82,6 +84,18 @@ declInstanceChain :: Instance -> Array Instance -> Declaration
 declInstanceChain i1 is = Declaration ado
   instances <- traverse runInstance (NonEmptyArray.cons' i1 is)
   in CST.DeclInstanceChain { comments: Nothing, instances }
+
+declDerive :: String -> Array Constraint -> String -> Array Type -> Declaration
+declDerive = declDerive' CST.DeclDeriveType_Odrinary
+
+declDeriveNewtype :: String -> Array Constraint -> String -> Array Type -> Declaration
+declDeriveNewtype = declDerive' CST.DeclDeriveType_Newtype
+
+declDerive' :: CST.DeclDeriveType -> String -> Array Constraint -> String -> Array Type -> Declaration
+declDerive' deriveType name constraints class' types = Declaration ado
+  head <- mkInstanceHead name constraints class' types
+  in CST.DeclDerive { comments: Nothing, deriveType, head }
+
 --
 
 newtype DataCtor =

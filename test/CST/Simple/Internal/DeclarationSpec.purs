@@ -6,7 +6,7 @@ import Prelude
 
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CommonOp ((*->), (*::))
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declInstance, declInstanceChain, declNewtype, declType, instanceBName, instanceBSig, instance_, runDeclaration)
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declDerive, declDeriveNewtype, declInstance, declInstanceChain, declNewtype, declType, instanceBName, instanceBSig, instance_, runDeclaration)
 import CST.Simple.Internal.Expr (exprIdent, grd_)
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (cnst, typVar)
@@ -166,6 +166,40 @@ declarationSpec = do
             }
           ]
         }
+      }
+
+  it "should create derive decls" do
+    declDerive "fooI" [ cnst "Bar" [] ] "Foo" [ typVar "a" ]
+      `shouldMatchCSTDecl`
+      CST.DeclDerive
+      { comments: Nothing
+      , deriveType: CST.DeclDeriveType_Odrinary
+      , head:
+        { instClass: cstUnqualProperName "Foo"
+          , instConstraints:
+            [ CST.Constraint { className: cstUnqualProperName "Bar", args: [] }
+            ]
+          , instName: CST.Ident "fooI"
+          , instTypes: NonEmptyArray.singleton
+            (CST.TypeVar (CST.Ident "a"))
+          }
+      }
+
+  it "should create derive newtype decls" do
+    declDeriveNewtype "fooI" [ cnst "Bar" [] ] "Foo" [ typVar "a" ]
+      `shouldMatchCSTDecl`
+      CST.DeclDerive
+      { comments: Nothing
+      , deriveType: CST.DeclDeriveType_Newtype
+      , head:
+        { instClass: cstUnqualProperName "Foo"
+          , instConstraints:
+            [ CST.Constraint { className: cstUnqualProperName "Bar", args: [] }
+            ]
+          , instName: CST.Ident "fooI"
+          , instTypes: NonEmptyArray.singleton
+            (CST.TypeVar (CST.Ident "a"))
+          }
       }
 
 
