@@ -8,6 +8,7 @@ import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*->), (*::), (*=>))
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (Type, cnst, runType, typ, typApp, typCons, typForall, typOp, typRecord, typRow, typString, typVar)
+import CST.Simple.Internal.TypeVarBinding (tvb)
 import CST.Simple.TestUtils (buildA, buildModuleErr, cstTypCons, cstUnqualName, cstUnqualProperName, fooBarModuleName, intCSTType, shouldImport, stringCSTType)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
@@ -99,7 +100,7 @@ typeSpec = describe "Type" do
     appType `shouldEqual` consType
 
   it "should treat create forall typ" do
-    typForall [ "a", "b", "c" ] (typ "Int") `shouldMatchType`
+    typForall [ tvb "a", tvb "b", tvb "c" ] (typ "Int") `shouldMatchType`
       ( CST.TypeForall
         ( NonEmptyArray.cons'
           (CST.TypeVarName (CST.Ident "a"))
@@ -111,7 +112,7 @@ typeSpec = describe "Type" do
       )
 
   it "should catch errors in type vars" do
-    typForall [ "A" ] (typ "Int") `shouldErrorType`
+    typForall [ tvb "A" ] (typ "Int") `shouldErrorType`
       (InvalidIdent "A")
 
   it "should create type arrows" do

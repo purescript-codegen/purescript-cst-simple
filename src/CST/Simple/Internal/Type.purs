@@ -24,6 +24,7 @@ import Prelude
 
 import CST.Simple.Internal.Kind (Kind, runKind)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
+import CST.Simple.Internal.TypeVarBinding (TypeVarBinding, runTypeVarBinding)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Foldable (foldl)
 import Data.Maybe (Maybe(..))
@@ -88,16 +89,13 @@ typApp cons args = Type $ foldl f (runType cons) args
       <$> acc'
       <*> runType a'
 
-typForall :: Array String -> Type -> Type
+typForall :: Array TypeVarBinding -> Type -> Type
 typForall vars' type_ = case NonEmptyArray.fromArray vars' of
   Just vars ->
     Type $
-    CST.TypeForall <$> traverse toTypeVarName vars <*> runType type_
+    CST.TypeForall <$> traverse runTypeVarBinding vars <*> runType type_
   Nothing ->
     type_
-
-  where
-    toTypeVarName v = CST.TypeVarName <$> mkName v
 
 typArrow :: Type -> Type -> Type
 typArrow t1 t2 = Type $ CST.TypeArr <$> runType t1 <*> runType t2
