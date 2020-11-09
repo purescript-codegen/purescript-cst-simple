@@ -1,6 +1,7 @@
 module CST.Simple.Internal.Binder
        ( Binder
        , runBinder
+       , bndrWildcard
        , bndrVar
        , bndrNamed
        , bndrConstructor
@@ -28,6 +29,9 @@ newtype Binder = Binder (ModuleBuilder CST.Binder)
 
 runBinder :: forall m. Monad m => Binder -> ModuleBuilderT m CST.Binder
 runBinder (Binder mb) = liftModuleBuilder mb
+
+bndrWildcard :: Binder
+bndrWildcard = Binder $ pure CST.BinderWildcard
 
 bndrVar :: String -> Binder
 bndrVar ident = Binder $ CST.BinderVar <$> mkName ident
