@@ -62,28 +62,28 @@ runDeclaration :: forall m. Monad m => Declaration -> ModuleBuilderT m CST.Decla
 runDeclaration (Declaration mb) = liftModuleBuilder mb
 
 declData :: String -> Array TypeVarBinding -> Array DataCtor -> Declaration
-declData n vs cs = Declaration ado
-  head <- mkDataHead n vs
-  constructors <- traverse runDataCtor cs
+declData name fields constructors' = Declaration ado
+  head <- mkDataHead name fields
+  constructors <- traverse runDataCtor constructors'
   in CST.DeclData { comments: Nothing, head, constructors }
 
 declType :: String -> Array TypeVarBinding -> Type -> Declaration
-declType n vs t = Declaration ado
-  head <- mkDataHead n vs
-  type_ <- runType t
+declType name fields type_' = Declaration ado
+  head <- mkDataHead name fields
+  type_ <- runType type_'
   in CST.DeclType { comments: Nothing, head, type_ }
 
 declNewtype :: String -> Array TypeVarBinding -> String -> Type -> Declaration
-declNewtype n vs c t = Declaration ado
-  head <- mkDataHead n vs
-  name <- mkName c
-  type_ <- runType t
+declNewtype dataHdName fields name' type_' = Declaration ado
+  head <- mkDataHead dataHdName fields
+  name <- mkName name'
+  type_ <- runType type_'
   in CST.DeclNewtype { comments: Nothing, head, name, type_ }
 
 declClass :: String -> Array TypeVarBinding -> Array Constraint -> Array (Array String /\ Array String) -> Array (String /\ Type) -> Declaration
-declClass n vs ss fds ms = Declaration ado
-  head <- mkClassHead n vs ss fds
-  methods <- traverse (uncurry mkMethod) ms
+declClass name fields super fundeps methods' = Declaration ado
+  head <- mkClassHead name fields super fundeps
+  methods <- traverse (uncurry mkMethod) methods'
   in CST.DeclClass { comments: Nothing, head, methods }
 
   where
@@ -167,25 +167,24 @@ runDataCtor :: forall m. Monad m => DataCtor -> ModuleBuilderT m CST.DataCtor
 runDataCtor (DataCtor mb) = liftModuleBuilder mb
 
 dataCtor :: String -> Array Type -> DataCtor
-dataCtor s ts = DataCtor ado
-  dataCtorName <- mkName s
-  dataCtorFields <- traverse runType ts
+dataCtor name fields = DataCtor ado
+  dataCtorName <- mkName name
+  dataCtorFields <- traverse runType fields
   in CST.DataCtor { dataCtorName, dataCtorFields }
 
 mkDataHead :: String -> Array TypeVarBinding -> ModuleBuilder CST.DataHead
-mkDataHead n vs = ado
-  dataHdName <- mkName n
-  dataHdVars <- traverse runTypeVarBinding vs
+mkDataHead name vars = ado
+  dataHdName <- mkName name
+  dataHdVars <- traverse runTypeVarBinding vars
   in CST.DataHead { dataHdName, dataHdVars }
 
 mkClassHead :: String -> Array TypeVarBinding -> Array Constraint -> Array (Array String /\ Array String) -> ModuleBuilder CST.ClassHead
-mkClassHead n vs ss fds = ado
-  name <- mkName n
-  vars <- traverse runTypeVarBinding vs
-  super <- traverse runConstraint ss
-  fundeps <- Array.catMaybes <$> traverse (uncurry mkClassFundep) fds
+mkClassHead name' vars' super' fundeps' = ado
+  name <- mkName name'
+  vars <- traverse runTypeVarBinding vars'
+  super <- traverse runConstraint super'
+  fundeps <- Array.catMaybes <$> traverse (uncurry mkClassFundep) fundeps'
   in { name, vars, super, fundeps }
-
 
 mkClassFundep :: Array String -> Array String -> ModuleBuilder (Maybe CST.ClassFundep)
 mkClassFundep is os = runMaybeT $ CST.FundepDetermines
