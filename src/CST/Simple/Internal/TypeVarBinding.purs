@@ -18,8 +18,8 @@ runTypeVarBinding :: forall m. Monad m => TypeVarBinding -> ModuleBuilderT m CST
 runTypeVarBinding (TypeVarBinding mb) = liftModuleBuilder mb
 
 tvb :: String -> TypeVarBinding
-tvb i = TypeVarBinding $ pure $ CST.TypeVarName (CST.Ident i)
+tvb ident = TypeVarBinding $ pure $ CST.TypeVarName (CST.Ident ident)
 
 tvbKinded :: String -> Kind -> TypeVarBinding
-tvbKinded i k =
-  TypeVarBinding $ CST.TypeVarKinded (CST.Ident i) <$> runKind k
+tvbKinded ident kind_ =
+  TypeVarBinding $ CST.TypeVarKinded (CST.Ident ident) <$> runKind kind_

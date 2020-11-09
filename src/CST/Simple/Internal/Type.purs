@@ -41,11 +41,11 @@ typ :: String -> Type
 typ = typCons
 
 typVar :: String -> Type
-typVar s = Type $ CST.TypeVar <$> mkName s
+typVar ident = Type $ CST.TypeVar <$> mkName ident
 
 typCons :: String -> Type
-typCons s =
-  Type $ CST.TypeConstructor <$> mkQualName s
+typCons cons =
+  Type $ CST.TypeConstructor <$> mkQualName cons
 
 typString :: String -> Type
 typString = Type <<< pure <<< CST.TypeString
@@ -82,30 +82,30 @@ typLabelled f pairs tailName = Type ado
     toRowTail s = runType (typVar s)
 
 typApp :: Type -> Array Type -> Type
-typApp c as = Type $ foldl f (runType c) as
+typApp cons args = Type $ foldl f (runType cons) args
   where
     f acc' a' = CST.TypeApp
       <$> acc'
       <*> runType a'
 
 typForall :: Array String -> Type -> Type
-typForall vs t = case NonEmptyArray.fromArray vs of
-  Just vs' ->
+typForall vars' type_ = case NonEmptyArray.fromArray vars' of
+  Just vars ->
     Type $
-    CST.TypeForall <$> traverse toTypeeVarName vs' <*> runType t
+    CST.TypeForall <$> traverse toTypeVarName vars <*> runType type_
   Nothing ->
-    t
+    type_
 
   where
-    toTypeeVarName v = CST.TypeVarName <$> mkName v
+    toTypeVarName v = CST.TypeVarName <$> mkName v
 
 typArrow :: Type -> Type -> Type
 typArrow t1 t2 = Type $ CST.TypeArr <$> runType t1 <*> runType t2
 
 typKinded :: Type -> Kind -> Type
-typKinded t k = Type $ CST.TypeKinded
-  <$> runType t
-  <*> runKind k
+typKinded type_ kind_ = Type $ CST.TypeKinded
+  <$> runType type_
+  <*> runKind kind_
 
 typOp :: Type -> String -> Type -> Type
 typOp t1 op t2 = Type $ CST.TypeOp
@@ -114,9 +114,9 @@ typOp t1 op t2 = Type $ CST.TypeOp
   <*> runType t2
 
 typConstrained :: Constraint -> Type -> Type
-typConstrained c t = Type $ CST.TypeConstrained
-  <$> runConstraint c
-  <*> runType t
+typConstrained constraint type_ = Type $ CST.TypeConstrained
+  <$> runConstraint constraint
+  <*> runType type_
 
 -- Constraint
 
@@ -126,10 +126,10 @@ runConstraint :: forall m. Monad m => Constraint -> ModuleBuilderT m CST.Constra
 runConstraint (Constraint mb) = liftModuleBuilder mb
 
 cnst :: String -> Array Type -> Constraint
-cnst s args = Constraint $ ado
-  className <- mkQualName s
-  args' <- traverse runType args
+cnst className' args' = Constraint $ ado
+  className <- mkQualName className'
+  args <- traverse runType args'
   in CST.Constraint
     { className
-    , args: args'
+    , args
     }

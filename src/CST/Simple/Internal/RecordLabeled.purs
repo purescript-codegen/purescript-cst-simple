@@ -16,9 +16,9 @@ runRecordLabeled :: forall m a. Monad m => RecordLabeled a -> ModuleBuilderT m (
 runRecordLabeled (RecordLabeled mb) = liftModuleBuilder mb
 
 recField :: forall a. String -> a -> RecordLabeled a
-recField l a =
-  RecordLabeled $ pure $ CST.RecordField (CST.Label l) a
+recField label a =
+  RecordLabeled $ pure $ CST.RecordField (CST.Label label) a
 
 recPun :: forall a. String -> RecordLabeled a
-recPun s =
-  RecordLabeled $ CST.RecordPun <$> mkName s
+recPun ident =
+  RecordLabeled $ CST.RecordPun <$> mkName ident

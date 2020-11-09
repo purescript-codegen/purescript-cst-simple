@@ -30,18 +30,18 @@ runBinder :: forall m. Monad m => Binder -> ModuleBuilderT m CST.Binder
 runBinder (Binder mb) = liftModuleBuilder mb
 
 bndrVar :: String -> Binder
-bndrVar s = Binder $ CST.BinderVar <$> mkName s
+bndrVar ident = Binder $ CST.BinderVar <$> mkName ident
 
 bndrNamed :: String -> Binder -> Binder
-bndrNamed i b = Binder ado
-  ident <- mkName i
-  binder <- runBinder b
+bndrNamed ident' binder' = Binder ado
+  ident <- mkName ident'
+  binder <- runBinder binder'
   in CST.BinderNamed { ident, binder }
 
 bndrConstructor :: String -> Array Binder -> Binder
-bndrConstructor n as = Binder ado
-  name <- map getNamePart <$> mkQualName n
-  args <- traverse runBinder as
+bndrConstructor name' args' = Binder ado
+  name <- map getNamePart <$> mkQualName name'
+  args <- traverse runBinder args'
   in CST.BinderConstructor { name, args }
 
   where

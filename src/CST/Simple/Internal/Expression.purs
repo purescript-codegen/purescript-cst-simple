@@ -102,52 +102,52 @@ runExpr :: forall m. Monad m => Expr -> ModuleBuilderT m CST.Expr
 runExpr (Expr mb) = liftModuleBuilder mb
 
 exprIdent :: String -> Expr
-exprIdent s = Expr $ CST.ExprIdent <$> mkQualName s
+exprIdent ident = Expr $ CST.ExprIdent <$> mkQualName ident
 
 exprIdentN :: String -> Array Expr -> Expr
-exprIdentN s args = exprApp (exprIdent s) args
+exprIdentN ident args = exprApp (exprIdent ident) args
 
 exprIdent1 :: String -> Expr -> Expr
-exprIdent1 c a1 = exprIdentN c [ a1 ]
+exprIdent1 ident a1 = exprIdentN ident [ a1 ]
 
 exprIdent2 :: String -> Expr -> Expr -> Expr
-exprIdent2 c a1 a2 = exprIdentN c [ a1, a2 ]
+exprIdent2 ident a1 a2 = exprIdentN ident [ a1, a2 ]
 
 exprIdent3 :: String -> Expr -> Expr -> Expr -> Expr
-exprIdent3 c a1 a2 a3 = exprIdentN c [ a1, a2, a3 ]
+exprIdent3 ident a1 a2 a3 = exprIdentN ident [ a1, a2, a3 ]
 
 exprIdent4 :: String -> Expr -> Expr -> Expr -> Expr -> Expr
-exprIdent4 c a1 a2 a3 a4 = exprIdentN c [ a1, a2, a3, a4 ]
+exprIdent4 ident a1 a2 a3 a4 = exprIdentN ident [ a1, a2, a3, a4 ]
 
 exprIdent5 :: String -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr
-exprIdent5 c a1 a2 a3 a4 a5 = exprIdentN c [ a1, a2, a3, a4, a5 ]
+exprIdent5 ident a1 a2 a3 a4 a5 = exprIdentN ident [ a1, a2, a3, a4, a5 ]
 
 exprIdent6 :: String -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr
-exprIdent6 c a1 a2 a3 a4 a5 a6 = exprIdentN c [ a1, a2, a3, a4, a5, a6 ]
+exprIdent6 ident a1 a2 a3 a4 a5 a6 = exprIdentN ident [ a1, a2, a3, a4, a5, a6 ]
 
 exprCons :: String -> Expr
-exprCons c = Expr $ CST.ExprConstructor <$> mkQualConstructorName c
+exprCons cons = Expr $ CST.ExprConstructor <$> mkQualConstructorName cons
 
 exprConsN :: String -> Array Expr -> Expr
-exprConsN c args = exprApp (exprCons c) args
+exprConsN cons args = exprApp (exprCons cons) args
 
 exprCons1 :: String -> Expr -> Expr
-exprCons1 c a1 = exprConsN c [ a1 ]
+exprCons1 cons a1 = exprConsN cons [ a1 ]
 
 exprCons2 :: String -> Expr -> Expr -> Expr
-exprCons2 c a1 a2 = exprConsN c [ a1, a2 ]
+exprCons2 cons a1 a2 = exprConsN cons [ a1, a2 ]
 
 exprCons3 :: String -> Expr -> Expr -> Expr -> Expr
-exprCons3 c a1 a2 a3 = exprConsN c [ a1, a2, a3 ]
+exprCons3 cons a1 a2 a3 = exprConsN cons [ a1, a2, a3 ]
 
 exprCons4 :: String -> Expr -> Expr -> Expr -> Expr -> Expr
-exprCons4 c a1 a2 a3 a4 = exprConsN c [ a1, a2, a3, a4 ]
+exprCons4 cons a1 a2 a3 a4 = exprConsN cons [ a1, a2, a3, a4 ]
 
 exprCons5 :: String -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr
-exprCons5 c a1 a2 a3 a4 a5 = exprConsN c [ a1, a2, a3, a4, a5 ]
+exprCons5 cons a1 a2 a3 a4 a5 = exprConsN cons [ a1, a2, a3, a4, a5 ]
 
 exprCons6 :: String -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr -> Expr
-exprCons6 c a1 a2 a3 a4 a5 a6 = exprConsN c [ a1, a2, a3, a4, a5, a6 ]
+exprCons6 cons a1 a2 a3 a4 a5 a6 = exprConsN cons [ a1, a2, a3, a4, a5, a6 ]
 
 exprBoolean :: Boolean -> Expr
 exprBoolean = Expr <<< pure <<< CST.ExprBoolean
@@ -165,8 +165,8 @@ exprNumber :: Number -> Expr
 exprNumber = Expr <<< pure <<< CST.ExprNumber <<< Right
 
 exprArray :: Array Expr -> Expr
-exprArray es =
-  Expr $ CST.ExprArray <$> traverse runExpr es
+exprArray exprs =
+  Expr $ CST.ExprArray <$> traverse runExpr exprs
 
 exprApp :: Expr -> Array Expr -> Expr
 exprApp i args = Expr $ foldl appExpr (runExpr i) args
@@ -175,77 +175,77 @@ exprApp i args = Expr $ foldl appExpr (runExpr i) args
       CST.ExprApp <$> a <*> runExpr bExpr
 
 exprRecord :: Array (RecordLabeled Expr) -> Expr
-exprRecord ls =
-  Expr $ CST.ExprRecord <$> traverse run ls
+exprRecord entries =
+  Expr $ CST.ExprRecord <$> traverse run entries
   where
     run rl = do
       rl' <- runRecordLabeled rl
       traverse runExpr rl'
 
 exprTyped :: Expr -> Type -> Expr
-exprTyped e t =
-  Expr $ CST.ExprTyped <$> runExpr e <*> runType t
+exprTyped expr type_ =
+  Expr $ CST.ExprTyped <$> runExpr expr <*> runType type_
 
 exprOp :: Expr -> String -> Expr -> Expr
-exprOp e1 opStr e2 =
+exprOp expr1 opStr expr2 =
   Expr $ CST.ExprOp
-  <$> runExpr e1
+  <$> runExpr expr1
   <*> mkQualName opStr
-  <*> runExpr e2
+  <*> runExpr expr2
 
 exprOpName :: String -> Expr
-exprOpName opStr =
+exprOpName op =
   Expr $ CST.ExprOpName
-  <$> mkQualName opStr
+  <$> mkQualName op
 
 exprNegate :: Expr -> Expr
-exprNegate e =
-  Expr $ CST.ExprNegate <$> runExpr e
+exprNegate expr =
+  Expr $ CST.ExprNegate <$> runExpr expr
 
 exprRecordAccess :: Expr -> String -> Expr
 exprRecordAccess e p =
   exprRecordAccessN e (String.split (String.Pattern ".") p)
 
 exprRecordAccessN :: Expr -> Array String -> Expr
-exprRecordAccessN e p =
-  case NonEmptyArray.fromArray p of
-    Just p' ->
+exprRecordAccessN expr recPaths' =
+  case NonEmptyArray.fromArray recPaths' of
+    Just recPaths ->
       Expr ado
-      recExpr <- runExpr e
+      recExpr <- runExpr expr
       in CST.ExprRecordAccessor
          { recExpr
-         , recPath: CST.Label <$> p'
+         , recPath: CST.Label <$> recPaths
          }
     Nothing ->
-      e
+      expr
 
 exprRecordUpdate :: Expr -> Array RecordUpdate -> Expr
-exprRecordUpdate e es = Expr ado
-  e' <- runExpr e
-  es' <- runRecordUpdates es
-  in foldl CST.ExprRecordUpdate e' es'
+exprRecordUpdate expr' updates' = Expr ado
+  expr <- runExpr expr'
+  updates <- runRecordUpdates updates'
+  in foldl CST.ExprRecordUpdate expr updates
 
 -- See CST.Simple.((*->))
 exprLambda :: Array Binder -> Expr -> Expr
-exprLambda bs b = case NonEmptyArray.fromArray bs of
+exprLambda binders' body' = case NonEmptyArray.fromArray binders' of
   Just bs' -> Expr ado
     binders <- traverse runBinder bs'
-    body <- runExpr b
+    body <- runExpr body'
     in CST.ExprLambda { binders, body }
   Nothing ->
-    b
+    body'
 
 exprIfThenElse :: Expr -> Expr -> Expr -> Expr
-exprIfThenElse c t_ f_ = Expr ado
-  cond <- runExpr c
-  true_ <- runExpr t_
-  false_ <- runExpr f_
+exprIfThenElse cond' true_' false_' = Expr ado
+  cond <- runExpr cond'
+  true_ <- runExpr true_'
+  false_ <- runExpr false_'
   in CST.ExprIf { cond, true_, false_ }
 
 exprCaseOfN :: Array Expr -> Array CaseOfBranch -> Expr
-exprCaseOfN es bs = Expr ado
-  head <- noteM MissingCaseOfHeadBinders =<< NonEmptyArray.fromArray <$> traverse runExpr es
-  branches <- noteM MissingCaseOfBranches =<< NonEmptyArray.fromArray <$> traverse runCaseOfBranch bs
+exprCaseOfN head' branches' = Expr ado
+  head <- noteM MissingCaseOfHeadBinders =<< NonEmptyArray.fromArray <$> traverse runExpr head'
+  branches <- noteM MissingCaseOfBranches =<< NonEmptyArray.fromArray <$> traverse runCaseOfBranch branches'
   in CST.ExprCase { head, branches }
 
 exprCaseOf1 :: Expr -> Array CaseOfBranch -> Expr
@@ -267,26 +267,26 @@ exprCaseOf6 :: Expr -> Expr -> Expr -> Expr -> Expr -> Expr -> Array CaseOfBranc
 exprCaseOf6 e1 e2 e3 e4 e5 e6 = exprCaseOfN [ e1, e2, e3, e4, e5, e6 ]
 
 exprLetIn :: Array LetBinding -> Expr -> Expr
-exprLetIn lbs e = case NonEmptyArray.fromArray lbs of
-  Just lbs' -> Expr ado
-    bindings <- traverse runLetBinding lbs'
+exprLetIn letBindings e = case NonEmptyArray.fromArray letBindings of
+  Just letBindings' -> Expr ado
+    bindings <- traverse runLetBinding letBindings'
     body <- runExpr e
     in CST.ExprLet { bindings, body }
   Nothing ->
     e
 
 exprDo :: Array DoStatement -> Expr
-exprDo ds = Expr
+exprDo doStatments = Expr
   $ noteM MissingDoStatements
     =<< map CST.ExprDo
     <<< NonEmptyArray.fromArray
     <<< Array.catMaybes
-    <$> traverse runDoStatement ds
+    <$> traverse runDoStatement doStatments
 
 exprAdo :: Array DoStatement -> Expr -> Expr
-exprAdo ds r = Expr ado
-  statements <- Array.catMaybes <$> traverse runDoStatement ds
-  result <- runExpr r
+exprAdo statements' result' = Expr ado
+  statements <- Array.catMaybes <$> traverse runDoStatement statements'
+  result <- runExpr result'
   in CST.ExprAdo { statements, result }
 
 -- record update
@@ -305,14 +305,14 @@ runRecordUpdates es =
   <$> traverse runRecordUpdate es
 
 recordUpdate :: String -> Expr -> RecordUpdate
-recordUpdate l expr =
-  RecordUpdate $ Just <<< CST.RecordUpdateLeaf (CST.Label l) <$> runExpr expr
+recordUpdate label expr =
+  RecordUpdate $ Just <<< CST.RecordUpdateLeaf (CST.Label label) <$> runExpr expr
 
 recordUpdateBranch :: String -> Array RecordUpdate -> RecordUpdate
-recordUpdateBranch l es =
+recordUpdateBranch label updates =
   RecordUpdate
-  $ map (CST.RecordUpdateBranch (CST.Label l))
-  <$> runRecordUpdates es
+  $ map (CST.RecordUpdateBranch (CST.Label label))
+  <$> runRecordUpdates updates
 
 -- case branch
 
@@ -332,14 +332,14 @@ runCaseOfBranch (CaseOfBranch mb) = liftModuleBuilder mb
 
 -- See (*->)
 caseOfBranchN :: Array Binder -> Expr -> CaseOfBranch
-caseOfBranchN bis b = CaseOfBranch ado
+caseOfBranchN binders' expr' = CaseOfBranch ado
   binders <- noteM MissingCaseOfBranchBinders =<< runBinders
   body <- mkBody
   in { binders, body }
 
   where
-    runBinders = NonEmptyArray.fromArray <$> traverse runBinder bis
-    mkBody = runExpr b <#> \expr -> CST.Unconditional { expr, whereBindings: [] }
+    runBinders = NonEmptyArray.fromArray <$> traverse runBinder binders'
+    mkBody = runExpr expr' <#> \expr -> CST.Unconditional { expr, whereBindings: [] }
 
 
 caseOfBranch1 :: Binder -> Expr -> CaseOfBranch
@@ -352,10 +352,10 @@ caseOfBranch3 :: Binder -> Binder -> Binder -> Expr -> CaseOfBranch
 caseOfBranch3 bi1 bi2 bi3 b = caseOfBranchN [ bi1, bi2, bi3 ] b
 
 caseOfBranch4 :: Binder -> Binder -> Binder -> Binder -> Expr -> CaseOfBranch
-caseOfBranch4   bi1 bi2 bi3 bi4 b = caseOfBranchN [ bi1, bi2, bi3, bi4 ] b
+caseOfBranch4 bi1 bi2 bi3 bi4 b = caseOfBranchN [ bi1, bi2, bi3, bi4 ] b
 
 caseOfBranch5 :: Binder -> Binder -> Binder -> Binder -> Binder -> Expr -> CaseOfBranch
-caseOfBranch5  bi1 bi2 bi3 bi4 bi5 b = caseOfBranchN [ bi1, bi2, bi3, bi4, bi5 ] b
+caseOfBranch5 bi1 bi2 bi3 bi4 bi5 b = caseOfBranchN [ bi1, bi2, bi3, bi4, bi5 ] b
 
 caseOfBranch6 :: Binder -> Binder -> Binder -> Binder -> Binder -> Binder -> Expr -> CaseOfBranch
 caseOfBranch6 bi1 bi2 bi3 bi4 bi5 bi6 b = caseOfBranchN [ bi1, bi2, bi3, bi4, bi5, bi6 ] b
@@ -369,9 +369,9 @@ runLetBinding :: forall m. Monad m => LetBinding -> ModuleBuilderT m CST.LetBind
 runLetBinding (LetBinding mb) = liftModuleBuilder mb
 
 letSig :: String -> Type -> LetBinding
-letSig i t = LetBinding ado
-  ident <- mkName i
-  type_ <- runType t
+letSig ident' type_' = LetBinding ado
+  ident <- mkName ident'
+  type_ <- runType type_'
   in CST.LetBindingSignature { ident, type_ }
 
 letName :: String -> Array Binder -> Guarded -> LetBinding
@@ -379,9 +379,9 @@ letName name binders guarded =
   LetBinding $ CST.LetBindingName <$> valueBindingFields name binders guarded
 
 letPattern :: Binder -> Where -> LetBinding
-letPattern b w = LetBinding ado
-  binder <- runBinder b
-  where_ <- runWhere w
+letPattern binder' where_' = LetBinding ado
+  binder <- runBinder binder'
+  where_ <- runWhere where_'
   in CST.LetBindingPattern { binder, where_ }
 
 -- where
@@ -393,13 +393,13 @@ runWhere :: forall m. Monad m => Where -> ModuleBuilderT m CST.Where
 runWhere (Where mb) = liftModuleBuilder mb
 
 whr :: Expr -> Array LetBinding -> Where
-whr e bs = Where ado
-  expr <- runExpr e
-  whereBindings <- traverse runLetBinding bs
+whr expr' whereBindings' = Where ado
+  expr <- runExpr expr'
+  whereBindings <- traverse runLetBinding whereBindings'
   in { expr, whereBindings }
 
 whr_ :: Expr -> Where
-whr_ e = whr e []
+whr_ expr = whr expr []
 
 -- guarded
 
@@ -413,7 +413,7 @@ grd_ :: Expr -> Guarded
 grd_ = grdUncond <<< whr_
 
 grdUncond :: Where -> Guarded
-grdUncond w = Guarded $ CST.Unconditional <$> runWhere w
+grdUncond where_ = Guarded $ CST.Unconditional <$> runWhere where_
 
 -- todo grdGuarded
 
@@ -426,9 +426,9 @@ runDoStatement :: forall m. Monad m => DoStatement -> ModuleBuilderT m (Maybe CS
 runDoStatement (DoStatement mb) = liftModuleBuilder mb
 
 doLet :: Array LetBinding -> DoStatement
-doLet lbs = DoStatement case NonEmptyArray.fromArray lbs of
-  Just lbs' ->
-    Just <<< CST.DoLet <$> traverse runLetBinding lbs'
+doLet letBindings' = DoStatement case NonEmptyArray.fromArray letBindings' of
+  Just letBindings ->
+    Just <<< CST.DoLet <$> traverse runLetBinding letBindings
   Nothing ->
     pure Nothing
 
@@ -437,12 +437,12 @@ doDiscard =
   DoStatement <<< map (Just <<< CST.DoDiscard) <<< runExpr
 
 doBind :: Binder -> Expr -> DoStatement
-doBind b e = DoStatement ado
-  binder <- runBinder b
-  expr <- runExpr e
+doBind binder' expr' = DoStatement ado
+  binder <- runBinder binder'
+  expr <- runExpr expr'
   in Just $ CST.DoBind { binder, expr }
 
--- value binding fields
+-- value binding fieldoStatements
 
 valueBindingFields :: String -> Array Binder -> Guarded -> ModuleBuilder CST.ValueBindingFields
 valueBindingFields name' binders' guarded' = ado
