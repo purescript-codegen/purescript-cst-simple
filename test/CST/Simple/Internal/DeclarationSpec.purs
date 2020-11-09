@@ -6,7 +6,7 @@ import Prelude
 
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CommonOp ((*->), (*::))
-import CST.Simple.Internal.Declaration (Declaration, Fixity(..), dataCtor, declClass, declData, declDerive, declDeriveNewtype, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, fixityOpType, fixityOpValue, instanceBName, instanceBSig, instance_, runDeclaration)
+import CST.Simple.Internal.Declaration (Declaration, Fixity(..), dataCtor, declClass, declData, declDerive, declDeriveNewtype, declForeignData, declForeignKind, declForeignValue, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, fixityOpType, fixityOpValue, instanceBName, instanceBSig, instance_, runDeclaration)
 import CST.Simple.Internal.Expr (exprIdent, exprInt, grd_)
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (cnst, typCons, typVar)
@@ -259,6 +259,38 @@ declarationSpec = do
         { keyword: CST.Infix
         , precedence: 5
         , operator: CST.FixityType (cstUnqualProperName "Baz") (CST.OpName "<+>")
+        }
+      }
+
+  it "should create foreign value" do
+    declForeignValue "foo" (typCons "Int")
+      `shouldMatchCSTDecl`
+      CST.DeclForeign
+      { comments: Nothing
+      , foreign_: CST.ForeignValue
+        { ident: CST.Ident "foo"
+        , type_: CST.TypeConstructor (cstUnqualProperName "Int")
+        }
+      }
+
+  it "should create foreign data" do
+    declForeignData "Foo" (knd "Bar")
+      `shouldMatchCSTDecl`
+      CST.DeclForeign
+      { comments: Nothing
+      , foreign_: CST.ForeignData
+        { name: CST.ProperName "Foo"
+        , kind_: CST.KindName (cstUnqualProperName "Bar")
+        }
+      }
+
+  it "should create foreign kind" do
+    declForeignKind "Foo"
+      `shouldMatchCSTDecl`
+      CST.DeclForeign
+      { comments: Nothing
+      , foreign_: CST.ForeignKind
+        { name: CST.ProperName "Foo"
         }
       }
 

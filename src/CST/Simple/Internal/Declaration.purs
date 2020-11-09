@@ -12,6 +12,9 @@ module CST.Simple.Internal.Declaration
        , declSignature
        , declValue
        , declInfix
+       , declForeignValue
+       , declForeignData
+       , declForeignKind
        , DataCtor
        , dataCtor
        , runDataCtor
@@ -34,6 +37,7 @@ import Prelude
 import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Expr (Guarded, valueBindingFields)
+import CST.Simple.Internal.Kind (Kind, runKind)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualConstructorName, mkQualName)
 import CST.Simple.Internal.Type (Constraint, Type, runConstraint, runType)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding, runTypeVarBinding)
@@ -132,6 +136,27 @@ declInfix keyword precedence operator' = Declaration ado
        , operator
        }
      }
+
+declForeignValue :: String -> Type -> Declaration
+declForeignValue ident' type_' = Declaration $ cstDeclForeign <$> ado
+  ident <- mkName ident'
+  type_ <- runType type_'
+  in CST.ForeignValue { ident, type_ }
+
+declForeignData :: String -> Kind -> Declaration
+declForeignData name' kind_' = Declaration $ cstDeclForeign <$> ado
+  name <- mkName name'
+  kind_ <- runKind kind_'
+  in CST.ForeignData { name, kind_ }
+
+declForeignKind :: String -> Declaration
+declForeignKind name' = Declaration $ cstDeclForeign <$> ado
+  name <- mkName name'
+  in CST.ForeignKind { name }
+
+cstDeclForeign :: CST.Foreign -> CST.Declaration
+cstDeclForeign foreign_ =
+  CST.DeclForeign { comments: Nothing, foreign_ }
 
 --
 
