@@ -10,7 +10,7 @@ module CST.Simple.Internal.CommonWords
        , _where
        ) where
 
-import CST.Simple.Internal.Expr (DoStatement, Expr, LetBinding, Where, doLet, exprAdo, exprDo, exprLetIn, whr)
+import CST.Simple.Internal.Expression (DoStatement, Expr, LetBinding, Where, doLet, exprAdo, exprDo, exprLetIn, whr)
 
 newtype LetBindingsB = LetBindingsB (Array LetBinding)
 

@@ -36,7 +36,7 @@ import Prelude
 
 import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.Expr (Guarded, valueBindingFields)
+import CST.Simple.Internal.Expression (Guarded, valueBindingFields)
 import CST.Simple.Internal.Kind (Kind, runKind)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualConstructorName, mkQualName)
 import CST.Simple.Internal.Type (Constraint, Type, runConstraint, runType)

@@ -7,7 +7,7 @@ import Prelude
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CommonOp ((*->), (*::))
 import CST.Simple.Internal.Declaration (Declaration, Fixity(..), dataCtor, declClass, declData, declDerive, declDeriveNewtype, declForeignData, declForeignKind, declForeignValue, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, fixityOpType, fixityOpValue, instanceBName, instanceBSig, instance_, runDeclaration)
-import CST.Simple.Internal.Expr (exprIdent, exprInt, grd_)
+import CST.Simple.Internal.Expression (exprIdent, exprInt, grd_)
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (cnst, typCons, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)

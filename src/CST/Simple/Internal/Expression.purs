@@ -1,4 +1,4 @@
-module CST.Simple.Internal.Expr
+module CST.Simple.Internal.Expression
        ( Expr
        , runExpr
        , exprIdent

@@ -1,5 +1,5 @@
-module CST.Simple.Internal.ExprSpec
-       ( exprSpec
+module CST.Simple.Internal.ExpressionSpec
+       ( expressionSpec
        ) where
 
 import Prelude
@@ -8,7 +8,7 @@ import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*-), (*->), (*::), (*<-), (*=))
 import CST.Simple.Internal.CommonWords (_ado, _do, _in, _let, _letd)
-import CST.Simple.Internal.Expr (Expr, caseOfBranchN, doDiscard, doLet, exprAdo, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprDo, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprLetIn, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr, whr)
+import CST.Simple.Internal.Expression (Expr, caseOfBranchN, doDiscard, doLet, exprAdo, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprDo, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprLetIn, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr, whr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typ, typCons)
 import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldBeEquiv, shouldImport)
@@ -21,8 +21,8 @@ import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldReturn)
 
-exprSpec :: Spec Unit
-exprSpec = describe "Expr" do
+expressionSpec :: Spec Unit
+expressionSpec = describe "Expr" do
   it "should create unqualified ident" do
     exprIdent "baz" `shouldMatchCSTExpr`
       CST.ExprIdent (cstUnqualIdent "baz")
