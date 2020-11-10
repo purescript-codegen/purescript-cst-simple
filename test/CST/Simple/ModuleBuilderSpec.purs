@@ -4,11 +4,14 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declInstance, declInstanceChain, declNewtype, declType, instance_, runDeclaration)
+import CST.Simple.Internal.Binder (bndrVar)
+import CST.Simple.Internal.CommonOp ((*->))
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, instance_, runDeclaration)
+import CST.Simple.Internal.Expression (exprInt, grd_)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder)
 import CST.Simple.Internal.Type (cnst, typ, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
-import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addInstanceChainDecl, addInstanceDecl, addNewtypeDecl, addTypeDecl)
+import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addInstanceChainDecl, addInstanceDecl, addNewtypeDecl, addTypeDecl, addValue)
 import CST.Simple.TestUtils (build, buildA, requireOne)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array as Array
@@ -25,6 +28,18 @@ moduleBuilderSpec = describe "ModuleBuilder" do
 
 declarationsSpec :: Spec Unit
 declarationsSpec = do
+  it "should add values with signature" do
+    addValue
+      { name: "x"
+      , type_: typ "Int" *-> typ "Int"
+      , binders: [ bndrVar "a" ]
+      , expr: exprInt 5
+      }
+      `shouldContainDeclarations`
+      [ declSignature "x" (typ "Int" *-> typ "Int")
+      , declValue "x" [ bndrVar "a" ] (grd_ (exprInt 5))
+      ]
+
   it "should add data declarations" do
     addDataDecl "Foo" [ tvb "a" ]
       [ dataCtor "Bar" []

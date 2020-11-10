@@ -1,5 +1,6 @@
 module CST.Simple.ModuleBuilder
-       ( addDataDecl
+       ( addValue
+       , addDataDecl
        , addTypeDecl
        , addNewtypeDecl
        , addClassDecl
@@ -13,13 +14,26 @@ import Prelude
 
 import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.Declaration (DataCtor, Declaration, Fixity, FixityOp, Instance, InstanceBinding, declClass, declData, declDerive, declDeriveNewtype, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, runDeclaration)
-import CST.Simple.Internal.Expression (Guarded)
+import CST.Simple.Internal.Expression (Expr, Guarded, grd_)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilderT, addCSTDeclaration)
 import CST.Simple.Internal.Type (Constraint, Type)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding)
 import Data.Tuple.Nested (type (/\))
 
 -- Declarations
+
+addValue ::
+  forall m.
+  Monad m =>
+  { name :: String
+  , type_ :: Type
+  , binders :: Array Binder
+  , expr :: Expr
+  } ->
+  ModuleBuilderT m Unit
+addValue { name, type_, binders, expr } = do
+  addDeclaration $ declSignature name type_
+  addDeclaration $ declValue name binders (grd_ expr)
 
 addDataDecl :: forall m. Monad m => String -> Array TypeVarBinding -> Array DataCtor -> ModuleBuilderT m Unit
 addDataDecl name fields constructors' =
