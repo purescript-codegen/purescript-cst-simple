@@ -12,7 +12,6 @@ import Data.Maybe (Maybe)
 data CodegenError =
   InvalidModuleName String
   | DuplicateModuleName String
-  | InvalidDataHeadName String CodegenError
   | InvalidTypeName String
   | InvalidConstructorName String
   | InvalidClassName String
@@ -27,7 +26,6 @@ data CodegenError =
   | MissingCaseOfBranchBinders
   | MissingDoStatements
   | MissingInstanceHeadTypes
-  | DuplicateDeclName String
 
   | MultiCodegenError (Array CodegenError)
 

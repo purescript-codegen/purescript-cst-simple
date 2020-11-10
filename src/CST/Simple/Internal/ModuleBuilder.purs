@@ -7,7 +7,7 @@ module CST.Simple.Internal.ModuleBuilder
        , buildModuleT'
        , liftModuleBuilder
        , addImport
-       , addDeclaration
+       , addCSTDeclaration
        , mkName
        , mkQualName
        , mkQualConstructorName
@@ -15,16 +15,16 @@ module CST.Simple.Internal.ModuleBuilder
 
 import Prelude
 
-import CST.Simple.Internal.CodegenError (CodegenError(..))
+import CST.Simple.Internal.CodegenError (CodegenError)
 import CST.Simple.Internal.Import (class AsImport, asImport)
 import CST.Simple.Internal.Utils (exceptM)
 import CST.Simple.Names (class ReadName, class UnwrapQualName, ConstructorName, ModuleName, QualifiedName, TypedConstructorName(..), qualName, readName)
 import CST.Simple.Types (ModuleContent)
 import Control.Alt (class Alt, (<|>))
-import Control.Monad.Error.Class (class MonadError, throwError)
+import Control.Monad.Error.Class (class MonadError)
 import Control.Monad.Except (ExceptT, mapExceptT, runExceptT)
 import Control.Monad.Except.Trans (class MonadThrow)
-import Control.Monad.State (StateT, gets, mapStateT, runStateT)
+import Control.Monad.State (StateT, mapStateT, runStateT)
 import Control.Monad.State.Class (class MonadState)
 import Control.Monad.State.Trans (modify_)
 import Data.Array as Array
@@ -115,20 +115,11 @@ addImport moduleName import_ =
                    }
           )
 
-addDeclaration :: forall m. Monad m => String -> CST.Declaration -> ModuleBuilderT m Unit
-addDeclaration pname decl = do
-  verifyNoDuplicate
+addCSTDeclaration :: forall m. Monad m => CST.Declaration -> ModuleBuilderT m Unit
+addCSTDeclaration decl = do
   modify_ (\s -> s { idecls = decl : s.idecls
-                   , pnames = Set.insert pname s.pnames
                    }
           )
-
-  where
-    verifyNoDuplicate = do
-      pnames <- gets _.pnames
-      if Set.member pname pnames
-        then throwError $ DuplicateDeclName $ pname
-        else pure unit
 
 liftModuleBuilder :: forall m a. Monad m => ModuleBuilder a -> ModuleBuilderT m a
 liftModuleBuilder (ModuleBuilderT x) =

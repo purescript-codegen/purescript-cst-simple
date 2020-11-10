@@ -4,15 +4,14 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Type (typ)
 import CST.Simple.ModuleBuilder (addTypeDecl)
-import CST.Simple.TestUtils (build, buildModuleErr, intCSTType, requireOne)
+import CST.Simple.TestUtils (build, intCSTType, requireOne)
 import Data.Array as Array
 import Data.Maybe (Maybe(..))
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldContain, shouldEqual, shouldReturn)
+import Test.Spec.Assertions (shouldContain, shouldEqual)
 
 moduleBuilderSpec :: Spec Unit
 moduleBuilderSpec = describe "ModuleBuilder" do
@@ -20,15 +19,8 @@ moduleBuilderSpec = describe "ModuleBuilder" do
 
 typeDeclarationSpec :: Spec Unit
 typeDeclarationSpec = do
-  it "should reject type declarations with invalid name" do
-    buildModuleErr (addTypeDecl "x" (typ "Int")) `shouldReturn` (InvalidDataHeadName "x" (InvalidTypeName "x"))
-
-  it "should reject duplicate declarations" do
-    buildModuleErr (addTypeDecl "X" (typ "Int") *> addTypeDecl "X" (typ "String"))
-      `shouldReturn` (DuplicateDeclName "X")
-
   it "should accept type declarations" do
-    mod <- build (addTypeDecl "X" (typ "Int"))
+    mod <- build (addTypeDecl "X" [] (typ "Int"))
     mod.declarations `shouldContain`
       CST.DeclType
         { comments: Nothing
@@ -40,6 +32,6 @@ typeDeclarationSpec = do
         }
 
   it "should not duplicate imports" do
-    mod <- build (addTypeDecl "X" (typ "Foo.Bar.Baz") *> addTypeDecl "Y" (typ "Foo.Bar.Baz"))
+    mod <- build (addTypeDecl "X" [] (typ "Foo.Bar.Baz") *> addTypeDecl "Y" [] (typ "Foo.Bar.Baz"))
     CST.ImportDecl { names } <- requireOne mod.imports
     Array.length names `shouldEqual` 1
