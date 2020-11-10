@@ -4,34 +4,86 @@ module CST.Simple.ModuleBuilderSpec
 
 import Prelude
 
-import CST.Simple.Internal.Type (typ)
-import CST.Simple.ModuleBuilder (addTypeDecl)
-import CST.Simple.TestUtils (build, intCSTType, requireOne)
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declInstance, declInstanceChain, declNewtype, declType, instance_, runDeclaration)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder)
+import CST.Simple.Internal.Type (cnst, typ, typVar)
+import CST.Simple.Internal.TypeVarBinding (tvb)
+import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addInstanceChainDecl, addInstanceDecl, addNewtypeDecl, addTypeDecl)
+import CST.Simple.TestUtils (build, buildA, requireOne)
+import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array as Array
-import Data.Maybe (Maybe(..))
+import Data.Traversable (traverse)
+import Effect.Exception (Error)
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldContain, shouldEqual)
+import Test.Spec.Assertions (shouldEqual)
 
 moduleBuilderSpec :: Spec Unit
 moduleBuilderSpec = describe "ModuleBuilder" do
-  typeDeclarationSpec
+  declarationsSpec
+  importsSpec
 
-typeDeclarationSpec :: Spec Unit
-typeDeclarationSpec = do
-  it "should accept type declarations" do
-    mod <- build (addTypeDecl "X" [] (typ "Int"))
-    mod.declarations `shouldContain`
-      CST.DeclType
-        { comments: Nothing
-        , head: CST.DataHead
-          { dataHdName: CST.ProperName "X"
-          , dataHdVars: []
-          }
-        , type_: intCSTType
-        }
+declarationsSpec :: Spec Unit
+declarationsSpec = do
+  it "should add data declarations" do
+    addDataDecl "Foo" [ tvb "a" ]
+      [ dataCtor "Bar" []
+      ] `shouldContainDeclaration`
+      declData "Foo" [ tvb "a" ]
+      [ dataCtor "Bar" []
+      ]
 
+  it "should add data declarations" do
+    addTypeDecl "X" [] (typ "Int")
+      `shouldContainDeclaration`
+      declType "X" [] (typ "Int")
+
+  it "should add newtype declarations" do
+    addNewtypeDecl "Foo" [ tvb "a" ] "Bar" (typVar "a")
+      `shouldContainDeclaration`
+      declNewtype "Foo" [ tvb "a" ] "Bar" (typVar "a")
+
+  it "should add class decl" do
+    addClassDecl "Foo" [ tvb "a" ] [] [] []
+      `shouldContainDeclaration`
+      declClass "Foo" [ tvb "a" ] [] [] []
+
+  it "should add single instance" do
+    addInstanceDecl "fooI" [ cnst "Bar" [] ] "Foo" [ typVar "a" ] []
+      `shouldContainDeclaration`
+      declInstance "fooI" [ cnst "Bar" [] ] "Foo" [ typVar "a" ] []
+
+  it "should add instance chain" do
+    addInstanceChainDecl
+      (instance_ "fooI" [ cnst "Bar" [] ] "Foo" [ typVar "a" ] []
+      ) [] `shouldContainDeclaration`
+      declInstanceChain
+      (instance_ "fooI" [ cnst "Bar" [] ] "Foo" [ typVar "a" ] []
+      ) []
+
+importsSpec :: Spec Unit
+importsSpec = do
   it "should not duplicate imports" do
     mod <- build (addTypeDecl "X" [] (typ "Foo.Bar.Baz") *> addTypeDecl "Y" [] (typ "Foo.Bar.Baz"))
     CST.ImportDecl { names } <- requireOne mod.imports
     Array.length names `shouldEqual` 1
+
+shouldContainDeclaration ::
+  forall m.
+  MonadThrow Error m =>
+  ModuleBuilder Unit ->
+  Declaration ->
+  m Unit
+shouldContainDeclaration cmd d =
+  shouldContainDeclarations cmd [d]
+
+shouldContainDeclarations ::
+  forall m.
+  MonadThrow Error m =>
+  ModuleBuilder Unit ->
+  Array Declaration ->
+  m Unit
+shouldContainDeclarations cmd ds = do
+  mod <- build cmd
+  ds' <- traverse (buildA <<< runDeclaration) ds
+  mod.declarations `shouldEqual` ds'
