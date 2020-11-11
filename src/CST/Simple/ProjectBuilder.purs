@@ -13,7 +13,7 @@ import Prelude
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder)
 import CST.Simple.Internal.Utils (noteM)
-import CST.Simple.Names (moduleName')
+import CST.Simple.Names (ModuleName, moduleName')
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError)
 import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.State (class MonadState, StateT, execStateT, state)
@@ -25,10 +25,10 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Tuple.Nested ((/\))
-import Language.PS.CST (Module(..), ModuleName)
+import Language.PS.CST as CST
 
 newtype Project =
-  Project { modules :: Array Module
+  Project { modules :: Array CST.Module
           }
 
 instance projectShow :: Show Project where
@@ -37,10 +37,10 @@ instance projectShow :: Show Project where
       r = { modules: showModule <$> p.modules
           }
 
-      showModule (Module m) = "(Module " <> show m.moduleName <> ")"
+      showModule (CST.Module m) = "(Module " <> show m.moduleName <> ")"
 
 type BuilderState =
-  { moduleMap :: Map String Module
+  { moduleMap :: Map String CST.Module
   }
 
 newtype ProjectBuilderT m a =
@@ -54,7 +54,7 @@ derive newtype instance projectBuilderTMonad :: Monad m => Monad (ProjectBuilder
 derive newtype instance projectBuilderTMonadThrow :: Monad m => MonadThrow CodegenError (ProjectBuilderT m)
 derive newtype instance projectBuilderTMonadError :: Monad m => MonadError CodegenError (ProjectBuilderT m)
 derive newtype instance projectBuilderTMonadState ::
-  Monad m => MonadState { moduleMap :: Map String Module } (ProjectBuilderT m)
+  Monad m => MonadState { moduleMap :: Map String CST.Module } (ProjectBuilderT m)
 
 type ProjectBuilder a = ProjectBuilderT Identity a
 
@@ -86,13 +86,13 @@ addModule name _ = do
           }
   where
     emptyModule moduleName =
-      Module { moduleName
-             , imports: []
-             , exports: []
-             , declarations: []
-             }
+      CST.Module { moduleName
+                 , imports: []
+                 , exports: []
+                 , declarations: []
+                 }
 
-getCSTModules :: Project -> Array Module
+getCSTModules :: Project -> Array CST.Module
 getCSTModules (Project { modules }) = modules
 
 -- Move to utils
