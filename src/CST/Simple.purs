@@ -223,6 +223,8 @@ import CST.Simple.Names
   , TypeOpName
   , ValueOpName
   , class ReadName
+  , readName
+  , readName'
   , Ident
   , Label(..)
   , ModuleName
