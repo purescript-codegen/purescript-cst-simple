@@ -1,8 +1,8 @@
 module CST.Simple.ModuleBuilder
        ( addValue
        , addForeignJsValue
+       , addType
        , addDataDecl
-       , addTypeDecl
        , addNewtypeDecl
        , addClassDecl
        , addInstanceDecl
@@ -48,13 +48,14 @@ addForeignJsValue { name, type_, jsExpr } = do
   addDeclaration $ declForeignValue name type_
   addForeignBinding $ "exports." <> name <> " = " <> jsExpr <> ";\n"
 
+
+addType :: forall m. Monad m => String -> Array TypeVarBinding -> Type -> ModuleBuilderT m Unit
+addType name fields type_' =
+  addDeclaration $ declType name fields type_'
+
 addDataDecl :: forall m. Monad m => String -> Array TypeVarBinding -> Array DataCtor -> ModuleBuilderT m Unit
 addDataDecl name fields constructors' =
   addDeclaration $ declData name fields constructors'
-
-addTypeDecl :: forall m. Monad m => String -> Array TypeVarBinding -> Type -> ModuleBuilderT m Unit
-addTypeDecl name fields type_' =
-  addDeclaration $ declType name fields type_'
 
 addNewtypeDecl :: forall m. Monad m => String -> Array TypeVarBinding -> String -> Type -> ModuleBuilderT m Unit
 addNewtypeDecl dataHdName fields name' type_' =

@@ -11,7 +11,7 @@ import CST.Simple.Internal.Expression (exprInt, grd_)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder)
 import CST.Simple.Internal.Type (cnst, typ, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
-import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addNewtypeDecl, addTypeDecl, addValue)
+import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addNewtypeDecl, addType, addValue)
 import CST.Simple.TestUtils (build, buildA, requireOne)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array as Array
@@ -58,6 +58,11 @@ declarationsSpec = do
       `shouldContainForeign`
       "exports.x = 5;\n"
 
+  it "should add type declarations" do
+    addType "X" [] (typ "Int")
+      `shouldContainDeclaration`
+      declType "X" [] (typ "Int")
+
   it "should add data declarations" do
     addDataDecl "Foo" [ tvb "a" ]
       [ dataCtor "Bar" []
@@ -65,11 +70,6 @@ declarationsSpec = do
       declData "Foo" [ tvb "a" ]
       [ dataCtor "Bar" []
       ]
-
-  it "should add data declarations" do
-    addTypeDecl "X" [] (typ "Int")
-      `shouldContainDeclaration`
-      declType "X" [] (typ "Int")
 
   it "should add newtype declarations" do
     addNewtypeDecl "Foo" [ tvb "a" ] "Bar" (typVar "a")
@@ -97,7 +97,7 @@ declarationsSpec = do
 importsSpec :: Spec Unit
 importsSpec = do
   it "should not duplicate imports" do
-    mod <- build (addTypeDecl "X" [] (typ "Foo.Bar.Baz") *> addTypeDecl "Y" [] (typ "Foo.Bar.Baz"))
+    mod <- build (addType "X" [] (typ "Foo.Bar.Baz") *> addType "Y" [] (typ "Foo.Bar.Baz"))
     CST.ImportDecl { names } <- requireOne mod.imports
     Array.length names `shouldEqual` 1
 
