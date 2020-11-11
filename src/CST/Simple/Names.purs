@@ -18,6 +18,7 @@ module CST.Simple.Names
        , qualName
        , class ReadName
        , readName
+       , readName'
        , class UnwrapQualName
        , unwrapQualName
        , module E
@@ -26,6 +27,8 @@ module CST.Simple.Names
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
+import CST.Simple.Internal.Utils (exceptM)
+import Control.Monad.Error.Class (class MonadThrow)
 import Control.MonadPlus (guard)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Bifunctor (lmap)
@@ -207,6 +210,9 @@ instance readNameTypeOpName :: ReadName (CST.OpName CST.OpNameType_TypeOpName) w
 
 instance readNameValueOpName :: ReadName (CST.OpName CST.OpNameType_ValueOpName) where
   readName s = note (InvalidValueOpName s) (valueOpName' s)
+
+readName' :: forall m a. MonadThrow CodegenError m => ReadName a => String -> m a
+readName' = exceptM <<< readName
 
 -- UnwrapQualName
 

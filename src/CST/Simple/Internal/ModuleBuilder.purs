@@ -19,7 +19,7 @@ import Prelude
 import CST.Simple.Internal.CodegenError (CodegenError)
 import CST.Simple.Internal.Import (class AsImport, asImport)
 import CST.Simple.Internal.Utils (exceptM)
-import CST.Simple.Names (class ReadName, class UnwrapQualName, ConstructorName, ModuleName, QualifiedName, TypedConstructorName(..), qualName, readName)
+import CST.Simple.Names (class ReadName, class UnwrapQualName, ConstructorName, ModuleName, QualifiedName, TypedConstructorName(..), qualName, readName')
 import CST.Simple.Types (ModuleContent)
 import Control.Alt (class Alt, (<|>))
 import Control.Monad.Error.Class (class MonadError)
@@ -143,7 +143,7 @@ mkName ::
   ReadName n =>
   String ->
   ModuleBuilderT m n
-mkName = exceptM <<< readName
+mkName = readName'
 
 mkQualName ::
   forall m n.
