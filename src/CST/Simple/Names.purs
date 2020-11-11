@@ -187,6 +187,9 @@ qualName s = case String.lastIndexOf (String.Pattern ".") s of
 class ReadName a where
   readName :: String -> Either CodegenError a
 
+instance readNameModuleName :: ReadName ModuleName where
+  readName s = note (InvalidModuleName s) (moduleName' s)
+
 instance readNameTypeName :: ReadName (CST.ProperName CST.ProperNameType_TypeName) where
   readName s = note (InvalidTypeName s) (typeName' s)
 
