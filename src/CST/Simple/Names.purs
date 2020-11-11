@@ -28,7 +28,7 @@ import Prelude
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import Control.MonadPlus (guard)
 import Data.Array.NonEmpty as NonEmptyArray
-import Data.Bifunctor (bimap, lmap)
+import Data.Bifunctor (lmap)
 import Data.Char.Unicode as Char
 import Data.Either (Either, note)
 import Data.Foldable (all, elem)
