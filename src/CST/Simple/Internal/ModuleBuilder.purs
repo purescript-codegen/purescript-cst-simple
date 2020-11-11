@@ -8,6 +8,7 @@ module CST.Simple.Internal.ModuleBuilder
        , liftModuleBuilder
        , addImport
        , addCSTDeclaration
+       , addForeignBinding
        , mkName
        , mkQualName
        , mkQualConstructorName
@@ -30,7 +31,7 @@ import Control.Monad.State.Trans (modify_)
 import Data.Array as Array
 import Data.Bifunctor (rmap)
 import Data.Either (Either)
-import Data.Foldable (for_)
+import Data.Foldable (fold, for_)
 import Data.Identity (Identity)
 import Data.List (List, (:))
 import Data.List as List
@@ -48,6 +49,7 @@ type ModuleBuilderState =
   { imports :: Map ModuleName (Set CST.Import)
   , idecls :: List CST.Declaration
   , pnames :: Set String
+  , foreignBinding :: Maybe String
   }
 
 newtype ModuleBuilderT m a =
@@ -64,6 +66,7 @@ derive newtype instance moduleBuilderTMonadState :: Monad m =>
   MonadState { imports :: Map ModuleName (Set CST.Import)
              , idecls :: List CST.Declaration
              , pnames :: Set String
+             , foreignBinding :: Maybe String
              } (ModuleBuilderT m)
 derive newtype instance moduleBuilderTAlt :: Monad m => Alt (ModuleBuilderT m)
 
@@ -100,6 +103,7 @@ buildModuleT' (ModuleBuilderT mb) = map (rmap toContent) <$> (runExceptT (runSta
       { imports: uncurry toImportDecl <$> Map.toUnfoldable ms.imports
       , exports: []
       , declarations: Array.fromFoldable $ List.reverse ms.idecls
+      , foreignBinding: ms.foreignBinding
       }
 
     toImportDecl moduleName names' =
@@ -118,6 +122,12 @@ addImport moduleName import_ =
 addCSTDeclaration :: forall m. Monad m => CST.Declaration -> ModuleBuilderT m Unit
 addCSTDeclaration decl = do
   modify_ (\s -> s { idecls = decl : s.idecls
+                   }
+          )
+
+addForeignBinding :: forall m. Monad m => String -> ModuleBuilderT m Unit
+addForeignBinding b =
+  modify_ (\s -> s { foreignBinding = Just $ fold s.foreignBinding <> b
                    }
           )
 

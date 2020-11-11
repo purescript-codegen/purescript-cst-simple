@@ -1,5 +1,6 @@
 module CST.Simple.ModuleBuilder
        ( addValue
+       , addForeignJsValue
        , addDataDecl
        , addTypeDecl
        , addNewtypeDecl
@@ -13,9 +14,9 @@ module CST.Simple.ModuleBuilder
 import Prelude
 
 import CST.Simple.Internal.Binder (Binder)
-import CST.Simple.Internal.Declaration (DataCtor, Declaration, Fixity, FixityOp, Instance, InstanceBinding, declClass, declData, declDerive, declDeriveNewtype, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, runDeclaration)
+import CST.Simple.Internal.Declaration (DataCtor, Declaration, Fixity, FixityOp, Instance, InstanceBinding, declClass, declData, declDerive, declDeriveNewtype, declForeignValue, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, runDeclaration)
 import CST.Simple.Internal.Expression (Expr, Guarded, grd_)
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilderT, addCSTDeclaration)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilderT, addCSTDeclaration, addForeignBinding)
 import CST.Simple.Internal.Type (Constraint, Type)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding)
 import Data.Tuple.Nested (type (/\))
@@ -34,6 +35,18 @@ addValue ::
 addValue { name, type_, binders, expr } = do
   addDeclaration $ declSignature name type_
   addDeclaration $ declValue name binders (grd_ expr)
+
+addForeignJsValue ::
+  forall m.
+  Monad m =>
+  { name :: String
+  , type_ :: Type
+  , jsExpr :: String
+  } ->
+  ModuleBuilderT m Unit
+addForeignJsValue { name, type_, jsExpr } = do
+  addDeclaration $ declForeignValue name type_
+  addForeignBinding $ "exports." <> name <> " = " <> jsExpr <> ";\n"
 
 addDataDecl :: forall m. Monad m => String -> Array TypeVarBinding -> Array DataCtor -> ModuleBuilderT m Unit
 addDataDecl name fields constructors' =
