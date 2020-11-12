@@ -5,13 +5,15 @@ module CST.Simple.ProjectBuilderSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.ProjectBuilder (Project, ProjectBuilder, addModule, buildProject, getCSTModules)
+import CST.Simple.Names (ModuleName)
+import CST.Simple.ProjectBuilder (ProjectBuilder, addModule, buildProject)
 import CST.Simple.TestUtils (fooBarModuleName)
+import CST.Simple.Types (Project, ModuleEntry)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
 import Data.Either (Either(..), either)
 import Data.Maybe (Maybe(..))
 import Effect.Exception (Error, error)
-import Language.PS.CST (Module(..), ModuleName)
+import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldContain, shouldEqual)
 
@@ -22,7 +24,7 @@ projectBuilderSpec = describe "ProjectBuilder" do
 moduleNameSpec :: Spec Unit
 moduleNameSpec = do
   it "should encode module name" do
-    modules <- getCSTModules <$> buildProject' (addModule "Foo.Bar" (pure unit))
+    modules <- _.modules <$> buildProject' (addModule "Foo.Bar" (pure unit))
     (getModuleName <$> modules) `shouldEqual` [ fooBarModuleName ]
 
   it "should reject invalid module name" do
@@ -33,8 +35,10 @@ moduleNameSpec = do
     buildProjectErr (addModule "Foo" (pure unit) *> addModule "Foo" (pure unit))
       `shouldContain` (DuplicateModuleName "Foo")
 
-getModuleName :: Module -> ModuleName
-getModuleName (Module { moduleName }) = moduleName
+
+getModuleName :: ModuleEntry -> ModuleName
+getModuleName { cstModule: CST.Module { moduleName } } = moduleName
+
 
 buildProject' ::
   forall m.

@@ -1,22 +1,21 @@
 module CST.Simple.ProjectBuilder
-       ( Project
-       , ProjectBuilderT
+       ( ProjectBuilderT
        , ProjectBuilder
        , buildProject
        , buildProjectT
        , addModule
-       , getCSTModules
        ) where
 
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder)
-import CST.Simple.Internal.Utils (noteM)
-import CST.Simple.Names (ModuleName, moduleName')
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule)
+import CST.Simple.Internal.Utils (exceptM)
+import CST.Simple.Names (ModuleName, readName')
+import CST.Simple.Types (Project, ModuleEntry)
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError)
 import Control.Monad.Except (ExceptT, runExceptT)
-import Control.Monad.State (class MonadState, StateT, execStateT, state)
+import Control.Monad.State (class MonadState, StateT(..), execStateT)
 import Data.Either (Either)
 import Data.Identity (Identity)
 import Data.List as List
@@ -27,20 +26,8 @@ import Data.Newtype (unwrap)
 import Data.Tuple.Nested ((/\))
 import Language.PS.CST as CST
 
-newtype Project =
-  Project { modules :: Array CST.Module
-          }
-
-instance projectShow :: Show Project where
-  show (Project p) = "(Project " <> show r <> ")"
-    where
-      r = { modules: showModule <$> p.modules
-          }
-
-      showModule (CST.Module m) = "(Module " <> show m.moduleName <> ")"
-
 type BuilderState =
-  { moduleMap :: Map String CST.Module
+  { moduleMap :: Map ModuleName ModuleEntry
   }
 
 newtype ProjectBuilderT m a =
@@ -54,7 +41,11 @@ derive newtype instance projectBuilderTMonad :: Monad m => Monad (ProjectBuilder
 derive newtype instance projectBuilderTMonadThrow :: Monad m => MonadThrow CodegenError (ProjectBuilderT m)
 derive newtype instance projectBuilderTMonadError :: Monad m => MonadError CodegenError (ProjectBuilderT m)
 derive newtype instance projectBuilderTMonadState ::
-  Monad m => MonadState { moduleMap :: Map String CST.Module } (ProjectBuilderT m)
+  Monad m => MonadState
+  { moduleMap :: Map ModuleName { cstModule :: CST.Module
+                                , foreignBinding :: Maybe String
+                                }
+  } (ProjectBuilderT m)
 
 type ProjectBuilder a = ProjectBuilderT Identity a
 
@@ -67,35 +58,32 @@ buildProjectT (ProjectBuilderT pb) =
   map mkProject <$> (runExceptT $ execStateT pb mempty)
   where
     mkProject { moduleMap } =
-      Project { modules: List.toUnfoldable $ Map.values moduleMap
-              }
+      { modules: List.toUnfoldable $ Map.values moduleMap
+      }
 
 buildProject :: ProjectBuilder Unit -> (Either CodegenError Project)
 buildProject = unwrap <<< buildProjectT
 
 addModule :: String -> ModuleBuilder Unit -> ProjectBuilder Unit
-addModule name _ = do
-  moduleName <- mkModuleName name
-  join $ state \s ->
-    case Map.lookup name s.moduleMap of
+addModule name mb = do
+  moduleName <- readName' name
+  ProjectBuilderT $ StateT \s ->
+    case Map.lookup moduleName s.moduleMap of
       Just _ ->
-        throwError (DuplicateModuleName name) /\ s
-      Nothing ->
-        pure unit /\
-        s { moduleMap = Map.insert name (emptyModule moduleName) s.moduleMap
-          }
+        throwError (DuplicateModuleName name)
+      Nothing -> do
+        mc <- exceptM $ buildModule mb
+        let entry = mkEntry moduleName mc
+        pure $ unit /\
+          s { moduleMap = Map.insert moduleName entry s.moduleMap
+            }
   where
-    emptyModule moduleName =
-      CST.Module { moduleName
-                 , imports: []
-                 , exports: []
-                 , declarations: []
-                 }
-
-getCSTModules :: Project -> Array CST.Module
-getCSTModules (Project { modules }) = modules
-
--- Move to utils
-
-mkModuleName :: forall m. MonadThrow CodegenError m => String -> m ModuleName
-mkModuleName s = noteM (InvalidModuleName s) $ moduleName' s
+    mkEntry moduleName mc =
+      { cstModule:
+        CST.Module { moduleName
+                   , imports: mc.imports
+                   , exports: mc.exports
+                   , declarations: mc.declarations
+                   }
+      , foreignBinding: mc.foreignBinding
+      }
