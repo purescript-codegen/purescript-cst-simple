@@ -6,6 +6,7 @@ module CST.Simple.Types
        ) where
 
 import Data.Maybe (Maybe)
+import Dodo (PrintOptions)
 import Language.PS.CST as CST
 import Node.Path (FilePath)
 
@@ -27,5 +28,5 @@ type Project =
 
 type ProjectSettings =
   { outputDirectory :: FilePath
-  , indentLevel :: Int
+  , printOptions :: PrintOptions
   }

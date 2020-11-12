@@ -21,7 +21,7 @@ module CST.Simple.TestUtils
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError)
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule')
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, runModuleBuilder)
 import CST.Simple.Names (ModuleName)
 import CST.Simple.Types (ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow)
@@ -43,14 +43,14 @@ buildA :: forall m a. MonadThrow Error m => ModuleBuilder a -> m a
 buildA = map fst <<< build'
 
 build' :: forall m a. MonadThrow Error m => ModuleBuilder a -> m (a /\ ModuleContent)
-build' mb = case buildModule' mb of
+build' mb = case runModuleBuilder mb of
   Left e ->
     throwError $ error $ "codegen error - " <> show e
   Right r ->
     pure r
 
 buildModuleErr :: forall m a. MonadThrow Error m => ModuleBuilder a -> m CodegenError
-buildModuleErr mb = case buildModule' mb of
+buildModuleErr mb = case runModuleBuilder mb of
   Left e ->
     pure e
   Right r ->

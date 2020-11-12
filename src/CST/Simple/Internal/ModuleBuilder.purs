@@ -1,10 +1,10 @@
 module CST.Simple.Internal.ModuleBuilder
        ( ModuleBuilderT
        , ModuleBuilder
-       , buildModule
-       , buildModuleT
-       , buildModule'
-       , buildModuleT'
+       , execModuleBuilder
+       , execModuleBuilderT
+       , runModuleBuilder
+       , runModuleBuilderT
        , liftModuleBuilder
        , addImport
        , addCSTDeclaration
@@ -72,32 +72,32 @@ derive newtype instance moduleBuilderTAlt :: Monad m => Alt (ModuleBuilderT m)
 
 type ModuleBuilder a = ModuleBuilderT Identity a
 
-buildModule ::
+execModuleBuilder ::
   ModuleBuilder Unit ->
   Either CodegenError ModuleContent
-buildModule =
-  unwrap <<< buildModuleT
+execModuleBuilder =
+  unwrap <<< execModuleBuilderT
 
-buildModuleT ::
+execModuleBuilderT ::
   forall m.
   Monad m =>
   ModuleBuilderT m Unit ->
   m (Either CodegenError ModuleContent)
-buildModuleT = map (map snd) <<< buildModuleT'
+execModuleBuilderT = map (map snd) <<< runModuleBuilderT
 
-buildModule' ::
+runModuleBuilder ::
   forall a.
   ModuleBuilder a ->
   Either CodegenError (a /\ ModuleContent)
-buildModule' =
-  unwrap <<< buildModuleT'
+runModuleBuilder =
+  unwrap <<< runModuleBuilderT
 
-buildModuleT' ::
+runModuleBuilderT ::
   forall m a.
   Monad m =>
   ModuleBuilderT m a ->
   m (Either CodegenError (a /\ ModuleContent))
-buildModuleT' (ModuleBuilderT mb) = map (rmap toContent) <$> (runExceptT (runStateT mb mempty))
+runModuleBuilderT (ModuleBuilderT mb) = map (rmap toContent) <$> (runExceptT (runStateT mb mempty))
   where
     toContent ms =
       { imports: uncurry toImportDecl <$> Map.toUnfoldable ms.imports

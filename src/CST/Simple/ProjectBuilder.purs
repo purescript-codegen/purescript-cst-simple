@@ -9,7 +9,7 @@ module CST.Simple.ProjectBuilder
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, execModuleBuilder)
 import CST.Simple.Internal.Utils (exceptM)
 import CST.Simple.Names (ModuleName, readName')
 import CST.Simple.Types (Project, ModuleEntry)
@@ -72,7 +72,7 @@ addModule name mb = do
       Just _ ->
         throwError (DuplicateModuleName name)
       Nothing -> do
-        mc <- exceptM $ buildModule mb
+        mc <- exceptM $ execModuleBuilder mb
         let entry = mkEntry moduleName mc
         pure $ unit /\
           s { moduleMap = Map.insert moduleName entry s.moduleMap
