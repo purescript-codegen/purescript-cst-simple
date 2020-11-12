@@ -1,5 +1,6 @@
 module CST.Simple.TestUtils
-       ( build
+       ( ModuleContent
+       , build
        , buildA
        , build'
        , buildModuleErr
@@ -21,9 +22,8 @@ module CST.Simple.TestUtils
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError)
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, runModuleBuilder)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule', exportAll)
 import CST.Simple.Names (ModuleName)
-import CST.Simple.Types (ModuleContent)
 import Control.Monad.Error.Class (class MonadThrow)
 import Control.Monad.Except (throwError)
 import Data.Array as Array
@@ -31,10 +31,18 @@ import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (fst, snd)
-import Data.Tuple.Nested (type (/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Exception (Error, error)
 import Language.PS.CST as CST
 import Test.Spec.Assertions (shouldContain, shouldEqual, shouldReturn)
+
+type ModuleContent =
+  { moduleName :: ModuleName
+  , imports :: Array CST.ImportDecl
+  , exports :: Array CST.Export
+  , declarations :: Array CST.Declaration
+  , foreignBinding :: Maybe String
+  }
 
 build :: forall m a. MonadThrow Error m => ModuleBuilder a -> m ModuleContent
 build = map snd <<< build'
@@ -43,14 +51,20 @@ buildA :: forall m a. MonadThrow Error m => ModuleBuilder a -> m a
 buildA = map fst <<< build'
 
 build' :: forall m a. MonadThrow Error m => ModuleBuilder a -> m (a /\ ModuleContent)
-build' mb = case runModuleBuilder mb of
+build' mb = case buildModule' "Foo" (exportAll *> mb) of
   Left e ->
     throwError $ error $ "codegen error - " <> show e
-  Right r ->
-    pure r
+  Right (a /\ { foreignBinding, cstModule: CST.Module r }) ->
+    pure (a /\ { moduleName: r.moduleName
+               , imports: r.imports
+               , exports: r.exports
+               , declarations: r.declarations
+               , foreignBinding
+               }
+         )
 
 buildModuleErr :: forall m a. MonadThrow Error m => ModuleBuilder a -> m CodegenError
-buildModuleErr mb = case runModuleBuilder mb of
+buildModuleErr mb = case buildModule' "Foo" (exportAll *> mb) of
   Left e ->
     pure e
   Right r ->

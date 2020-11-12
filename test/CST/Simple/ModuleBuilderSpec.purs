@@ -5,16 +5,18 @@ module CST.Simple.ModuleBuilderSpec
 import Prelude
 
 import CST.Simple.Internal.Binder (bndrVar)
+import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*->))
 import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declForeignValue, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, instance_, runDeclaration)
 import CST.Simple.Internal.Expression (exprInt, grd_)
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule, exportAll)
 import CST.Simple.Internal.Type (cnst, typ, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
 import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addNewtypeDecl, addType, addValue)
 import CST.Simple.TestUtils (build, buildA, requireOne)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array as Array
+import Data.Either (Either(..))
 import Data.Traversable (traverse)
 import Effect.Exception (Error)
 import Language.PS.CST as CST
@@ -23,8 +25,30 @@ import Test.Spec.Assertions (shouldContain, shouldEqual)
 
 moduleBuilderSpec :: Spec Unit
 moduleBuilderSpec = describe "ModuleBuilder" do
-  declarationsSpec
+  moduleNameSpec
   importsSpec
+  declarationsSpec
+
+moduleNameSpec :: Spec Unit
+moduleNameSpec = describe "module name" do
+  it "should reject invalid module names" do
+    buildModule "foo" (pure unit) `shouldEqual` Left (InvalidModuleName "foo")
+
+importsSpec :: Spec Unit
+importsSpec = describe "imports" do
+  it "should not duplicate imports" do
+    mod <- build (addType "X" [] (typ "Foo.Bar.Baz") *> addType "Y" [] (typ "Foo.Bar.Baz"))
+    CST.ImportDecl { names } <- requireOne mod.imports
+    Array.length names `shouldEqual` 1
+
+exportsSpec :: Spec Unit
+exportsSpec = describe "exports" do
+  it "should disallow empty exports" do
+    buildModule "Foo" (pure unit) `shouldEqual` Left MissingExports
+
+  it "should allow export all" do
+    mc <- build exportAll
+    mc.exports `shouldEqual` []
 
 declarationsSpec :: Spec Unit
 declarationsSpec = do
@@ -93,13 +117,6 @@ declarationsSpec = do
       declInstanceChain
       (instance_ "fooI" [ cnst "Bar" [] ] "Foo" [ typVar "a" ] []
       ) []
-
-importsSpec :: Spec Unit
-importsSpec = do
-  it "should not duplicate imports" do
-    mod <- build (addType "X" [] (typ "Foo.Bar.Baz") *> addType "Y" [] (typ "Foo.Bar.Baz"))
-    CST.ImportDecl { names } <- requireOne mod.imports
-    Array.length names `shouldEqual` 1
 
 shouldContainDeclaration ::
   forall m.

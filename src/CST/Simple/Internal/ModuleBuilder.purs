@@ -1,12 +1,13 @@
 module CST.Simple.Internal.ModuleBuilder
        ( ModuleBuilderT
        , ModuleBuilder
-       , execModuleBuilder
-       , execModuleBuilderT
-       , runModuleBuilder
-       , runModuleBuilderT
+       , buildModule
+       , buildModuleT
+       , buildModule'
+       , buildModuleT'
        , liftModuleBuilder
        , addImport
+       , exportAll
        , addCSTDeclaration
        , addForeignBinding
        , mkName
@@ -16,24 +17,23 @@ module CST.Simple.Internal.ModuleBuilder
 
 import Prelude
 
-import CST.Simple.Internal.CodegenError (CodegenError)
+import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Import (class AsImport, asImport)
 import CST.Simple.Internal.Utils (exceptM)
 import CST.Simple.Names (class ReadName, class UnwrapQualName, ConstructorName, ModuleName, QualifiedName, TypedConstructorName(..), qualName, readName')
-import CST.Simple.Types (ModuleContent)
+import CST.Simple.Types (ModuleEntry)
 import Control.Alt (class Alt, (<|>))
-import Control.Monad.Error.Class (class MonadError)
+import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except (ExceptT, mapExceptT, runExceptT)
 import Control.Monad.Except.Trans (class MonadThrow)
-import Control.Monad.State (StateT, mapStateT, runStateT)
+import Control.Monad.State (StateT, evalStateT, get, mapStateT)
 import Control.Monad.State.Class (class MonadState)
 import Control.Monad.State.Trans (modify_)
 import Data.Array as Array
-import Data.Bifunctor (rmap)
 import Data.Either (Either)
 import Data.Foldable (fold, for_)
 import Data.Identity (Identity)
-import Data.List (List, (:))
+import Data.List (List(..), (:))
 import Data.List as List
 import Data.Map (Map)
 import Data.Map as Map
@@ -42,11 +42,12 @@ import Data.Newtype (unwrap)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple (snd, uncurry)
-import Data.Tuple.Nested (type (/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Language.PS.CST as CST
 
 type ModuleBuilderState =
   { imports :: Map ModuleName (Set CST.Import)
+  , exports :: Exports
   , idecls :: List CST.Declaration
   , pnames :: Set String
   , foreignBinding :: Maybe String
@@ -64,6 +65,7 @@ derive newtype instance moduleBuilderTMonadThrow :: Monad m => MonadThrow Codege
 derive newtype instance moduleBuilderTMonadError :: Monad m => MonadError CodegenError (ModuleBuilderT m)
 derive newtype instance moduleBuilderTMonadState :: Monad m =>
   MonadState { imports :: Map ModuleName (Set CST.Import)
+             , exports :: Exports
              , idecls :: List CST.Declaration
              , pnames :: Set String
              , foreignBinding :: Maybe String
@@ -72,39 +74,47 @@ derive newtype instance moduleBuilderTAlt :: Monad m => Alt (ModuleBuilderT m)
 
 type ModuleBuilder a = ModuleBuilderT Identity a
 
-execModuleBuilder ::
-  ModuleBuilder Unit ->
-  Either CodegenError ModuleContent
-execModuleBuilder =
-  unwrap <<< execModuleBuilderT
+data Exports =
+  ExportAll
+  | ExportISelected (List CST.Export)
 
-execModuleBuilderT ::
+buildModule ::
+  String ->
+  ModuleBuilder Unit ->
+  Either CodegenError ModuleEntry
+buildModule moduleName mb =
+  unwrap $ buildModuleT moduleName mb
+
+buildModuleT ::
   forall m.
   Monad m =>
+  String ->
   ModuleBuilderT m Unit ->
-  m (Either CodegenError ModuleContent)
-execModuleBuilderT = map (map snd) <<< runModuleBuilderT
+  m (Either CodegenError ModuleEntry)
+buildModuleT moduleName' mb =
+  map snd <$> buildModuleT' moduleName' mb
 
-runModuleBuilder ::
+buildModule' ::
   forall a.
+  String ->
   ModuleBuilder a ->
-  Either CodegenError (a /\ ModuleContent)
-runModuleBuilder =
-  unwrap <<< runModuleBuilderT
+  Either CodegenError (a /\ ModuleEntry)
+buildModule' moduleName mb =
+  unwrap $ buildModuleT' moduleName mb
 
-runModuleBuilderT ::
+buildModuleT' ::
   forall m a.
   Monad m =>
+  String ->
   ModuleBuilderT m a ->
-  m (Either CodegenError (a /\ ModuleContent))
-runModuleBuilderT (ModuleBuilderT mb) = map (rmap toContent) <$> (runExceptT (runStateT mb mempty))
+  m (Either CodegenError (a /\ ModuleEntry))
+buildModuleT' moduleName' mb =
+  runExceptT $ evalStateT mb' initState
   where
-    toContent ms =
-      { imports: uncurry toImportDecl <$> Map.toUnfoldable ms.imports
-      , exports: []
-      , declarations: Array.fromFoldable $ List.reverse ms.idecls
-      , foreignBinding: ms.foreignBinding
-      }
+    getExports es = case es of
+      ExportISelected Nil -> throwError MissingExports
+      ExportISelected es' -> pure $ ilistToArray es'
+      ExportAll -> pure []
 
     toImportDecl moduleName names' =
       CST.ImportDecl { moduleName
@@ -112,11 +122,44 @@ runModuleBuilderT (ModuleBuilderT mb) = map (rmap toContent) <$> (runExceptT (ru
                      , qualification: Nothing
                      }
 
+    ilistToArray :: forall a. List a -> Array a
+    ilistToArray = Array.fromFoldable <<< List.reverse
+
+    initState =
+      { imports: mempty
+      , exports: ExportISelected mempty
+      , idecls: mempty
+      , pnames: mempty
+      , foreignBinding: Nothing
+      }
+
+
+    (ModuleBuilderT mb') = do
+      moduleName <- readName' moduleName'
+      a <- mb
+      c <- get
+      exports <- getExports c.exports
+      pure $ a
+        /\ { cstModule: CST.Module
+             { moduleName
+             , imports: uncurry toImportDecl <$> Map.toUnfoldable c.imports
+             , exports
+             , declarations: ilistToArray c.idecls
+             }
+           , foreignBinding: c.foreignBinding
+           }
+
 
 addImport :: forall m. Monad m => ModuleName -> CST.Import -> ModuleBuilderT m Unit
 addImport moduleName import_ =
   modify_ (\s -> s { imports = Map.insertWith append moduleName (Set.singleton import_) s.imports
                    }
+          )
+
+exportAll :: forall m. Monad m => ModuleBuilderT m Unit
+exportAll =
+  modify_ (_ { exports = ExportAll
+             }
           )
 
 addCSTDeclaration :: forall m. Monad m => CST.Declaration -> ModuleBuilderT m Unit

@@ -9,7 +9,7 @@ module CST.Simple.ProjectBuilder
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, execModuleBuilder)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule)
 import CST.Simple.Internal.Utils (exceptM)
 import CST.Simple.Names (ModuleName, readName')
 import CST.Simple.Types (Project, ModuleEntry)
@@ -66,24 +66,13 @@ buildProject = unwrap <<< buildProjectT
 
 addModule :: String -> ModuleBuilder Unit -> ProjectBuilder Unit
 addModule name mb = do
+  me <- exceptM $ buildModule name mb
   moduleName <- readName' name
   ProjectBuilderT $ StateT \s ->
     case Map.lookup moduleName s.moduleMap of
       Just _ ->
         throwError (DuplicateModuleName name)
       Nothing -> do
-        mc <- exceptM $ execModuleBuilder mb
-        let entry = mkEntry moduleName mc
         pure $ unit /\
-          s { moduleMap = Map.insert moduleName entry s.moduleMap
+          s { moduleMap = Map.insert moduleName me s.moduleMap
             }
-  where
-    mkEntry moduleName mc =
-      { cstModule:
-        CST.Module { moduleName
-                   , imports: mc.imports
-                   , exports: mc.exports
-                   , declarations: mc.declarations
-                   }
-      , foreignBinding: mc.foreignBinding
-      }

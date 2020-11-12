@@ -12,6 +12,7 @@ import Data.Maybe (Maybe)
 data CodegenError =
   InvalidModuleName String
   | DuplicateModuleName String
+  | MissingExports
   | InvalidTypeName String
   | InvalidConstructorName String
   | InvalidClassName String
