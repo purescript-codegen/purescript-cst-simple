@@ -27,6 +27,7 @@ moduleBuilderSpec :: Spec Unit
 moduleBuilderSpec = describe "ModuleBuilder" do
   moduleNameSpec
   importsSpec
+  exportsSpec
   declarationsSpec
 
 moduleNameSpec :: Spec Unit
