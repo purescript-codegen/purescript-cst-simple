@@ -45,13 +45,13 @@ type ModuleContent =
   }
 
 build :: forall m a. MonadThrow Error m => ModuleBuilder a -> m ModuleContent
-build = map snd <<< build'
+build = map snd <<< build' true
 
 buildA :: forall m a. MonadThrow Error m => ModuleBuilder a -> m a
-buildA = map fst <<< build'
+buildA = map fst <<< build' true
 
-build' :: forall m a. MonadThrow Error m => ModuleBuilder a -> m (a /\ ModuleContent)
-build' mb = case buildModule' "Foo" (exportAll *> mb) of
+build' :: forall m a. MonadThrow Error m => Boolean -> ModuleBuilder a -> m (a /\ ModuleContent)
+build' isExportAll mb = case buildModule' "Foo" (when isExportAll exportAll *> mb) of
   Left e ->
     throwError $ error $ "codegen error - " <> show e
   Right (a /\ { foreignBinding, cstModule: CST.Module r }) ->
@@ -90,8 +90,8 @@ shouldMatchCST f a cst = do
 
 shouldBeEquiv :: forall a b m. MonadThrow Error m => Show b => Eq b => (a -> ModuleBuilder b) -> a -> a -> m Unit
 shouldBeEquiv run a1 a2 = do
-  a1' <- build' (run a1)
-  a2' <- build' (run a2)
+  a1' <- build' true (run a1)
+  a2' <- build' true (run a2)
   a1' `shouldEqual` a2'
 
 fooBarModuleName :: ModuleName

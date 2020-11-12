@@ -8,6 +8,7 @@ module CST.Simple.Internal.ModuleBuilder
        , liftModuleBuilder
        , addImport
        , exportAll
+       , addCSTExport
        , addCSTDeclaration
        , addForeignBinding
        , mkName
@@ -122,7 +123,7 @@ buildModuleT' moduleName' mb =
                      , qualification: Nothing
                      }
 
-    ilistToArray :: forall a. List a -> Array a
+    ilistToArray :: forall x. List x -> Array x
     ilistToArray = Array.fromFoldable <<< List.reverse
 
     initState =
@@ -161,6 +162,15 @@ exportAll =
   modify_ (_ { exports = ExportAll
              }
           )
+
+addCSTExport :: forall m. Monad m => CST.Export -> ModuleBuilderT m Unit
+addCSTExport export =
+  modify_ (\s -> s { exports = case s.exports of
+                        ExportAll -> ExportAll
+                        ExportISelected l -> ExportISelected (export : l)
+                   }
+          )
+
 
 addCSTDeclaration :: forall m. Monad m => CST.Declaration -> ModuleBuilderT m Unit
 addCSTDeclaration decl = do

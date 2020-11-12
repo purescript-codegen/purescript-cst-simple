@@ -13,11 +13,12 @@ import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule, exportAll)
 import CST.Simple.Internal.Type (cnst, typ, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
 import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addNewtypeDecl, addType, addValue)
-import CST.Simple.TestUtils (build, buildA, requireOne)
+import CST.Simple.TestUtils (build, build', buildA, requireOne)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Traversable (traverse)
+import Data.Tuple (snd)
 import Effect.Exception (Error)
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
@@ -59,17 +60,30 @@ declarationsSpec = do
       , type_: typ "Int" *-> typ "Int"
       , binders: [ bndrVar "a" ]
       , expr: exprInt 5
+      , export: true
       }
       `shouldContainDeclarations`
       [ declSignature "x" (typ "Int" *-> typ "Int")
       , declValue "x" [ bndrVar "a" ] (grd_ (exprInt 5))
       ]
 
+  it "should export value" do
+    addValue
+      { name: "x"
+      , type_: typ "Int"
+      , binders: []
+      , expr: exprInt 5
+      , export: true
+      }
+      `shouldContainExport`
+      CST.ExportValue (CST.Ident "x")
+
   it "should add foreign js decl" do
     addForeignJsValue
       { name: "x"
       , type_: typ "Int"
       , jsExpr: "5"
+      , export: true
       }
       `shouldContainDeclaration`
       declForeignValue "x" (typ "Int")
@@ -79,9 +93,20 @@ declarationsSpec = do
       { name: "x"
       , type_: typ "Int"
       , jsExpr: "5"
+      , export: true
       }
       `shouldContainForeign`
       "exports.x = 5;\n"
+
+  it "should export foreign js binding" do
+    addForeignJsValue
+      { name: "x"
+      , type_: typ "Int"
+      , jsExpr: "5"
+      , export: true
+      }
+      `shouldContainExport`
+      CST.ExportValue (CST.Ident "x")
 
   it "should add type declarations" do
     addType "X" [] (typ "Int")
@@ -148,3 +173,13 @@ shouldContainForeign ::
 shouldContainForeign cmd f = do
   mod <- build cmd
   mod.foreignBinding `shouldContain` f
+
+shouldContainExport ::
+  forall m.
+  MonadThrow Error m =>
+  ModuleBuilder Unit ->
+  CST.Export ->
+  m Unit
+shouldContainExport cmd e = do
+  mod <- snd <$> build' false cmd
+  mod.exports `shouldContain` e

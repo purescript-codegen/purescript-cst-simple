@@ -15,8 +15,9 @@ import Prelude
 
 import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.Declaration (DataCtor, Declaration, Fixity, FixityOp, Instance, InstanceBinding, declClass, declData, declDerive, declDeriveNewtype, declForeignValue, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, runDeclaration)
+import CST.Simple.Internal.Export (Export, exportValue, runExport)
 import CST.Simple.Internal.Expression (Expr, Guarded, grd_)
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilderT, addCSTDeclaration, addForeignBinding)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilderT, addCSTDeclaration, addCSTExport, addForeignBinding)
 import CST.Simple.Internal.Type (Constraint, Type)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding)
 import Data.Tuple.Nested (type (/\))
@@ -30,11 +31,13 @@ addValue ::
   , type_ :: Type
   , binders :: Array Binder
   , expr :: Expr
+  , export :: Boolean
   } ->
   ModuleBuilderT m Unit
-addValue { name, type_, binders, expr } = do
+addValue { name, type_, binders, expr, export } = do
   addDeclaration $ declSignature name type_
   addDeclaration $ declValue name binders (grd_ expr)
+  when export $ addExport $ exportValue name
 
 addForeignJsValue ::
   forall m.
@@ -42,12 +45,13 @@ addForeignJsValue ::
   { name :: String
   , type_ :: Type
   , jsExpr :: String
+  , export :: Boolean
   } ->
   ModuleBuilderT m Unit
-addForeignJsValue { name, type_, jsExpr } = do
+addForeignJsValue { name, type_, jsExpr, export } = do
   addDeclaration $ declForeignValue name type_
   addForeignBinding $ "exports." <> name <> " = " <> jsExpr <> ";\n"
-
+  when export $ addExport $ exportValue name
 
 addType :: forall m. Monad m => String -> Array TypeVarBinding -> Type -> ModuleBuilderT m Unit
 addType name fields type_' =
@@ -98,3 +102,7 @@ addInfixDecl keyword precedence operator' =
 addDeclaration :: forall m. Monad m => Declaration -> ModuleBuilderT m Unit
 addDeclaration decl =
   addCSTDeclaration =<< runDeclaration decl
+
+addExport :: forall m. Monad m => Export -> ModuleBuilderT m Unit
+addExport decl =
+  addCSTExport =<< runExport decl
