@@ -102,7 +102,7 @@ declInstanceChain i1 is = Declaration ado
   in CST.DeclInstanceChain { comments: Nothing, instances }
 
 declDerive :: String -> Array Constraint -> String -> Array Type -> Declaration
-declDerive = declDerive' CST.DeclDeriveType_Odrinary
+declDerive = declDerive' CST.DeclDeriveType_Ordinary
 
 declDeriveNewtype :: String -> Array Constraint -> String -> Array Type -> Declaration
 declDeriveNewtype = declDerive' CST.DeclDeriveType_Newtype

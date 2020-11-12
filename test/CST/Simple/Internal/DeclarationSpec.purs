@@ -174,7 +174,7 @@ declarationSpec = do
       `shouldMatchCSTDecl`
       CST.DeclDerive
       { comments: Nothing
-      , deriveType: CST.DeclDeriveType_Odrinary
+      , deriveType: CST.DeclDeriveType_Ordinary
       , head:
         { instClass: cstUnqualProperName "Foo"
           , instConstraints:
