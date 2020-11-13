@@ -174,12 +174,12 @@ qualName s = case String.lastIndexOf (String.Pattern ".") s of
     unwrap n =
       note (InvalidQualifiedName s n Nothing) $ unwrapQualName (Proxy :: _ a) n
 
-    readName' u n =
+    readNameQ u n =
       lmap
         (InvalidQualifiedName s u <<< Just)
         (readName n)
 
-    readQualName u = readName' u =<< unwrap u
+    readQualName u = readNameQ u =<< unwrap u
 
 
 -- ReadName
