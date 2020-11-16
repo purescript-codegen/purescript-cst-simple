@@ -34,8 +34,6 @@ import Data.Array as Array
 import Data.Either (Either)
 import Data.Foldable (fold, for_)
 import Data.Identity (Identity)
-import Data.List (List, (:))
-import Data.List as List
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
@@ -49,7 +47,7 @@ import Language.PS.CST as CST
 type ModuleBuilderState =
   { imports :: Map ModuleName (Set CST.Import)
   , exports :: Exports
-  , idecls :: List CST.Declaration
+  , decls :: Array CST.Declaration
   , foreignBinding :: Maybe String
   }
 
@@ -66,7 +64,7 @@ derive newtype instance moduleBuilderTMonadError :: Monad m => MonadError Codege
 derive newtype instance moduleBuilderTMonadState :: Monad m =>
   MonadState { imports :: Map ModuleName (Set CST.Import)
              , exports :: Exports
-             , idecls :: List CST.Declaration
+             , decls :: Array CST.Declaration
              , foreignBinding :: Maybe String
              } (ModuleBuilderT m)
 derive newtype instance moduleBuilderTAlt :: Monad m => Alt (ModuleBuilderT m)
@@ -121,16 +119,12 @@ buildModuleT' moduleName' mb =
                      , qualification: Nothing
                      }
 
-    ilistToArray :: forall x. List x -> Array x
-    ilistToArray = Array.fromFoldable <<< List.reverse
-
     initState =
       { imports: mempty
       , exports: ExportSelected mempty
-      , idecls: mempty
+      , decls: mempty
       , foreignBinding: Nothing
       }
-
 
     (ModuleBuilderT mb') = do
       moduleName <- readName' moduleName'
@@ -142,7 +136,7 @@ buildModuleT' moduleName' mb =
              { moduleName
              , imports: uncurry toImportDecl <$> Map.toUnfoldable c.imports
              , exports
-             , declarations: ilistToArray c.idecls
+             , declarations: c.decls
              }
            , foreignBinding: c.foreignBinding
            }
@@ -171,7 +165,7 @@ addCSTExport export =
 
 addCSTDeclaration :: forall m. Monad m => CST.Declaration -> ModuleBuilderT m Unit
 addCSTDeclaration decl = do
-  modify_ (\s -> s { idecls = decl : s.idecls
+  modify_ (\s -> s { decls = Array.snoc s.decls decl
                    }
           )
 
