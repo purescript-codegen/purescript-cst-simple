@@ -22,9 +22,7 @@ import CST.Simple.Types (ModuleEntry)
 import Control.Alt (class Alt, (<|>))
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except.Trans (class MonadThrow)
-import Control.Monad.State (StateT, evalStateT, get)
-import Control.Monad.State.Class (class MonadState)
-import Control.Monad.State.Trans (modify_)
+import Control.Monad.Writer (class MonadTell, class MonadWriter, WriterT, censor, runWriterT)
 import Data.Array as Array
 import Data.Either (Either)
 import Data.Foldable (fold, for_)
@@ -45,7 +43,7 @@ type ModuleBuilderState =
   }
 
 newtype ModuleBuilder a =
-  ModuleBuilder (StateT ModuleBuilderState (Either CodegenError) a)
+  ModuleBuilder (WriterT ModuleBuilderState (Either CodegenError) a)
 
 derive newtype instance moduleBuilderFunctor :: Functor ModuleBuilder
 derive newtype instance moduleBuilderApply :: Apply ModuleBuilder
@@ -54,12 +52,20 @@ derive newtype instance moduleBuilderBind :: Bind ModuleBuilder
 derive newtype instance moduleBuilderMonad :: Monad ModuleBuilder
 derive newtype instance moduleBuilderMonadThrow :: MonadThrow CodegenError ModuleBuilder
 derive newtype instance moduleBuilderMonadError :: MonadError CodegenError ModuleBuilder
-derive newtype instance moduleBuilderMonadState ::
-  MonadState { imports :: Map ModuleName (Set CST.Import)
-             , exports :: Exports
-             , decls :: Array CST.Declaration
-             , foreignBinding :: Maybe String
-             } ModuleBuilder
+derive newtype instance moduleBuilderMonadTell ::
+  MonadTell
+  { imports :: Map ModuleName (Set CST.Import)
+  , exports :: Exports
+  , decls :: Array CST.Declaration
+  , foreignBinding :: Maybe String
+  } ModuleBuilder
+derive newtype instance moduleBuilderMonadWriter ::
+  MonadWriter
+  { imports :: Map ModuleName (Set CST.Import)
+  , exports :: Exports
+  , decls :: Array CST.Declaration
+  , foreignBinding :: Maybe String
+  } ModuleBuilder
 derive newtype instance moduleBuilderAlt :: Alt ModuleBuilder
 
 data Exports =
@@ -86,8 +92,20 @@ buildModule' ::
   String ->
   ModuleBuilder a ->
   Either CodegenError (a /\ ModuleEntry)
-buildModule' moduleName' mb =
-  evalStateT mb' mempty
+buildModule' moduleName' (ModuleBuilder mb) = do
+  moduleName <- readName' moduleName'
+  a /\ c <- runWriterT mb
+  exports <- getExports c.exports
+  pure $ a
+    /\ { cstModule: CST.Module
+         { moduleName
+         , imports: uncurry toImportDecl <$> Map.toUnfoldable c.imports
+         , exports
+         , declarations: c.decls
+         }
+       , foreignBinding: c.foreignBinding
+       }
+
   where
     getExports es = case es of
       ExportSelected [] -> throwError MissingExports
@@ -100,54 +118,41 @@ buildModule' moduleName' mb =
                      , qualification: Nothing
                      }
 
-    (ModuleBuilder mb') = do
-      moduleName <- readName' moduleName'
-      a <- mb
-      c <- get
-      exports <- getExports c.exports
-      pure $ a
-        /\ { cstModule: CST.Module
-             { moduleName
-             , imports: uncurry toImportDecl <$> Map.toUnfoldable c.imports
-             , exports
-             , declarations: c.decls
-             }
-           , foreignBinding: c.foreignBinding
-           }
-
-
 addImport :: ModuleName -> CST.Import -> ModuleBuilder Unit
 addImport moduleName import_ =
-  modify_ (\s -> s { imports = Map.insertWith append moduleName (Set.singleton import_) s.imports
-                   }
-          )
+  modBuilder (\s -> s { imports = Map.insertWith append moduleName (Set.singleton import_) s.imports
+                      }
+             )
 
 exportAll :: ModuleBuilder Unit
 exportAll =
-  modify_ (_ { exports = ExportAll
-             }
-          )
+  modBuilder (_ { exports = ExportAll
+                }
+             )
 
 addCSTExport :: CST.Export -> ModuleBuilder Unit
 addCSTExport export =
-  modify_ (\s -> s { exports = case s.exports of
-                        ExportAll -> ExportAll
-                        ExportSelected es -> ExportSelected (Array.snoc es export)
-                   }
-          )
+  modBuilder (\s -> s { exports = case s.exports of
+                           ExportAll -> ExportAll
+                           ExportSelected es -> ExportSelected (Array.snoc es export)
+                      }
+             )
 
 
 addCSTDeclaration :: CST.Declaration -> ModuleBuilder Unit
 addCSTDeclaration decl = do
-  modify_ (\s -> s { decls = Array.snoc s.decls decl
-                   }
-          )
+  modBuilder (\s -> s { decls = Array.snoc s.decls decl
+                      }
+             )
 
 addForeignBinding :: String -> ModuleBuilder Unit
 addForeignBinding b =
-  modify_ (\s -> s { foreignBinding = Just $ fold s.foreignBinding <> b
-                   }
-          )
+  modBuilder (\s -> s { foreignBinding = Just $ fold s.foreignBinding <> b
+                      }
+             )
+
+modBuilder :: (ModuleBuilderState -> ModuleBuilderState) -> ModuleBuilder Unit
+modBuilder f = censor f (pure unit)
 
 -- Names
 
