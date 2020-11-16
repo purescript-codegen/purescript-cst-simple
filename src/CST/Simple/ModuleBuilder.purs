@@ -17,7 +17,7 @@ import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.Declaration (DataCtor, Declaration, Fixity, FixityOp, Instance, InstanceBinding, declClass, declData, declDerive, declDeriveNewtype, declForeignValue, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, runDeclaration)
 import CST.Simple.Internal.Export (Export, exportValue, runExport)
 import CST.Simple.Internal.Expression (Expr, Guarded, grd_)
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilderT, addCSTDeclaration, addCSTExport, addForeignBinding)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, addCSTDeclaration, addCSTExport, addForeignBinding)
 import CST.Simple.Internal.Type (Constraint, Type)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding)
 import Data.Tuple.Nested (type (/\))
@@ -25,84 +25,80 @@ import Data.Tuple.Nested (type (/\))
 -- Declarations
 
 addValue ::
-  forall m.
-  Monad m =>
   { name :: String
   , type_ :: Type
   , binders :: Array Binder
   , expr :: Expr
   , export :: Boolean
   } ->
-  ModuleBuilderT m Unit
+  ModuleBuilder Unit
 addValue { name, type_, binders, expr, export } = do
   addDeclaration $ declSignature name type_
   addDeclaration $ declValue name binders (grd_ expr)
   when export $ addExport $ exportValue name
 
 addForeignJsValue ::
-  forall m.
-  Monad m =>
   { name :: String
   , type_ :: Type
   , jsExpr :: String
   , export :: Boolean
   } ->
-  ModuleBuilderT m Unit
+  ModuleBuilder Unit
 addForeignJsValue { name, type_, jsExpr, export } = do
   addDeclaration $ declForeignValue name type_
   addForeignBinding $ "exports." <> name <> " = " <> jsExpr <> ";\n"
   when export $ addExport $ exportValue name
 
-addType :: forall m. Monad m => String -> Array TypeVarBinding -> Type -> ModuleBuilderT m Unit
+addType :: String -> Array TypeVarBinding -> Type -> ModuleBuilder Unit
 addType name fields type_' =
   addDeclaration $ declType name fields type_'
 
-addDataDecl :: forall m. Monad m => String -> Array TypeVarBinding -> Array DataCtor -> ModuleBuilderT m Unit
+addDataDecl :: String -> Array TypeVarBinding -> Array DataCtor -> ModuleBuilder Unit
 addDataDecl name fields constructors' =
   addDeclaration $ declData name fields constructors'
 
-addNewtypeDecl :: forall m. Monad m => String -> Array TypeVarBinding -> String -> Type -> ModuleBuilderT m Unit
+addNewtypeDecl :: String -> Array TypeVarBinding -> String -> Type -> ModuleBuilder Unit
 addNewtypeDecl dataHdName fields name' type_' =
   addDeclaration $ declNewtype dataHdName fields name' type_'
 
-addClassDecl :: forall m. Monad m => String -> Array TypeVarBinding -> Array Constraint -> Array (Array String /\ Array String) -> Array (String /\ Type) -> ModuleBuilderT m Unit
+addClassDecl :: String -> Array TypeVarBinding -> Array Constraint -> Array (Array String /\ Array String) -> Array (String /\ Type) -> ModuleBuilder Unit
 addClassDecl name fields super fundeps methods' =
   addDeclaration $ declClass name fields super fundeps methods'
 
-addInstanceDecl :: forall m. Monad m => String -> Array Constraint -> String -> Array Type -> Array InstanceBinding -> ModuleBuilderT m Unit
+addInstanceDecl :: String -> Array Constraint -> String -> Array Type -> Array InstanceBinding -> ModuleBuilder Unit
 addInstanceDecl name' constraints' class' types' body' =
   addDeclaration $ declInstance name' constraints' class' types' body'
 
-addInstanceChainDecl :: forall m. Monad m => Instance -> Array Instance -> ModuleBuilderT m Unit
+addInstanceChainDecl :: Instance -> Array Instance -> ModuleBuilder Unit
 addInstanceChainDecl i1 is =
   addDeclaration $ declInstanceChain i1 is
 
-addDeriveDecl :: forall m. Monad m => String -> Array Constraint -> String -> Array Type -> ModuleBuilderT m Unit
+addDeriveDecl :: String -> Array Constraint -> String -> Array Type -> ModuleBuilder Unit
 addDeriveDecl name constraints class' types =
   addDeclaration $ declDerive name constraints class' types
 
-addDeriveNewtypeDecl :: forall m. Monad m => String -> Array Constraint -> String -> Array Type -> ModuleBuilderT m Unit
+addDeriveNewtypeDecl :: String -> Array Constraint -> String -> Array Type -> ModuleBuilder Unit
 addDeriveNewtypeDecl name constraints class' types =
   addDeclaration $ declDeriveNewtype name constraints class' types
 
-addSignatureDecl :: forall m. Monad m => String -> Type -> ModuleBuilderT m Unit
+addSignatureDecl :: String -> Type -> ModuleBuilder Unit
 addSignatureDecl ident' type_' =
   addDeclaration $ declSignature ident' type_'
 
-addValueDecl :: forall m. Monad m => String -> Array Binder -> Guarded -> ModuleBuilderT m Unit
+addValueDecl :: String -> Array Binder -> Guarded -> ModuleBuilder Unit
 addValueDecl name binders guarded =
   addDeclaration $ declValue name binders guarded
 
-addInfixDecl :: forall m. Monad m => Fixity -> Int -> FixityOp -> ModuleBuilderT m Unit
+addInfixDecl :: Fixity -> Int -> FixityOp -> ModuleBuilder Unit
 addInfixDecl keyword precedence operator' =
   addDeclaration $ declInfix keyword precedence operator'
 
 -- Common
 
-addDeclaration :: forall m. Monad m => Declaration -> ModuleBuilderT m Unit
+addDeclaration :: Declaration -> ModuleBuilder Unit
 addDeclaration decl =
   addCSTDeclaration =<< runDeclaration decl
 
-addExport :: forall m. Monad m => Export -> ModuleBuilderT m Unit
+addExport :: Export -> ModuleBuilder Unit
 addExport decl =
   addCSTExport =<< runExport decl

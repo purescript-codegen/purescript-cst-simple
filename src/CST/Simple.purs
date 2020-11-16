@@ -164,9 +164,7 @@ import CST.Simple.Internal.Kind
   ) as E
 
 import CST.Simple.Internal.ModuleBuilder
-  ( ModuleBuilderT
-  , ModuleBuilder
-  , liftModuleBuilder
+  ( ModuleBuilder
   , addImport
   , addForeignBinding
   , mkName

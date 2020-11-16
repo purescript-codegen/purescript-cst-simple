@@ -23,7 +23,7 @@ module CST.Simple.Internal.Type
 import Prelude
 
 import CST.Simple.Internal.Kind (Kind, runKind)
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, mkName, mkQualName)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding, runTypeVarBinding)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Foldable (foldl)
@@ -35,8 +35,8 @@ import Language.PS.CST as CST
 
 newtype Type = Type (ModuleBuilder CST.Type)
 
-runType :: forall m. Monad m => Type -> ModuleBuilderT m CST.Type
-runType (Type mb) = liftModuleBuilder mb
+runType :: Type -> ModuleBuilder CST.Type
+runType (Type mb) = mb
 
 typ :: String -> Type
 typ = typCons
@@ -120,8 +120,8 @@ typConstrained constraint type_ = Type $ CST.TypeConstrained
 
 newtype Constraint = Constraint (ModuleBuilder CST.Constraint)
 
-runConstraint :: forall m. Monad m => Constraint -> ModuleBuilderT m CST.Constraint
-runConstraint (Constraint mb) = liftModuleBuilder mb
+runConstraint :: Constraint -> ModuleBuilder CST.Constraint
+runConstraint (Constraint mb) = mb
 
 cnst :: String -> Array Type -> Constraint
 cnst className' args' = Constraint $ ado

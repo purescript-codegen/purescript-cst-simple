@@ -8,13 +8,13 @@ module CST.Simple.Internal.Kind
 
 import Prelude
 
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkQualName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, mkQualName)
 import Language.PS.CST as CST
 
 newtype Kind = Kind (ModuleBuilder CST.Kind)
 
-runKind :: forall m. Monad m => Kind -> ModuleBuilderT m CST.Kind
-runKind (Kind mb) = liftModuleBuilder mb
+runKind :: Kind -> ModuleBuilder CST.Kind
+runKind (Kind mb) = mb
 
 knd :: String -> Kind
 knd s = Kind $ CST.KindName <$> mkQualName s

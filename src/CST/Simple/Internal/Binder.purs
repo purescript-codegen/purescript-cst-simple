@@ -17,7 +17,7 @@ module CST.Simple.Internal.Binder
 
 import Prelude
 
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, mkName, mkQualName)
 import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
 import CST.Simple.Internal.Type (Type, runType)
 import CST.Simple.Names (TypedConstructorName(..))
@@ -27,8 +27,8 @@ import Language.PS.CST as CST
 
 newtype Binder = Binder (ModuleBuilder CST.Binder)
 
-runBinder :: forall m. Monad m => Binder -> ModuleBuilderT m CST.Binder
-runBinder (Binder mb) = liftModuleBuilder mb
+runBinder :: Binder -> ModuleBuilder CST.Binder
+runBinder (Binder mb) = mb
 
 bndrWildcard :: Binder
 bndrWildcard = Binder $ pure CST.BinderWildcard

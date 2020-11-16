@@ -82,7 +82,7 @@ import Prelude
 
 import CST.Simple.Internal.Binder (Binder, runBinder)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualConstructorName, mkQualName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, mkName, mkQualConstructorName, mkQualName)
 import CST.Simple.Internal.RecordLabeled (RecordLabeled, runRecordLabeled)
 import CST.Simple.Internal.Type (Type, runType)
 import CST.Simple.Internal.Utils (noteM)
@@ -98,8 +98,8 @@ import Language.PS.CST as CST
 
 newtype Expr = Expr (ModuleBuilder CST.Expr)
 
-runExpr :: forall m. Monad m => Expr -> ModuleBuilderT m CST.Expr
-runExpr (Expr mb) = liftModuleBuilder mb
+runExpr :: Expr -> ModuleBuilder CST.Expr
+runExpr (Expr mb) = mb
 
 exprIdent :: String -> Expr
 exprIdent ident = Expr $ CST.ExprIdent <$> mkQualName ident
@@ -294,11 +294,11 @@ exprAdo statements' result' = Expr ado
 newtype RecordUpdate =
   RecordUpdate (ModuleBuilder (Maybe CST.RecordUpdate))
 
-runRecordUpdate :: forall m. Monad m => RecordUpdate -> ModuleBuilderT m (Maybe CST.RecordUpdate)
+runRecordUpdate :: RecordUpdate -> ModuleBuilder (Maybe CST.RecordUpdate)
 runRecordUpdate (RecordUpdate mb) =
-  liftModuleBuilder mb
+  mb
 
-runRecordUpdates :: forall m. Monad m => Array RecordUpdate -> ModuleBuilderT m (Maybe (NonEmptyArray CST.RecordUpdate))
+runRecordUpdates :: Array RecordUpdate -> ModuleBuilder (Maybe (NonEmptyArray CST.RecordUpdate))
 runRecordUpdates es =
   NonEmptyArray.fromArray
   <<< Array.catMaybes
@@ -323,12 +323,11 @@ newtype CaseOfBranch =
                )
 
 runCaseOfBranch ::
-  forall m. Monad m =>
   CaseOfBranch ->
-  ModuleBuilderT m { binders :: NonEmptyArray CST.Binder
-                   , body :: CST.Guarded
-                   }
-runCaseOfBranch (CaseOfBranch mb) = liftModuleBuilder mb
+  ModuleBuilder { binders :: NonEmptyArray CST.Binder
+                , body :: CST.Guarded
+                }
+runCaseOfBranch (CaseOfBranch mb) = mb
 
 -- See (*->)
 caseOfBranchN :: Array Binder -> Expr -> CaseOfBranch
@@ -365,8 +364,8 @@ caseOfBranch6 bi1 bi2 bi3 bi4 bi5 bi6 b = caseOfBranchN [ bi1, bi2, bi3, bi4, bi
 newtype LetBinding =
   LetBinding (ModuleBuilder CST.LetBinding)
 
-runLetBinding :: forall m. Monad m => LetBinding -> ModuleBuilderT m CST.LetBinding
-runLetBinding (LetBinding mb) = liftModuleBuilder mb
+runLetBinding :: LetBinding -> ModuleBuilder CST.LetBinding
+runLetBinding (LetBinding mb) = mb
 
 letSig :: String -> Type -> LetBinding
 letSig ident' type_' = LetBinding ado
@@ -389,8 +388,8 @@ letPattern binder' where_' = LetBinding ado
 newtype Where =
   Where (ModuleBuilder CST.Where)
 
-runWhere :: forall m. Monad m => Where -> ModuleBuilderT m CST.Where
-runWhere (Where mb) = liftModuleBuilder mb
+runWhere :: Where -> ModuleBuilder CST.Where
+runWhere (Where mb) = mb
 
 whr :: Expr -> Array LetBinding -> Where
 whr expr' whereBindings' = Where ado
@@ -406,8 +405,8 @@ whr_ expr = whr expr []
 newtype Guarded =
   Guarded (ModuleBuilder CST.Guarded)
 
-runGuarded :: forall m. Monad m => Guarded -> ModuleBuilderT m CST.Guarded
-runGuarded (Guarded mb) = liftModuleBuilder mb
+runGuarded :: Guarded -> ModuleBuilder CST.Guarded
+runGuarded (Guarded mb) = mb
 
 grd_ :: Expr -> Guarded
 grd_ = grdUncond <<< whr_
@@ -422,8 +421,8 @@ grdUncond where_ = Guarded $ CST.Unconditional <$> runWhere where_
 newtype DoStatement =
   DoStatement (ModuleBuilder (Maybe CST.DoStatement))
 
-runDoStatement :: forall m. Monad m => DoStatement -> ModuleBuilderT m (Maybe CST.DoStatement)
-runDoStatement (DoStatement mb) = liftModuleBuilder mb
+runDoStatement :: DoStatement -> ModuleBuilder (Maybe CST.DoStatement)
+runDoStatement (DoStatement mb) = mb
 
 doLet :: Array LetBinding -> DoStatement
 doLet letBindings' = DoStatement case NonEmptyArray.fromArray letBindings' of

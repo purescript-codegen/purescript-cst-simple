@@ -38,7 +38,7 @@ import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Expression (Guarded, valueBindingFields)
 import CST.Simple.Internal.Kind (Kind, runKind)
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, ModuleBuilderT, liftModuleBuilder, mkName, mkQualConstructorName, mkQualName)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, mkName, mkQualConstructorName, mkQualName)
 import CST.Simple.Internal.Type (Constraint, Type, runConstraint, runType)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding, runTypeVarBinding)
 import CST.Simple.Internal.Utils (requireNonEmptyArray)
@@ -58,8 +58,8 @@ import Language.PS.CST as CST
 newtype Declaration =
   Declaration (ModuleBuilder CST.Declaration)
 
-runDeclaration :: forall m. Monad m => Declaration -> ModuleBuilderT m CST.Declaration
-runDeclaration (Declaration mb) = liftModuleBuilder mb
+runDeclaration :: Declaration -> ModuleBuilder CST.Declaration
+runDeclaration (Declaration mb) = mb
 
 declData :: String -> Array TypeVarBinding -> Array DataCtor -> Declaration
 declData name fields constructors' = Declaration ado
@@ -163,8 +163,8 @@ cstDeclForeign foreign_ =
 newtype DataCtor =
   DataCtor (ModuleBuilder CST.DataCtor)
 
-runDataCtor :: forall m. Monad m => DataCtor -> ModuleBuilderT m CST.DataCtor
-runDataCtor (DataCtor mb) = liftModuleBuilder mb
+runDataCtor :: DataCtor -> ModuleBuilder CST.DataCtor
+runDataCtor (DataCtor mb) = mb
 
 dataCtor :: String -> Array Type -> DataCtor
 dataCtor name fields = DataCtor ado
@@ -202,8 +202,8 @@ mkInstanceHead name' constraints' class' types' = ado
 newtype Instance =
   Instance (ModuleBuilder CST.Instance)
 
-runInstance :: forall m. Monad m => Instance -> ModuleBuilderT m CST.Instance
-runInstance (Instance mb) = liftModuleBuilder mb
+runInstance :: Instance -> ModuleBuilder CST.Instance
+runInstance (Instance mb) = mb
 
 instance_ :: String -> Array Constraint -> String -> Array Type -> Array InstanceBinding -> Instance
 instance_ name' constraints' class' types' body' = Instance ado
@@ -214,8 +214,8 @@ instance_ name' constraints' class' types' body' = Instance ado
 newtype InstanceBinding =
   InstanceBinding (ModuleBuilder CST.InstanceBinding)
 
-runInstanceBinding :: forall m. Monad m => InstanceBinding -> ModuleBuilderT m CST.InstanceBinding
-runInstanceBinding (InstanceBinding mb) = liftModuleBuilder mb
+runInstanceBinding :: InstanceBinding -> ModuleBuilder CST.InstanceBinding
+runInstanceBinding (InstanceBinding mb) = mb
 
 instanceBSig :: String -> Type -> InstanceBinding
 instanceBSig ident' type_' = InstanceBinding ado
@@ -230,8 +230,8 @@ instanceBName name binders guarded =
 newtype FixityOp =
   FixityOp (ModuleBuilder CST.FixityOp)
 
-runFixityOp :: forall m. Monad m => FixityOp -> ModuleBuilderT m CST.FixityOp
-runFixityOp (FixityOp mb) = liftModuleBuilder mb
+runFixityOp :: FixityOp -> ModuleBuilder CST.FixityOp
+runFixityOp (FixityOp mb) = mb
 
 fixityOpValue :: String -> String -> FixityOp
 fixityOpValue name' opName' = FixityOp ado

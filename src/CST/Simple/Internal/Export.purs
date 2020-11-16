@@ -14,7 +14,7 @@ module CST.Simple.Internal.Export
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError)
-import CST.Simple.Internal.ModuleBuilder (ModuleBuilderT)
+import CST.Simple.Internal.ModuleBuilder (ModuleBuilder)
 import CST.Simple.Internal.Utils (exceptM)
 import CST.Simple.Names (readName)
 import Data.Either (Either)
@@ -28,7 +28,7 @@ derive newtype instance exportEq :: Eq Export
 instance exportShow :: Show Export where
   show (Export e) = "(Export " <> show e <> ")"
 
-runExport :: forall m. Monad m => Export -> ModuleBuilderT m CST.Export
+runExport :: Export -> ModuleBuilder CST.Export
 runExport (Export e) = exceptM e
 
 exportValue :: String -> Export

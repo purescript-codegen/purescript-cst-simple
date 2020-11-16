@@ -1,11 +1,7 @@
 module CST.Simple.Internal.ModuleBuilder
-       ( ModuleBuilderT
-       , ModuleBuilder
+       ( ModuleBuilder
        , buildModule
-       , buildModuleT
        , buildModule'
-       , buildModuleT'
-       , liftModuleBuilder
        , addImport
        , exportAll
        , addCSTExport
@@ -25,19 +21,16 @@ import CST.Simple.Names (class ReadName, class UnwrapQualName, ConstructorName, 
 import CST.Simple.Types (ModuleEntry)
 import Control.Alt (class Alt, (<|>))
 import Control.Monad.Error.Class (class MonadError, throwError)
-import Control.Monad.Except (ExceptT, mapExceptT, runExceptT)
 import Control.Monad.Except.Trans (class MonadThrow)
-import Control.Monad.State (StateT, evalStateT, get, mapStateT)
+import Control.Monad.State (StateT, evalStateT, get)
 import Control.Monad.State.Class (class MonadState)
 import Control.Monad.State.Trans (modify_)
 import Data.Array as Array
 import Data.Either (Either)
 import Data.Foldable (fold, for_)
-import Data.Identity (Identity)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple (snd, uncurry)
@@ -51,25 +44,23 @@ type ModuleBuilderState =
   , foreignBinding :: Maybe String
   }
 
-newtype ModuleBuilderT m a =
-  ModuleBuilderT (StateT ModuleBuilderState (ExceptT CodegenError m) a)
+newtype ModuleBuilder a =
+  ModuleBuilder (StateT ModuleBuilderState (Either CodegenError) a)
 
-derive newtype instance moduleBuilderTFunctor :: Functor m => Functor (ModuleBuilderT m)
-derive newtype instance moduleBuilderTApply :: Monad m => Apply (ModuleBuilderT m)
-derive newtype instance moduleBuilderTApplicative :: Monad m => Applicative (ModuleBuilderT m)
-derive newtype instance moduleBuilderTBind :: Monad m => Bind (ModuleBuilderT m)
-derive newtype instance moduleBuilderTMonad :: Monad m => Monad (ModuleBuilderT m)
-derive newtype instance moduleBuilderTMonadThrow :: Monad m => MonadThrow CodegenError (ModuleBuilderT m)
-derive newtype instance moduleBuilderTMonadError :: Monad m => MonadError CodegenError (ModuleBuilderT m)
-derive newtype instance moduleBuilderTMonadState :: Monad m =>
+derive newtype instance moduleBuilderFunctor :: Functor ModuleBuilder
+derive newtype instance moduleBuilderApply :: Apply ModuleBuilder
+derive newtype instance moduleBuilderApplicative :: Applicative ModuleBuilder
+derive newtype instance moduleBuilderBind :: Bind ModuleBuilder
+derive newtype instance moduleBuilderMonad :: Monad ModuleBuilder
+derive newtype instance moduleBuilderMonadThrow :: MonadThrow CodegenError ModuleBuilder
+derive newtype instance moduleBuilderMonadError :: MonadError CodegenError ModuleBuilder
+derive newtype instance moduleBuilderMonadState ::
   MonadState { imports :: Map ModuleName (Set CST.Import)
              , exports :: Exports
              , decls :: Array CST.Declaration
              , foreignBinding :: Maybe String
-             } (ModuleBuilderT m)
-derive newtype instance moduleBuilderTAlt :: Monad m => Alt (ModuleBuilderT m)
-
-type ModuleBuilder a = ModuleBuilderT Identity a
+             } ModuleBuilder
+derive newtype instance moduleBuilderAlt :: Alt ModuleBuilder
 
 data Exports =
   ExportAll
@@ -87,34 +78,16 @@ buildModule ::
   String ->
   ModuleBuilder Unit ->
   Either CodegenError ModuleEntry
-buildModule moduleName mb =
-  unwrap $ buildModuleT moduleName mb
-
-buildModuleT ::
-  forall m.
-  Monad m =>
-  String ->
-  ModuleBuilderT m Unit ->
-  m (Either CodegenError ModuleEntry)
-buildModuleT moduleName' mb =
-  map snd <$> buildModuleT' moduleName' mb
+buildModule moduleName' mb =
+  snd <$> buildModule' moduleName' mb
 
 buildModule' ::
   forall a.
   String ->
   ModuleBuilder a ->
   Either CodegenError (a /\ ModuleEntry)
-buildModule' moduleName mb =
-  unwrap $ buildModuleT' moduleName mb
-
-buildModuleT' ::
-  forall m a.
-  Monad m =>
-  String ->
-  ModuleBuilderT m a ->
-  m (Either CodegenError (a /\ ModuleEntry))
-buildModuleT' moduleName' mb =
-  runExceptT $ evalStateT mb' mempty
+buildModule' moduleName' mb =
+  evalStateT mb' mempty
   where
     getExports es = case es of
       ExportSelected [] -> throwError MissingExports
@@ -127,7 +100,7 @@ buildModuleT' moduleName' mb =
                      , qualification: Nothing
                      }
 
-    (ModuleBuilderT mb') = do
+    (ModuleBuilder mb') = do
       moduleName <- readName' moduleName'
       a <- mb
       c <- get
@@ -143,19 +116,19 @@ buildModuleT' moduleName' mb =
            }
 
 
-addImport :: forall m. Monad m => ModuleName -> CST.Import -> ModuleBuilderT m Unit
+addImport :: ModuleName -> CST.Import -> ModuleBuilder Unit
 addImport moduleName import_ =
   modify_ (\s -> s { imports = Map.insertWith append moduleName (Set.singleton import_) s.imports
                    }
           )
 
-exportAll :: forall m. Monad m => ModuleBuilderT m Unit
+exportAll :: ModuleBuilder Unit
 exportAll =
   modify_ (_ { exports = ExportAll
              }
           )
 
-addCSTExport :: forall m. Monad m => CST.Export -> ModuleBuilderT m Unit
+addCSTExport :: CST.Export -> ModuleBuilder Unit
 addCSTExport export =
   modify_ (\s -> s { exports = case s.exports of
                         ExportAll -> ExportAll
@@ -164,40 +137,34 @@ addCSTExport export =
           )
 
 
-addCSTDeclaration :: forall m. Monad m => CST.Declaration -> ModuleBuilderT m Unit
+addCSTDeclaration :: CST.Declaration -> ModuleBuilder Unit
 addCSTDeclaration decl = do
   modify_ (\s -> s { decls = Array.snoc s.decls decl
                    }
           )
 
-addForeignBinding :: forall m. Monad m => String -> ModuleBuilderT m Unit
+addForeignBinding :: String -> ModuleBuilder Unit
 addForeignBinding b =
   modify_ (\s -> s { foreignBinding = Just $ fold s.foreignBinding <> b
                    }
           )
 
-liftModuleBuilder :: forall m a. Monad m => ModuleBuilder a -> ModuleBuilderT m a
-liftModuleBuilder (ModuleBuilderT x) =
-  (ModuleBuilderT $ mapStateT (mapExceptT (pure <<< unwrap)) x)
-
 -- Names
 
 mkName ::
-  forall m n.
-  Monad m =>
+  forall n.
   ReadName n =>
   String ->
-  ModuleBuilderT m n
+  ModuleBuilder n
 mkName = readName'
 
 mkQualName ::
-  forall m n.
-  Monad m =>
+  forall n.
   AsImport n =>
   UnwrapQualName n =>
   ReadName n =>
   String ->
-  ModuleBuilderT m (QualifiedName n)
+  ModuleBuilder (QualifiedName n)
 mkQualName s = do
   CST.QualifiedName q <- exceptM $ qualName s
   for_ q.qualModule \m ->
@@ -205,10 +172,8 @@ mkQualName s = do
   pure $ CST.QualifiedName (q { qualModule = Nothing })
 
 mkQualConstructorName ::
-  forall m.
-  Monad m =>
   String ->
-  ModuleBuilderT m (QualifiedName ConstructorName)
+  ModuleBuilder (QualifiedName ConstructorName)
 mkQualConstructorName c = qualifiedCons <|> unqualifiedCons
   where
     qualifiedCons =
