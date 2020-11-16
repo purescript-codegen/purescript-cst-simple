@@ -50,7 +50,6 @@ type ModuleBuilderState =
   { imports :: Map ModuleName (Set CST.Import)
   , exports :: Exports
   , idecls :: List CST.Declaration
-  , pnames :: Set String
   , foreignBinding :: Maybe String
   }
 
@@ -68,7 +67,6 @@ derive newtype instance moduleBuilderTMonadState :: Monad m =>
   MonadState { imports :: Map ModuleName (Set CST.Import)
              , exports :: Exports
              , idecls :: List CST.Declaration
-             , pnames :: Set String
              , foreignBinding :: Maybe String
              } (ModuleBuilderT m)
 derive newtype instance moduleBuilderTAlt :: Monad m => Alt (ModuleBuilderT m)
@@ -130,7 +128,6 @@ buildModuleT' moduleName' mb =
       { imports: mempty
       , exports: ExportISelected mempty
       , idecls: mempty
-      , pnames: mempty
       , foreignBinding: Nothing
       }
 
