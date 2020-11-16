@@ -31,6 +31,7 @@ data CodegenError =
   | MultiCodegenError (Array CodegenError)
 
 derive instance codegenErrorEq :: Eq CodegenError
+derive instance codegenErrorOrd :: Ord CodegenError
 derive instance codegenErrorGeneric :: Generic CodegenError _
 instance codegenErrorShow :: Show CodegenError where
   show x = genericShow x

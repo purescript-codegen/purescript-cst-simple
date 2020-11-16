@@ -68,9 +68,20 @@ derive newtype instance moduleBuilderMonadWriter ::
   } ModuleBuilder
 derive newtype instance moduleBuilderAlt :: Alt ModuleBuilder
 
+instance moduleBuilderEq :: Eq a => Eq (ModuleBuilder a) where
+  eq (ModuleBuilder m1) (ModuleBuilder m2) =
+    runWriterT m1 == runWriterT m2
+
+instance moduleBuilderOrd :: Ord a => Ord (ModuleBuilder a) where
+  compare (ModuleBuilder m1) (ModuleBuilder m2) =
+    compare (runWriterT m1) (runWriterT m2)
+
 data Exports =
   ExportAll
   | ExportSelected (Array CST.Export)
+
+derive instance exportsEq :: Eq Exports
+derive instance exportsOrd :: Ord Exports
 
 instance exportsSemigroup :: Semigroup Exports where
   append ExportAll _ = ExportAll
