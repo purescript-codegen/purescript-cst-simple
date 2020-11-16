@@ -22,7 +22,7 @@ import CST.Simple.Types (ModuleEntry)
 import Control.Alt (class Alt, (<|>))
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except.Trans (class MonadThrow)
-import Control.Monad.Writer (class MonadTell, class MonadWriter, WriterT, censor, runWriterT)
+import Control.Monad.Writer (class MonadTell, class MonadWriter, WriterT, runWriterT, tell)
 import Data.Array as Array
 import Data.Either (Either)
 import Data.Foldable (fold, for_)
@@ -163,7 +163,10 @@ addForeignBinding b =
              )
 
 modBuilder :: (ModuleBuilderState -> ModuleBuilderState) -> ModuleBuilder Unit
-modBuilder f = censor f (pure unit)
+modBuilder f = tell (f emptySt)
+
+emptySt :: ModuleBuilderState
+emptySt = mempty
 
 -- Names
 
