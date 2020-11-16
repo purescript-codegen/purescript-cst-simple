@@ -34,7 +34,7 @@ import Data.Array as Array
 import Data.Either (Either)
 import Data.Foldable (fold, for_)
 import Data.Identity (Identity)
-import Data.List (List(..), (:))
+import Data.List (List, (:))
 import Data.List as List
 import Data.Map (Map)
 import Data.Map as Map
@@ -75,7 +75,7 @@ type ModuleBuilder a = ModuleBuilderT Identity a
 
 data Exports =
   ExportAll
-  | ExportISelected (List CST.Export)
+  | ExportSelected (Array CST.Export)
 
 buildModule ::
   String ->
@@ -111,8 +111,8 @@ buildModuleT' moduleName' mb =
   runExceptT $ evalStateT mb' initState
   where
     getExports es = case es of
-      ExportISelected Nil -> throwError MissingExports
-      ExportISelected es' -> pure $ ilistToArray es'
+      ExportSelected [] -> throwError MissingExports
+      ExportSelected es' -> pure $ es'
       ExportAll -> pure []
 
     toImportDecl moduleName names' =
@@ -126,7 +126,7 @@ buildModuleT' moduleName' mb =
 
     initState =
       { imports: mempty
-      , exports: ExportISelected mempty
+      , exports: ExportSelected mempty
       , idecls: mempty
       , foreignBinding: Nothing
       }
@@ -164,7 +164,7 @@ addCSTExport :: forall m. Monad m => CST.Export -> ModuleBuilderT m Unit
 addCSTExport export =
   modify_ (\s -> s { exports = case s.exports of
                         ExportAll -> ExportAll
-                        ExportISelected l -> ExportISelected (export : l)
+                        ExportSelected es -> ExportSelected (Array.snoc es export)
                    }
           )
 
