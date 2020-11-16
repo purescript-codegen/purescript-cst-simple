@@ -75,6 +75,14 @@ data Exports =
   ExportAll
   | ExportSelected (Array CST.Export)
 
+instance exportsSemigroup :: Semigroup Exports where
+  append ExportAll _ = ExportAll
+  append _ ExportAll = ExportAll
+  append (ExportSelected s1) (ExportSelected s2) = ExportSelected (s1 <> s2)
+
+instance exportsMonoid :: Monoid Exports where
+  mempty = ExportSelected []
+
 buildModule ::
   String ->
   ModuleBuilder Unit ->
@@ -106,7 +114,7 @@ buildModuleT' ::
   ModuleBuilderT m a ->
   m (Either CodegenError (a /\ ModuleEntry))
 buildModuleT' moduleName' mb =
-  runExceptT $ evalStateT mb' initState
+  runExceptT $ evalStateT mb' mempty
   where
     getExports es = case es of
       ExportSelected [] -> throwError MissingExports
@@ -118,13 +126,6 @@ buildModuleT' moduleName' mb =
                      , names: Set.toUnfoldable names'
                      , qualification: Nothing
                      }
-
-    initState =
-      { imports: mempty
-      , exports: ExportSelected mempty
-      , decls: mempty
-      , foreignBinding: Nothing
-      }
 
     (ModuleBuilderT mb') = do
       moduleName <- readName' moduleName'
