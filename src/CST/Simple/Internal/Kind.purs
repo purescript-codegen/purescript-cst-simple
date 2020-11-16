@@ -13,6 +13,9 @@ import Language.PS.CST as CST
 
 newtype Kind = Kind (ModuleBuilder CST.Kind)
 
+derive newtype instance eqKind :: Eq Kind
+derive newtype instance ordKind :: Ord Kind
+
 runKind :: Kind -> ModuleBuilder CST.Kind
 runKind (Kind mb) = mb
 

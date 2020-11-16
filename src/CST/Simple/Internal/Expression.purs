@@ -98,6 +98,9 @@ import Language.PS.CST as CST
 
 newtype Expr = Expr (ModuleBuilder CST.Expr)
 
+derive newtype instance exprEq :: Eq Expr
+derive newtype instance exprOrd :: Ord Expr
+
 runExpr :: Expr -> ModuleBuilder CST.Expr
 runExpr (Expr mb) = mb
 
@@ -294,6 +297,9 @@ exprAdo statements' result' = Expr ado
 newtype RecordUpdate =
   RecordUpdate (ModuleBuilder (Maybe CST.RecordUpdate))
 
+derive newtype instance recordUpdateEq :: Eq RecordUpdate
+derive newtype instance recordUpdateOrd :: Ord RecordUpdate
+
 runRecordUpdate :: RecordUpdate -> ModuleBuilder (Maybe CST.RecordUpdate)
 runRecordUpdate (RecordUpdate mb) =
   mb
@@ -321,6 +327,9 @@ newtype CaseOfBranch =
                               , body :: CST.Guarded
                               }
                )
+
+derive newtype instance caseOfBranchEq :: Eq CaseOfBranch
+derive newtype instance caseOfBranchOrd :: Ord CaseOfBranch
 
 runCaseOfBranch ::
   CaseOfBranch ->
@@ -364,6 +373,9 @@ caseOfBranch6 bi1 bi2 bi3 bi4 bi5 bi6 b = caseOfBranchN [ bi1, bi2, bi3, bi4, bi
 newtype LetBinding =
   LetBinding (ModuleBuilder CST.LetBinding)
 
+derive newtype instance letBindingEq :: Eq LetBinding
+derive newtype instance letBindingOrd :: Ord LetBinding
+
 runLetBinding :: LetBinding -> ModuleBuilder CST.LetBinding
 runLetBinding (LetBinding mb) = mb
 
@@ -385,8 +397,10 @@ letPattern binder' where_' = LetBinding ado
 
 -- where
 
-newtype Where =
-  Where (ModuleBuilder CST.Where)
+newtype Where = Where (ModuleBuilder CST.Where)
+
+derive newtype instance whereEq :: Eq Where
+derive newtype instance whereOrd :: Ord Where
 
 runWhere :: Where -> ModuleBuilder CST.Where
 runWhere (Where mb) = mb
@@ -405,6 +419,9 @@ whr_ expr = whr expr []
 newtype Guarded =
   Guarded (ModuleBuilder CST.Guarded)
 
+derive newtype instance guardedEq :: Eq Guarded
+derive newtype instance guardedOrd :: Ord Guarded
+
 runGuarded :: Guarded -> ModuleBuilder CST.Guarded
 runGuarded (Guarded mb) = mb
 
@@ -420,6 +437,9 @@ grdUncond where_ = Guarded $ CST.Unconditional <$> runWhere where_
 
 newtype DoStatement =
   DoStatement (ModuleBuilder (Maybe CST.DoStatement))
+
+derive newtype instance doStatementEq :: Eq DoStatement
+derive newtype instance doStatementOrd :: Ord DoStatement
 
 runDoStatement :: DoStatement -> ModuleBuilder (Maybe CST.DoStatement)
 runDoStatement (DoStatement mb) = mb

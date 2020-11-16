@@ -14,6 +14,9 @@ import Language.PS.CST as CST
 newtype TypeVarBinding =
   TypeVarBinding (ModuleBuilder CST.TypeVarBinding)
 
+derive newtype instance typeVarBindingEq :: Eq TypeVarBinding
+derive newtype instance typeVarBindingOrd :: Ord TypeVarBinding
+
 runTypeVarBinding :: TypeVarBinding -> ModuleBuilder CST.TypeVarBinding
 runTypeVarBinding (TypeVarBinding mb) = mb
 

@@ -27,6 +27,9 @@ import Language.PS.CST as CST
 
 newtype Binder = Binder (ModuleBuilder CST.Binder)
 
+derive newtype instance binderEq :: Eq Binder
+derive newtype instance binderOrd :: Ord Binder
+
 runBinder :: Binder -> ModuleBuilder CST.Binder
 runBinder (Binder mb) = mb
 

@@ -12,6 +12,10 @@ import Language.PS.CST as CST
 
 newtype RecordLabeled a = RecordLabeled (ModuleBuilder (CST.RecordLabeled a))
 
+derive instance recordLabeledFunctor :: Functor RecordLabeled
+derive newtype instance recordLabeledEq :: Eq a => Eq (RecordLabeled a)
+derive newtype instance recordLabeledOrd :: Ord a => Ord (RecordLabeled a)
+
 runRecordLabeled :: forall a. RecordLabeled a -> ModuleBuilder (CST.RecordLabeled a)
 runRecordLabeled (RecordLabeled mb) = mb
 

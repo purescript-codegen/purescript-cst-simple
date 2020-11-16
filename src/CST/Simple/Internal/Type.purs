@@ -35,6 +35,9 @@ import Language.PS.CST as CST
 
 newtype Type = Type (ModuleBuilder CST.Type)
 
+derive newtype instance typeEq :: Eq Type
+derive newtype instance typeOrd :: Ord Type
+
 runType :: Type -> ModuleBuilder CST.Type
 runType (Type mb) = mb
 
@@ -119,6 +122,9 @@ typConstrained constraint type_ = Type $ CST.TypeConstrained
 -- Constraint
 
 newtype Constraint = Constraint (ModuleBuilder CST.Constraint)
+
+derive newtype instance constraintEq :: Eq Constraint
+derive newtype instance constraintOrd :: Ord Constraint
 
 runConstraint :: Constraint -> ModuleBuilder CST.Constraint
 runConstraint (Constraint mb) = mb

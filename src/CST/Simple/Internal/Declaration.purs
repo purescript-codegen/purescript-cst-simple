@@ -58,6 +58,9 @@ import Language.PS.CST as CST
 newtype Declaration =
   Declaration (ModuleBuilder CST.Declaration)
 
+derive newtype instance declarationEq :: Eq Declaration
+derive newtype instance declarationOrd :: Ord Declaration
+
 runDeclaration :: Declaration -> ModuleBuilder CST.Declaration
 runDeclaration (Declaration mb) = mb
 
@@ -163,6 +166,9 @@ cstDeclForeign foreign_ =
 newtype DataCtor =
   DataCtor (ModuleBuilder CST.DataCtor)
 
+derive newtype instance dataCtorEq :: Eq DataCtor
+derive newtype instance dataCtorOrd :: Ord DataCtor
+
 runDataCtor :: DataCtor -> ModuleBuilder CST.DataCtor
 runDataCtor (DataCtor mb) = mb
 
@@ -202,6 +208,9 @@ mkInstanceHead name' constraints' class' types' = ado
 newtype Instance =
   Instance (ModuleBuilder CST.Instance)
 
+derive newtype instance instanceEq :: Eq Instance
+derive newtype instance instanceOrd :: Ord Instance
+
 runInstance :: Instance -> ModuleBuilder CST.Instance
 runInstance (Instance mb) = mb
 
@@ -213,6 +222,9 @@ instance_ name' constraints' class' types' body' = Instance ado
 
 newtype InstanceBinding =
   InstanceBinding (ModuleBuilder CST.InstanceBinding)
+
+derive newtype instance instanceBindingEq :: Eq InstanceBinding
+derive newtype instance instanceBindingOrd :: Ord InstanceBinding
 
 runInstanceBinding :: InstanceBinding -> ModuleBuilder CST.InstanceBinding
 runInstanceBinding (InstanceBinding mb) = mb
@@ -229,6 +241,9 @@ instanceBName name binders guarded =
 
 newtype FixityOp =
   FixityOp (ModuleBuilder CST.FixityOp)
+
+derive newtype instance fixityOpEq :: Eq FixityOp
+derive newtype instance fixityOpOrd :: Ord FixityOp
 
 runFixityOp :: FixityOp -> ModuleBuilder CST.FixityOp
 runFixityOp (FixityOp mb) = mb
