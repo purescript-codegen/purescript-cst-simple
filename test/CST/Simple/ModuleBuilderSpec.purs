@@ -8,10 +8,10 @@ import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*->))
 import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declForeignData, declForeignKind, declForeignValue, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, instance_, runDeclaration)
-import CST.Simple.Internal.Expression (exprInt, grd_)
+import CST.Simple.Internal.Expression (exprCons, exprIdent, exprInt, grd_)
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule, exportAll)
-import CST.Simple.Internal.Type (cnst, typ, typVar)
+import CST.Simple.Internal.Type (cnst, typ, typApp, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
 import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignData, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addKind, addNewtypeDecl, addType, addValue)
 import CST.Simple.TestUtils (build, build', buildA, requireOne)
@@ -45,17 +45,48 @@ importsSpec = describe "imports" do
       addType
         { name: "X"
         , typeVarBindings: []
-        , type_: typ "Foo.Bar.Baz"
-        , export: false
-        }
-      addType
-        { name: "Y"
-        , typeVarBindings: []
-        , type_: typ "Foo.Bar.Baz"
+        , type_: typApp (typ "Foo") [ typ "Foo.Bar.Baz", typ "Foo.Bar.Baz" ]
         , export: false
         }
     CST.ImportDecl { names } <- requireOne mod.imports
     Array.length names `shouldEqual` 1
+
+  it "should join module names" do
+    mod <- build do
+      addType
+        { export: false
+        , name: "X"
+        , typeVarBindings: []
+        , type_: typApp (typ "Foo") [ typ "Foo.Bar.Baz", typ "Foo.Bar.Qux" ]
+        }
+    CST.ImportDecl { names } <- requireOne mod.imports
+    Array.length names `shouldEqual` 2
+
+  it "should join module join module constructor and type" do
+    mod <- build do
+      addValue
+        { export: false
+        , name: "x"
+        , type_: typ "Foo.Bar.Baz"
+        , binders: []
+        , expr: exprCons "Foo.Bar.Baz(Qux)"
+        }
+    CST.ImportDecl { names } <- requireOne mod.imports
+    names `shouldEqual`
+      [ CST.ImportType (CST.ProperName "Baz") (Just CST.DataAll)
+      ]
+
+  it "should import Prelude unqualified" do
+    mod <- build do
+      addValue
+        { export: false
+        , name: "x"
+        , type_: typ "Foo"
+        , binders: []
+        , expr: exprIdent "Prelude.bind"
+        }
+    CST.ImportDecl { names } <- requireOne mod.imports
+    Array.length names `shouldEqual` 0
 
 exportsSpec :: Spec Unit
 exportsSpec = describe "exports" do

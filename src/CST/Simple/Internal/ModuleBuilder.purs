@@ -24,19 +24,18 @@ import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except.Trans (class MonadThrow)
 import Control.Monad.Writer (class MonadTell, class MonadWriter, WriterT, runWriterT, tell)
 import Data.Array as Array
+import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either)
-import Data.Foldable (fold, for_)
-import Data.Map (Map)
+import Data.Foldable (fold, foldr, for_)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
-import Data.Set (Set)
 import Data.Set as Set
-import Data.Tuple (snd, uncurry)
+import Data.Tuple (fst, snd, uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
 import Language.PS.CST as CST
 
 type ModuleBuilderState =
-  { imports :: Map ModuleName (Set CST.Import)
+  { imports :: Array (ModuleName /\ CST.Import)
   , exports :: Exports
   , decls :: Array CST.Declaration
   , foreignBinding :: Maybe String
@@ -54,14 +53,14 @@ derive newtype instance moduleBuilderMonadThrow :: MonadThrow CodegenError Modul
 derive newtype instance moduleBuilderMonadError :: MonadError CodegenError ModuleBuilder
 derive newtype instance moduleBuilderMonadTell ::
   MonadTell
-  { imports :: Map ModuleName (Set CST.Import)
+  { imports :: Array (ModuleName /\ CST.Import)
   , exports :: Exports
   , decls :: Array CST.Declaration
   , foreignBinding :: Maybe String
   } ModuleBuilder
 derive newtype instance moduleBuilderMonadWriter ::
   MonadWriter
-  { imports :: Map ModuleName (Set CST.Import)
+  { imports :: Array (ModuleName /\ CST.Import)
   , exports :: Exports
   , decls :: Array CST.Declaration
   , foreignBinding :: Maybe String
@@ -110,7 +109,7 @@ buildModule' moduleName' (ModuleBuilder mb) = do
   pure $ a
     /\ { cstModule: CST.Module
          { moduleName
-         , imports: uncurry toImportDecl <$> Map.toUnfoldable c.imports
+         , imports: buildImportDecls c.imports
          , exports
          , declarations: c.decls
          }
@@ -131,8 +130,8 @@ buildModule' moduleName' (ModuleBuilder mb) = do
 
 addImport :: ModuleName -> CST.Import -> ModuleBuilder Unit
 addImport moduleName import_ =
-  modBuilder (\s -> s { imports = Map.insertWith append moduleName (Set.singleton import_) s.imports
-                      }
+  modBuilder (_ { imports = [ moduleName /\ import_ ]
+                }
              )
 
 exportAll :: ModuleBuilder Unit
@@ -143,23 +142,21 @@ exportAll =
 
 addCSTExport :: CST.Export -> ModuleBuilder Unit
 addCSTExport export =
-  modBuilder (\s -> s { exports = case s.exports of
-                           ExportAll -> ExportAll
-                           ExportSelected es -> ExportSelected (Array.snoc es export)
-                      }
+  modBuilder (_ { exports = ExportSelected [export]
+                }
              )
 
 
 addCSTDeclaration :: CST.Declaration -> ModuleBuilder Unit
 addCSTDeclaration decl = do
-  modBuilder (\s -> s { decls = Array.snoc s.decls decl
-                      }
+  modBuilder (_ { decls = [decl]
+                }
              )
 
 addForeignBinding :: String -> ModuleBuilder Unit
 addForeignBinding b =
-  modBuilder (\s -> s { foreignBinding = Just $ fold s.foreignBinding <> b
-                      }
+  modBuilder (_ { foreignBinding = Just b
+                }
              )
 
 modBuilder :: (ModuleBuilderState -> ModuleBuilderState) -> ModuleBuilder Unit
@@ -204,3 +201,54 @@ mkQualConstructorName c = qualifiedCons <|> unqualifiedCons
                         }
 
     getNamePart (TypedConstructorName _ n) = n
+
+-- Utils
+
+buildImportDecls :: Array (ModuleName /\ CST.Import) -> Array CST.ImportDecl
+buildImportDecls ps =
+  preludeImportDecls <> nonPreludeImportDecls
+  where
+    { yes: preludeImports
+    , no: nonPreludeImports
+    } = Array.partition (eq preludeCSTModuleName <<< fst) ps
+
+    preludeImportDecls =
+      if Array.null preludeImports
+      then []
+      else [preludeImportDecl]
+
+    nonPreludeImportDecls = buildNonPreludeImportDecls nonPreludeImports
+
+buildNonPreludeImportDecls :: Array (ModuleName /\ CST.Import) -> Array CST.ImportDecl
+buildNonPreludeImportDecls ps =
+  uncurry toImportDecl <$> Map.toUnfoldable importMap
+  where
+    importMap = foldr addPair Map.empty ps
+
+    addPair (m /\ i) = Map.alter (Just <<< addImportE i <<< fold) m
+
+    addImportE i@(CST.ImportType n (Just _)) s =
+      Set.insert i <<< Set.delete (CST.ImportType n Nothing) $ s
+    addImportE i@(CST.ImportType n Nothing) s =
+      if Set.member (CST.ImportType n (Just CST.DataAll)) s
+      then s
+      else Set.insert i s
+    addImportE i s =
+      Set.insert i s
+
+    toImportDecl moduleName names =
+      CST.ImportDecl { moduleName
+                     , names: Set.toUnfoldable names
+                     , qualification: Nothing
+                     }
+
+preludeImportDecl :: CST.ImportDecl
+preludeImportDecl =
+  CST.ImportDecl { moduleName: preludeCSTModuleName
+                 , names: []
+                 , qualification: Nothing
+                 }
+
+preludeCSTModuleName :: CST.ModuleName
+preludeCSTModuleName =
+  CST.ModuleName $ NonEmptyArray.singleton $ CST.ProperName "Prelude"
