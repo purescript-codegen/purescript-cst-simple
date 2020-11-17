@@ -4,6 +4,13 @@ module CST.Simple.Internal.Type
        , typ
        , typVar
        , typCons
+       , typConsN
+       , typCons1
+       , typCons2
+       , typCons3
+       , typCons4
+       , typCons5
+       , typCons6
        , typString
        , typRow
        , typRow_
@@ -50,6 +57,34 @@ typVar ident = Type $ CST.TypeVar <$> mkName ident
 typCons :: String -> Type
 typCons cons =
   Type $ CST.TypeConstructor <$> mkQualName cons
+
+typConsN :: String -> Array Type -> Type
+typConsN cons args =
+  typApp (typCons cons) args
+
+typCons1 :: String -> Type -> Type
+typCons1 cons a1 =
+  typConsN cons [ a1 ]
+
+typCons2 :: String -> Type -> Type -> Type
+typCons2 cons a1 a2 =
+  typConsN cons [ a1, a2 ]
+
+typCons3 :: String -> Type -> Type -> Type -> Type
+typCons3 cons a1 a2 a3 =
+  typConsN cons [ a1, a2, a3 ]
+
+typCons4 :: String -> Type -> Type -> Type -> Type -> Type
+typCons4 cons a1 a2 a3 a4 =
+  typConsN cons [ a1, a2, a3, a4 ]
+
+typCons5 :: String -> Type -> Type -> Type -> Type -> Type -> Type
+typCons5 cons a1 a2 a3 a4 a5 =
+  typConsN cons [ a1, a2, a3, a4, a5 ]
+
+typCons6 :: String -> Type -> Type -> Type -> Type -> Type -> Type -> Type
+typCons6 cons a1 a2 a3 a4 a5 a6 =
+  typConsN cons [ a1, a2, a3, a4, a5, a6 ]
 
 typString :: String -> Type
 typString = Type <<< pure <<< CST.TypeString

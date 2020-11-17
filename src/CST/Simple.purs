@@ -190,6 +190,13 @@ import CST.Simple.Internal.Type
   , typ
   , typVar
   , typCons
+  , typConsN
+  , typCons1
+  , typCons2
+  , typCons3
+  , typCons4
+  , typCons5
+  , typCons6
   , typString
   , typRow
   , typRow_
