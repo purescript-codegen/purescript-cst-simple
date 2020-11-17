@@ -70,7 +70,10 @@ writeFile path content = do
 
 rmdirFiles :: FilePath -> Aff Unit
 rmdirFiles path =
-  traverse_ rmdirOrFileP =<< readdir path
+  traverse_ (rmdirOrFileP <<< prefixPath) =<< readdir path
+
+  where
+    prefixPath p = FilePath.concat [ path, p ]
 
 rmdirOrFileP :: FilePath -> Aff Unit
 rmdirOrFileP path = do
@@ -81,7 +84,7 @@ rmdirOrFileP path = do
 
 rmdirP :: FilePath -> Aff Unit
 rmdirP path = do
-  traverse_ rmdirOrFileP =<< readdir path
+  rmdirFiles path
   rmdir path
 
 mkdirP :: FilePath -> Aff Unit
