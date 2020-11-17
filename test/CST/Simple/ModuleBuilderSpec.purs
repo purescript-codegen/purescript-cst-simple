@@ -7,12 +7,13 @@ import Prelude
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*->))
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declForeignKind, declForeignValue, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, instance_, runDeclaration)
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declForeignData, declForeignKind, declForeignValue, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, instance_, runDeclaration)
 import CST.Simple.Internal.Expression (exprInt, grd_)
+import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule, exportAll)
 import CST.Simple.Internal.Type (cnst, typ, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
-import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addKind, addNewtypeDecl, addType, addValue)
+import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignData, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addKind, addNewtypeDecl, addType, addValue)
 import CST.Simple.TestUtils (build, build', buildA, requireOne)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array as Array
@@ -147,7 +148,7 @@ declarationsSpec = do
       `shouldContainForeign`
       "exports.x = 5;\n"
 
-  it "should export foreign js binding" do
+  it "should export foreign js decl" do
     addForeignJsValue
       { name: "x"
       , type_: typ "Int"
@@ -156,6 +157,24 @@ declarationsSpec = do
       }
       `shouldContainExport`
       CST.ExportValue (CST.Ident "x")
+
+  it "should add foreign data" do
+    addForeignData
+      { name: "X"
+      , kind_: knd "Foo"
+      , export: false
+      }
+      `shouldContainDeclaration`
+      declForeignData "X" (knd "Foo")
+
+  it "should export foreign data" do
+    addForeignData
+      { name: "X"
+      , kind_: knd "Foo"
+      , export: true
+      }
+      `shouldContainExport`
+      CST.ExportType (CST.ProperName "X") Nothing
 
   it "should add data declarations" do
     addDataDecl "Foo" [ tvb "a" ]
