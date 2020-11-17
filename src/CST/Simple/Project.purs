@@ -57,8 +57,8 @@ writeModuleEntry ps { cstModule, foreignBinding } = do
                                      , fileBaseName <> "." <> ext
                                      ]
 
-    psFilePath = mkFilePath ".purs"
-    jsFilePath = mkFilePath ".js"
+    psFilePath = mkFilePath "purs"
+    jsFilePath = mkFilePath "js"
 
     psFileContent = Dodo.print Dodo.plainText ps.printOptions (CST.printModule cstModule)
 
