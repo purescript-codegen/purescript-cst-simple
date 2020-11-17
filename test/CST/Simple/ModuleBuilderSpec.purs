@@ -7,12 +7,13 @@ import Prelude
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*->))
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declForeignValue, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, instance_, runDeclaration)
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declForeignData, declForeignValue, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, instance_, runDeclaration)
 import CST.Simple.Internal.Expression (exprInt, grd_)
+import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule, exportAll)
 import CST.Simple.Internal.Type (cnst, typ, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
-import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addNewtypeDecl, addType, addValue)
+import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addKind, addNewtypeDecl, addType, addValue)
 import CST.Simple.TestUtils (build, build', buildA, requireOne)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array as Array
@@ -67,6 +68,44 @@ exportsSpec = describe "exports" do
 
 declarationsSpec :: Spec Unit
 declarationsSpec = do
+  it "should add kind declarations" do
+    addKind
+      { name: "X"
+      , kind_: knd "Type"
+      , export: false
+      }
+      `shouldContainDeclaration`
+      declForeignData "X" (knd "Type")
+
+  it "should export kind declaration" do
+    addKind
+      { name: "X"
+      , kind_: knd "Type"
+      , export: true
+      }
+      `shouldContainExport`
+      CST.ExportKind (CST.ProperName "X")
+
+  it "should add type declarations" do
+    addType
+      { name: "X"
+      , typeVarBindings: []
+      , type_: typ "Int"
+      , export: false
+      }
+      `shouldContainDeclaration`
+      declType "X" [] (typ "Int")
+
+  it "should export type declaration" do
+    addType
+      { name: "X"
+      , typeVarBindings: []
+      , type_: typ "Foo.Bar.Baz"
+      , export: true
+      }
+      `shouldContainExport`
+      CST.ExportType (CST.ProperName "X") Nothing
+
   it "should add values with signature" do
     addValue
       { name: "x"
@@ -120,26 +159,6 @@ declarationsSpec = do
       }
       `shouldContainExport`
       CST.ExportValue (CST.Ident "x")
-
-  it "should add type declarations" do
-    addType
-      { name: "X"
-      , typeVarBindings: []
-      , type_: typ "Int"
-      , export: false
-      }
-      `shouldContainDeclaration`
-      declType "X" [] (typ "Int")
-
-  it "should export type declaration" do
-    addType
-      { name: "X"
-      , typeVarBindings: []
-      , type_: typ "Foo.Bar.Baz"
-      , export: true
-      }
-      `shouldContainExport`
-      CST.ExportType (CST.ProperName "X") Nothing
 
   it "should add data declarations" do
     addDataDecl "Foo" [ tvb "a" ]
