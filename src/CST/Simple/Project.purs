@@ -38,9 +38,7 @@ defaultProjectSettings =
 
 writeProject :: ProjectSettings -> Project -> Aff Unit
 writeProject ps { modules } = do
-  log "creating output dir"
   mkdirP ps.outputDirectory
-  log "created ouput dir"
   when ps.rmDirectoryFilesPreRun (rmdirFiles ps.outputDirectory)
   traverse_ (writeModuleEntry ps) modules
 
