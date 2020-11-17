@@ -17,7 +17,8 @@ import Effect.Class.Console (log)
 import Effect.Class.Console as Console
 import Language.PS.CST as CST
 import Node.Encoding (Encoding(..))
-import Node.FS.Aff (exists, mkdir, rmdir, writeTextFile)
+import Node.FS.Aff (exists, mkdir, readdir, rmdir, stat, unlink, writeTextFile)
+import Node.FS.Stats (isDirectory)
 import Node.Path (FilePath, dirname)
 import Node.Path as FilePath
 
@@ -32,11 +33,13 @@ defaultProjectSettings :: ProjectSettings
 defaultProjectSettings =
   { outputDirectory: "./generated"
   , printOptions: Dodo.twoSpaces
+  , rmDirectoryFilesPreRun: false
   }
 
 writeProject :: ProjectSettings -> Project -> Aff Unit
 writeProject ps { modules } = do
-  rmdir ps.outputDirectory
+  mkdirP ps.outputDirectory
+  when ps.rmDirectoryFilesPreRun (rmdirFiles ps.outputDirectory)
   traverse_ (writeModuleEntry ps) modules
 
 writeModuleEntry :: ProjectSettings -> ModuleEntry -> Aff Unit
@@ -62,6 +65,22 @@ writeFile path content = do
   mkdirP (dirname path)
   log $ "Writing " <> path
   writeTextFile UTF8 path content
+
+rmdirFiles :: FilePath -> Aff Unit
+rmdirFiles path =
+  traverse_ rmdirOrFileP =<< readdir path
+
+rmdirOrFileP :: FilePath -> Aff Unit
+rmdirOrFileP path = do
+  st <- stat path
+  if (isDirectory st)
+    then rmdirP path
+    else unlink path
+
+rmdirP :: FilePath -> Aff Unit
+rmdirP path = do
+  traverse_ rmdirOrFileP =<< readdir path
+  rmdir path
 
 mkdirP :: FilePath -> Aff Unit
 mkdirP path = do

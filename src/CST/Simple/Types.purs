@@ -21,4 +21,5 @@ type Project =
 type ProjectSettings =
   { outputDirectory :: FilePath
   , printOptions :: PrintOptions
+  , rmDirectoryFilesPreRun :: Boolean
   }
