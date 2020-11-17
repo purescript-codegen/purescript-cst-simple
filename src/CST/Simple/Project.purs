@@ -1,20 +1,38 @@
 module CST.Simple.Project
-       ( writeProject
+       ( runProject
+       , defaultProjectSettings
+       , writeProject
        ) where
 
 import Prelude
 
+import CST.Simple.ProjectBuilder (ProjectBuilder, buildProject)
 import CST.Simple.Types (Project, ProjectSettings, ModuleEntry)
+import Data.Either (Either(..))
 import Data.Foldable (intercalate, traverse_)
 import Data.Newtype (unwrap)
 import Dodo as Dodo
 import Effect.Aff (Aff)
 import Effect.Class.Console (log)
+import Effect.Class.Console as Console
 import Language.PS.CST as CST
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff (exists, mkdir, rmdir, writeTextFile)
 import Node.Path (FilePath, dirname)
 import Node.Path as FilePath
+
+runProject :: ProjectSettings -> ProjectBuilder Unit -> Aff Unit
+runProject ps pb = case buildProject pb of
+  Left e ->
+    Console.error $ "Project error - " <> show e
+  Right p ->
+    writeProject ps p
+
+defaultProjectSettings :: ProjectSettings
+defaultProjectSettings =
+  { outputDirectory: "./generated"
+  , printOptions: Dodo.twoSpaces
+  }
 
 writeProject :: ProjectSettings -> Project -> Aff Unit
 writeProject ps { modules } = do
