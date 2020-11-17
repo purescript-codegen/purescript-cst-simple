@@ -15,7 +15,7 @@ import Prelude
 
 import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.Declaration (DataCtor, Declaration, Fixity, FixityOp, Instance, InstanceBinding, declClass, declData, declDerive, declDeriveNewtype, declForeignValue, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, runDeclaration)
-import CST.Simple.Internal.Export (Export, exportValue, runExport)
+import CST.Simple.Internal.Export (Export, exportTypeNoMembers, exportValue, runExport)
 import CST.Simple.Internal.Expression (Expr, Guarded, grd_)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, addCSTDeclaration, addCSTExport, addForeignBinding)
 import CST.Simple.Internal.Type (Constraint, Type)
@@ -49,9 +49,16 @@ addForeignJsValue { name, type_, jsExpr, export } = do
   addForeignBinding $ "exports." <> name <> " = " <> jsExpr <> ";\n"
   when export $ addExport $ exportValue name
 
-addType :: String -> Array TypeVarBinding -> Type -> ModuleBuilder Unit
-addType name fields type_' =
-  addDeclaration $ declType name fields type_'
+addType ::
+  { name :: String
+  , typeVarBindings :: Array TypeVarBinding
+  , type_ :: Type
+  , export :: Boolean
+  } ->
+  ModuleBuilder Unit
+addType { name, typeVarBindings, type_, export } = do
+  addDeclaration $ declType name typeVarBindings type_
+  when export $ addExport $ exportTypeNoMembers name
 
 addDataDecl :: String -> Array TypeVarBinding -> Array DataCtor -> ModuleBuilder Unit
 addDataDecl name fields constructors' =

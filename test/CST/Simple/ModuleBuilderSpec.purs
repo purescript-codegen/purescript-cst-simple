@@ -17,6 +17,7 @@ import CST.Simple.TestUtils (build, build', buildA, requireOne)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array as Array
 import Data.Either (Either(..))
+import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse)
 import Data.Tuple (snd)
 import Effect.Exception (Error)
@@ -39,7 +40,19 @@ moduleNameSpec = describe "module name" do
 importsSpec :: Spec Unit
 importsSpec = describe "imports" do
   it "should not duplicate imports" do
-    mod <- build (addType "X" [] (typ "Foo.Bar.Baz") *> addType "Y" [] (typ "Foo.Bar.Baz"))
+    mod <- build do
+      addType
+        { name: "X"
+        , typeVarBindings: []
+        , type_: typ "Foo.Bar.Baz"
+        , export: false
+        }
+      addType
+        { name: "Y"
+        , typeVarBindings: []
+        , type_: typ "Foo.Bar.Baz"
+        , export: false
+        }
     CST.ImportDecl { names } <- requireOne mod.imports
     Array.length names `shouldEqual` 1
 
@@ -109,9 +122,24 @@ declarationsSpec = do
       CST.ExportValue (CST.Ident "x")
 
   it "should add type declarations" do
-    addType "X" [] (typ "Int")
+    addType
+      { name: "X"
+      , typeVarBindings: []
+      , type_: typ "Int"
+      , export: false
+      }
       `shouldContainDeclaration`
       declType "X" [] (typ "Int")
+
+  it "should export type declaration" do
+    addType
+      { name: "X"
+      , typeVarBindings: []
+      , type_: typ "Foo.Bar.Baz"
+      , export: true
+      }
+      `shouldContainExport`
+      CST.ExportType (CST.ProperName "X") Nothing
 
   it "should add data declarations" do
     addDataDecl "Foo" [ tvb "a" ]
