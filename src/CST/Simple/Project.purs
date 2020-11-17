@@ -38,7 +38,9 @@ defaultProjectSettings =
 
 writeProject :: ProjectSettings -> Project -> Aff Unit
 writeProject ps { modules } = do
+  log "creating output dir"
   mkdirP ps.outputDirectory
+  log "created ouput dir"
   when ps.rmDirectoryFilesPreRun (rmdirFiles ps.outputDirectory)
   traverse_ (writeModuleEntry ps) modules
 
@@ -83,8 +85,8 @@ rmdirP path = do
   rmdir path
 
 mkdirP :: FilePath -> Aff Unit
-mkdirP path = do
+mkdirP path = unlessM (exists path) do
+  pure unit -- not sure why this is needed. but getting max stack without this
+  let baseDir = dirname path
   unlessM (exists baseDir) (mkdirP baseDir)
   mkdir path
-    where
-    baseDir = dirname path
