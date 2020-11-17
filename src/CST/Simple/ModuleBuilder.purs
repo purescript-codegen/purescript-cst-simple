@@ -1,7 +1,7 @@
 module CST.Simple.ModuleBuilder
-       ( addValue
+       ( addType
+       , addValue
        , addForeignJsValue
-       , addType
        , addDataDecl
        , addNewtypeDecl
        , addClassDecl
@@ -23,6 +23,17 @@ import CST.Simple.Internal.TypeVarBinding (TypeVarBinding)
 import Data.Tuple.Nested (type (/\))
 
 -- Declarations
+
+addType ::
+  { name :: String
+  , typeVarBindings :: Array TypeVarBinding
+  , type_ :: Type
+  , export :: Boolean
+  } ->
+  ModuleBuilder Unit
+addType { name, typeVarBindings, type_, export } = do
+  addDeclaration $ declType name typeVarBindings type_
+  when export $ addExport $ exportTypeNoMembers name
 
 addValue ::
   { name :: String
@@ -48,17 +59,6 @@ addForeignJsValue { name, type_, jsExpr, export } = do
   addDeclaration $ declForeignValue name type_
   addForeignBinding $ "exports." <> name <> " = " <> jsExpr <> ";\n"
   when export $ addExport $ exportValue name
-
-addType ::
-  { name :: String
-  , typeVarBindings :: Array TypeVarBinding
-  , type_ :: Type
-  , export :: Boolean
-  } ->
-  ModuleBuilder Unit
-addType { name, typeVarBindings, type_, export } = do
-  addDeclaration $ declType name typeVarBindings type_
-  when export $ addExport $ exportTypeNoMembers name
 
 addDataDecl :: String -> Array TypeVarBinding -> Array DataCtor -> ModuleBuilder Unit
 addDataDecl name fields constructors' =
