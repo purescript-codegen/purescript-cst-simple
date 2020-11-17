@@ -15,10 +15,9 @@ module CST.Simple.ModuleBuilder
 import Prelude
 
 import CST.Simple.Internal.Binder (Binder)
-import CST.Simple.Internal.Declaration (DataCtor, Declaration, Fixity, FixityOp, Instance, InstanceBinding, declClass, declData, declDerive, declDeriveNewtype, declForeignData, declForeignValue, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, runDeclaration)
+import CST.Simple.Internal.Declaration (DataCtor, Declaration, Fixity, FixityOp, Instance, InstanceBinding, declClass, declData, declDerive, declDeriveNewtype, declForeignKind, declForeignValue, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, runDeclaration)
 import CST.Simple.Internal.Export (Export, exportKind, exportTypeNoMembers, exportValue, runExport)
 import CST.Simple.Internal.Expression (Expr, Guarded, grd_)
-import CST.Simple.Internal.Kind (Kind)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, addCSTDeclaration, addCSTExport, addForeignBinding)
 import CST.Simple.Internal.Type (Constraint, Type)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding)
@@ -28,12 +27,11 @@ import Data.Tuple.Nested (type (/\))
 
 addKind ::
   { name :: String
-  , kind_ :: Kind
   , export :: Boolean
   } ->
   ModuleBuilder Unit
-addKind { name, kind_, export } = do
-  addDeclaration $ declForeignData name kind_
+addKind { name, export } = do
+  addDeclaration $ declForeignKind name
   when export $ addExport $ exportKind name
 
 addType ::

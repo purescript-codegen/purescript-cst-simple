@@ -7,9 +7,8 @@ import Prelude
 import CST.Simple.Internal.Binder (bndrVar)
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.CommonOp ((*->))
-import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declForeignData, declForeignValue, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, instance_, runDeclaration)
+import CST.Simple.Internal.Declaration (Declaration, dataCtor, declClass, declData, declForeignKind, declForeignValue, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, instance_, runDeclaration)
 import CST.Simple.Internal.Expression (exprInt, grd_)
-import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule, exportAll)
 import CST.Simple.Internal.Type (cnst, typ, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
@@ -71,16 +70,14 @@ declarationsSpec = do
   it "should add kind declarations" do
     addKind
       { name: "X"
-      , kind_: knd "Type"
       , export: false
       }
       `shouldContainDeclaration`
-      declForeignData "X" (knd "Type")
+      declForeignKind "X"
 
   it "should export kind declaration" do
     addKind
       { name: "X"
-      , kind_: knd "Type"
       , export: true
       }
       `shouldContainExport`
