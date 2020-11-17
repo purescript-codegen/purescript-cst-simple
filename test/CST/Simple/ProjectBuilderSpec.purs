@@ -4,10 +4,9 @@ module CST.Simple.ProjectBuilderSpec
 
 import Prelude
 
-import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.ModuleBuilder (exportAll)
 import CST.Simple.Names (ModuleName)
-import CST.Simple.ProjectBuilder (ProjectBuilder, addModule, buildProject)
+import CST.Simple.ProjectBuilder (ProjectBuilder, ProjectError(..), addModule, buildProject)
 import CST.Simple.TestUtils (fooBarModuleName)
 import CST.Simple.Types (Project, ModuleEntry)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
@@ -46,6 +45,6 @@ buildProject' pb = case buildProject pb of
 
 buildProjectErr ::
   ProjectBuilder Unit ->
-  Maybe CodegenError
+  Maybe ProjectError
 buildProjectErr pb =
   either Just (const Nothing) (buildProject pb)
