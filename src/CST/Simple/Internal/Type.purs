@@ -92,13 +92,13 @@ typCons6 cons a1 a2 a3 a4 a5 a6 =
 typString :: String -> Type
 typString = Type <<< pure <<< CST.TypeString
 
-typRow :: Array (String /\ Type) -> Maybe String -> Type
+typRow :: Array (String /\ Type) -> Maybe Type -> Type
 typRow = typLabelled CST.TypeRow
 
 typRow_ :: Array (String /\ Type) -> Type
 typRow_ pairs = typRow pairs Nothing
 
-typRecord :: Array (String /\ Type) -> Maybe String -> Type
+typRecord :: Array (String /\ Type) -> Maybe Type -> Type
 typRecord = typLabelled CST.TypeRecord
 
 typRecord_ :: Array (String /\ Type) -> Type
@@ -110,18 +110,16 @@ typLabelled ::
     } -> CST.Type
   ) ->
   Array (String /\ Type) ->
-  Maybe String ->
+  Maybe Type ->
   Type
-typLabelled f pairs tailName = Type ado
+typLabelled f pairs rowTail' = Type ado
   rowLabels <- traverse (uncurry toRowLabel) pairs
-  rowTail <- traverse toRowTail tailName
+  rowTail <- traverse runType rowTail'
   in f { rowLabels, rowTail }
 
   where
     toRowLabel l t = runType t <#> \type_ ->
       { label: CST.Label l, type_ }
-
-    toRowTail s = runType (typVar s)
 
 typApp :: Type -> Array Type -> Type
 typApp cons args = Type $ foldl f (runType cons) args

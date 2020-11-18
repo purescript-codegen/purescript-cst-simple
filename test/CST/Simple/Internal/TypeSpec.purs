@@ -48,7 +48,7 @@ typeSpec = describe "Type" do
     typString "foo" `shouldMatchType` CST.TypeString "foo"
 
   it "should add type row" do
-    (typRow [ "a" /\ typCons "Int", "B" /\ typVar "x" ] (Just "y"))
+    (typRow [ "a" /\ typCons "Int", "B" /\ typVar "x" ] (Just (typVar "y")))
       `shouldMatchType`
       CST.TypeRow
       { rowLabels:
@@ -59,11 +59,8 @@ typeSpec = describe "Type" do
         Just $ CST.TypeVar (CST.Ident "y")
       }
 
-  it "should reject invalid row tail" do
-    typRow [] (Just "Z") `shouldErrorType` InvalidIdent "Z"
-
   it "should add type record" do
-    (typRecord [ "a" /\ typCons "Int", "B" /\ typVar "x" ] (Just "y"))
+    (typRecord [ "a" /\ typCons "Int", "B" /\ typVar "x" ] (Just (typVar "y")))
       `shouldMatchType`
       CST.TypeRecord
       { rowLabels:
@@ -73,9 +70,6 @@ typeSpec = describe "Type" do
       , rowTail:
         Just $ CST.TypeVar (CST.Ident "y")
       }
-
-  it "should reject invalid record tail" do
-    typRecord [] (Just "Z") `shouldErrorType` InvalidIdent "Z"
 
   it "should treat empty typApp as typCons" do
     appType <- evalTyp $ typApp (typ "Foo.Bar.Baz") []
