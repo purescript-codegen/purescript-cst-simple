@@ -76,6 +76,10 @@ instance moduleBuilderOrd :: Ord a => Ord (ModuleBuilder a) where
   compare m1 m2 =
     compare (runModuleBuilder m1) (runModuleBuilder m2)
 
+instance moduleBuilderShow :: Show a => Show (ModuleBuilder a) where
+  show m =
+    "(ModuleBuilder " <> show m <> ")"
+
 data Exports =
   ExportAll
   | ExportSelected (Array CST.Export)

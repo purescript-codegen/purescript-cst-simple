@@ -30,6 +30,10 @@ newtype Binder = Binder (ModuleBuilder CST.Binder)
 derive newtype instance binderEq :: Eq Binder
 derive newtype instance binderOrd :: Ord Binder
 
+instance binderShow :: Show Binder where
+  show (Binder mb) =
+    "(Binder " <> show mb <> ")"
+
 runBinder :: Binder -> ModuleBuilder CST.Binder
 runBinder (Binder mb) = mb
 

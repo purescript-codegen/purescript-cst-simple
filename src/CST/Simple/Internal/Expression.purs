@@ -101,6 +101,10 @@ newtype Expr = Expr (ModuleBuilder CST.Expr)
 derive newtype instance exprEq :: Eq Expr
 derive newtype instance exprOrd :: Ord Expr
 
+instance exprShow :: Show Expr where
+  show (Expr mb) =
+    "(Expr " <> show mb <> ")"
+
 runExpr :: Expr -> ModuleBuilder CST.Expr
 runExpr (Expr mb) = mb
 
@@ -300,6 +304,10 @@ newtype RecordUpdate =
 derive newtype instance recordUpdateEq :: Eq RecordUpdate
 derive newtype instance recordUpdateOrd :: Ord RecordUpdate
 
+instance recordUpdateShow :: Show RecordUpdate where
+  show (RecordUpdate mb) =
+    "(RecordUpdate " <> show mb <> ")"
+
 runRecordUpdate :: RecordUpdate -> ModuleBuilder (Maybe CST.RecordUpdate)
 runRecordUpdate (RecordUpdate mb) =
   mb
@@ -330,6 +338,10 @@ newtype CaseOfBranch =
 
 derive newtype instance caseOfBranchEq :: Eq CaseOfBranch
 derive newtype instance caseOfBranchOrd :: Ord CaseOfBranch
+
+instance caseOfBranchShow :: Show CaseOfBranch where
+  show (CaseOfBranch mb) =
+    "(CaseOfBranch " <> show mb <> ")"
 
 runCaseOfBranch ::
   CaseOfBranch ->
@@ -376,6 +388,10 @@ newtype LetBinding =
 derive newtype instance letBindingEq :: Eq LetBinding
 derive newtype instance letBindingOrd :: Ord LetBinding
 
+instance letBindingShow :: Show LetBinding where
+  show (LetBinding mb) =
+    "(LetBinding " <> show mb <> ")"
+
 runLetBinding :: LetBinding -> ModuleBuilder CST.LetBinding
 runLetBinding (LetBinding mb) = mb
 
@@ -402,6 +418,10 @@ newtype Where = Where (ModuleBuilder CST.Where)
 derive newtype instance whereEq :: Eq Where
 derive newtype instance whereOrd :: Ord Where
 
+instance whereShow :: Show Where where
+  show (Where mb) =
+    "(Where " <> show mb <> ")"
+
 runWhere :: Where -> ModuleBuilder CST.Where
 runWhere (Where mb) = mb
 
@@ -422,6 +442,10 @@ newtype Guarded =
 derive newtype instance guardedEq :: Eq Guarded
 derive newtype instance guardedOrd :: Ord Guarded
 
+instance guardedShow :: Show Guarded where
+  show (Guarded mb) =
+    "(Guarded " <> show mb <> ")"
+
 runGuarded :: Guarded -> ModuleBuilder CST.Guarded
 runGuarded (Guarded mb) = mb
 
@@ -440,6 +464,10 @@ newtype DoStatement =
 
 derive newtype instance doStatementEq :: Eq DoStatement
 derive newtype instance doStatementOrd :: Ord DoStatement
+
+instance doStatementShow :: Show DoStatement where
+  show (DoStatement mb) =
+    "(DoStatement " <> show mb <> ")"
 
 runDoStatement :: DoStatement -> ModuleBuilder (Maybe CST.DoStatement)
 runDoStatement (DoStatement mb) = mb

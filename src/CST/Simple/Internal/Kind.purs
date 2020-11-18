@@ -16,6 +16,10 @@ newtype Kind = Kind (ModuleBuilder CST.Kind)
 derive newtype instance eqKind :: Eq Kind
 derive newtype instance ordKind :: Ord Kind
 
+instance kindShow :: Show Kind where
+  show (Kind mb) =
+    "(Kind " <> show mb <> ")"
+
 runKind :: Kind -> ModuleBuilder CST.Kind
 runKind (Kind mb) = mb
 

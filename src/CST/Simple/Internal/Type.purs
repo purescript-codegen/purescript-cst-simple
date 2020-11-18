@@ -45,6 +45,9 @@ newtype Type = Type (ModuleBuilder CST.Type)
 derive newtype instance typeEq :: Eq Type
 derive newtype instance typeOrd :: Ord Type
 
+instance typeShow :: Show Type where
+  show (Type mb) = "(Type " <> show mb <> ")"
+
 runType :: Type -> ModuleBuilder CST.Type
 runType (Type mb) = mb
 
@@ -160,6 +163,10 @@ newtype Constraint = Constraint (ModuleBuilder CST.Constraint)
 
 derive newtype instance constraintEq :: Eq Constraint
 derive newtype instance constraintOrd :: Ord Constraint
+
+instance constraintShow :: Show Constraint where
+  show (Constraint mb) =
+    "(Constraint " <> show mb <> ")"
 
 runConstraint :: Constraint -> ModuleBuilder CST.Constraint
 runConstraint (Constraint mb) = mb

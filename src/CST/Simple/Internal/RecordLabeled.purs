@@ -16,6 +16,10 @@ derive instance recordLabeledFunctor :: Functor RecordLabeled
 derive newtype instance recordLabeledEq :: Eq a => Eq (RecordLabeled a)
 derive newtype instance recordLabeledOrd :: Ord a => Ord (RecordLabeled a)
 
+instance recordLabeledShow :: Show a => Show (RecordLabeled a) where
+  show (RecordLabeled mb) =
+    "(RecordLabeled " <> show mb <> ")"
+
 runRecordLabeled :: forall a. RecordLabeled a -> ModuleBuilder (CST.RecordLabeled a)
 runRecordLabeled (RecordLabeled mb) = mb
 

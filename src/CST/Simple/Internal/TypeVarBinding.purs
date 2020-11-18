@@ -17,6 +17,10 @@ newtype TypeVarBinding =
 derive newtype instance typeVarBindingEq :: Eq TypeVarBinding
 derive newtype instance typeVarBindingOrd :: Ord TypeVarBinding
 
+instance typeVarBindingShow :: Show TypeVarBinding where
+  show (TypeVarBinding mb) =
+    "(TypeVarBinding " <> show mb <> ")"
+
 runTypeVarBinding :: TypeVarBinding -> ModuleBuilder CST.TypeVarBinding
 runTypeVarBinding (TypeVarBinding mb) = mb
 

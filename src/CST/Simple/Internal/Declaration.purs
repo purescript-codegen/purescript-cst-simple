@@ -61,6 +61,10 @@ newtype Declaration =
 derive newtype instance declarationEq :: Eq Declaration
 derive newtype instance declarationOrd :: Ord Declaration
 
+instance declarationShow :: Show Declaration where
+  show (Declaration mb) =
+    "(Declaration " <> show mb <> ")"
+
 runDeclaration :: Declaration -> ModuleBuilder CST.Declaration
 runDeclaration (Declaration mb) = mb
 
@@ -169,6 +173,10 @@ newtype DataCtor =
 derive newtype instance dataCtorEq :: Eq DataCtor
 derive newtype instance dataCtorOrd :: Ord DataCtor
 
+instance dataCtorShow :: Show DataCtor where
+  show (DataCtor mb) =
+    "(DataCtor " <> show mb <> ")"
+
 runDataCtor :: DataCtor -> ModuleBuilder CST.DataCtor
 runDataCtor (DataCtor mb) = mb
 
@@ -211,6 +219,10 @@ newtype Instance =
 derive newtype instance instanceEq :: Eq Instance
 derive newtype instance instanceOrd :: Ord Instance
 
+instance instanceShow :: Show Instance where
+  show (Instance mb) =
+    "(Instance " <> show mb <> ")"
+
 runInstance :: Instance -> ModuleBuilder CST.Instance
 runInstance (Instance mb) = mb
 
@@ -225,6 +237,10 @@ newtype InstanceBinding =
 
 derive newtype instance instanceBindingEq :: Eq InstanceBinding
 derive newtype instance instanceBindingOrd :: Ord InstanceBinding
+
+instance instanceBindingShow :: Show InstanceBinding where
+  show (InstanceBinding mb) =
+    "(InstanceBinding " <> show mb <> ")"
 
 runInstanceBinding :: InstanceBinding -> ModuleBuilder CST.InstanceBinding
 runInstanceBinding (InstanceBinding mb) = mb
@@ -244,6 +260,10 @@ newtype FixityOp =
 
 derive newtype instance fixityOpEq :: Eq FixityOp
 derive newtype instance fixityOpOrd :: Ord FixityOp
+
+instance fixityOpShow :: Show FixityOp where
+  show (FixityOp mb) =
+    "(FixityOp " <> show mb <> ")"
 
 runFixityOp :: FixityOp -> ModuleBuilder CST.FixityOp
 runFixityOp (FixityOp mb) = mb
