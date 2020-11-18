@@ -21,8 +21,9 @@ import CST.Simple.Names (class ReadName, class UnwrapQualName, ConstructorName, 
 import CST.Simple.Types (ModuleEntry)
 import Control.Alt (class Alt, (<|>))
 import Control.Monad.Error.Class (class MonadError, throwError)
+import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.Except.Trans (class MonadThrow)
-import Control.Monad.Writer (class MonadTell, class MonadWriter, WriterT, runWriterT, tell)
+import Control.Monad.Writer (class MonadTell, class MonadWriter, Writer, runWriter, tell)
 import Data.Array as Array
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either)
@@ -42,7 +43,7 @@ type ModuleBuilderState =
   }
 
 newtype ModuleBuilder a =
-  ModuleBuilder (WriterT ModuleBuilderState (Either CodegenError) a)
+  ModuleBuilder (ExceptT CodegenError (Writer ModuleBuilderState) a)
 
 derive newtype instance moduleBuilderFunctor :: Functor ModuleBuilder
 derive newtype instance moduleBuilderApply :: Apply ModuleBuilder
@@ -68,12 +69,12 @@ derive newtype instance moduleBuilderMonadWriter ::
 derive newtype instance moduleBuilderAlt :: Alt ModuleBuilder
 
 instance moduleBuilderEq :: Eq a => Eq (ModuleBuilder a) where
-  eq (ModuleBuilder m1) (ModuleBuilder m2) =
-    runWriterT m1 == runWriterT m2
+  eq m1 m2 =
+    runModuleBuilder m1 == runModuleBuilder m2
 
 instance moduleBuilderOrd :: Ord a => Ord (ModuleBuilder a) where
-  compare (ModuleBuilder m1) (ModuleBuilder m2) =
-    compare (runWriterT m1) (runWriterT m2)
+  compare m1 m2 =
+    compare (runModuleBuilder m1) (runModuleBuilder m2)
 
 data Exports =
   ExportAll
@@ -102,9 +103,10 @@ buildModule' ::
   String ->
   ModuleBuilder a ->
   Either CodegenError (a /\ ModuleEntry)
-buildModule' moduleName' (ModuleBuilder mb) = do
+buildModule' moduleName' mb = do
   moduleName <- readName' moduleName'
-  a /\ c <- runWriterT mb
+  let a' /\ c = runModuleBuilder mb
+  a <- a'
   exports <- getExports c.exports
   pure $ a
     /\ { cstModule: CST.Module
@@ -127,6 +129,10 @@ buildModule' moduleName' (ModuleBuilder mb) = do
                      , names: Set.toUnfoldable names'
                      , qualification: Nothing
                      }
+
+runModuleBuilder :: forall a. ModuleBuilder a -> Either CodegenError a /\ ModuleBuilderState
+runModuleBuilder (ModuleBuilder mb) =
+  runWriter (runExceptT mb)
 
 addImport :: ModuleName -> CST.Import -> ModuleBuilder Unit
 addImport moduleName import_ =
