@@ -102,7 +102,7 @@ typRecord :: Array (String /\ Type) -> Maybe Type -> Type
 typRecord = typLabelled CST.TypeRecord
 
 typRecord_ :: Array (String /\ Type) -> Type
-typRecord_ pairs = typRow pairs Nothing
+typRecord_ pairs = typRecord pairs Nothing
 
 typLabelled ::
   ( { rowLabels :: Array { label :: CST.Label, type_ :: CST.Type}
