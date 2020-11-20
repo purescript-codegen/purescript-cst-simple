@@ -210,6 +210,13 @@ import CST.Simple.Internal.Type
   , typConstrained
   , Constraint
   , cnst
+  , cnstN
+  , cnst1
+  , cnst2
+  , cnst3
+  , cnst4
+  , cnst5
+  , cnst6
   ) as E
 
 import CST.Simple.Internal.TypeVarBinding

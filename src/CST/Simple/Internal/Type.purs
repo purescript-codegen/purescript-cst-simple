@@ -25,6 +25,13 @@ module CST.Simple.Internal.Type
        , Constraint
        , runConstraint
        , cnst
+       , cnstN
+       , cnst1
+       , cnst2
+       , cnst3
+       , cnst4
+       , cnst5
+       , cnst6
        ) where
 
 import Prelude
@@ -177,3 +184,30 @@ cnst className' args' = Constraint $ ado
     { className
     , args
     }
+
+cnstN :: String -> Array Type -> Constraint
+cnstN = cnst
+
+cnst1 :: String -> Type -> Constraint
+cnst1 className a1 =
+  cnstN className [ a1 ]
+
+cnst2 :: String -> Type -> Type -> Constraint
+cnst2 className a1 a2 =
+  cnstN className [ a1, a2 ]
+
+cnst3 :: String -> Type -> Type -> Type -> Constraint
+cnst3 className a1 a2 a3 =
+  cnstN className [ a1, a2, a3 ]
+
+cnst4 :: String -> Type -> Type -> Type -> Type -> Constraint
+cnst4 className a1 a2 a3 a4 =
+  cnstN className [ a1, a2, a3, a4 ]
+
+cnst5 :: String -> Type -> Type -> Type -> Type -> Type -> Constraint
+cnst5 className a1 a2 a3 a4 a5 =
+  cnstN className [ a1, a2, a3, a4, a5 ]
+
+cnst6 :: String -> Type -> Type -> Type -> Type -> Type -> Type -> Constraint
+cnst6 className a1 a2 a3 a4 a5 a6 =
+  cnstN className [ a1, a2, a3, a4, a5, a6 ]
