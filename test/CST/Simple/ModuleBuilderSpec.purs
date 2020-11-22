@@ -13,8 +13,9 @@ import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule, exportAll)
 import CST.Simple.Internal.Type (cnst, typ, typApp, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
-import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignData, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addKind, addNewtypeDecl, addType, addValue)
+import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignData, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addKind, addNewtype, addType, addValue)
 import CST.Simple.TestUtils (build, build', buildA, requireOne)
+import CST.Simple.Types (DataExport(..))
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array as Array
 import Data.Either (Either(..))
@@ -135,6 +136,39 @@ declarationsSpec = do
       `shouldContainExport`
       CST.ExportType (CST.ProperName "X") Nothing
 
+  it "should add newtype declarations" do
+    addNewtype
+      { name: "Foo"
+      , export: Nothing
+      , typeVarBindings: [ tvb "a" ]
+      , consName: "Bar"
+      , type_: typVar "a"
+      }
+      `shouldContainDeclaration`
+      declNewtype "Foo" [ tvb "a" ] "Bar" (typVar "a")
+
+  it "should export newtype type only" do
+    addNewtype
+      { name: "Foo"
+      , export: Just DataExportType
+      , typeVarBindings: [ tvb "a" ]
+      , consName: "Bar"
+      , type_: typVar "a"
+      }
+      `shouldContainExport`
+      CST.ExportType (CST.ProperName "Foo") Nothing
+
+  it "should export newtype type and constructor" do
+    addNewtype
+      { name: "Foo"
+      , export: Just DataExportAll
+      , typeVarBindings: [ tvb "a" ]
+      , consName: "Bar"
+      , type_: typVar "a"
+      }
+      `shouldContainExport`
+      CST.ExportType (CST.ProperName "Foo") (Just CST.DataAll)
+
   it "should add values with signature" do
     addValue
       { name: "x"
@@ -214,11 +248,6 @@ declarationsSpec = do
       declData "Foo" [ tvb "a" ]
       [ dataCtor "Bar" []
       ]
-
-  it "should add newtype declarations" do
-    addNewtypeDecl "Foo" [ tvb "a" ] "Bar" (typVar "a")
-      `shouldContainDeclaration`
-      declNewtype "Foo" [ tvb "a" ] "Bar" (typVar "a")
 
   it "should add class decl" do
     addClassDecl "Foo" [ tvb "a" ] [] [] []

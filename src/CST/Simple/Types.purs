@@ -2,6 +2,7 @@ module CST.Simple.Types
        ( ModuleEntry
        , Project
        , ProjectSettings
+       , DataExport(..)
        ) where
 
 import Data.Maybe (Maybe)
@@ -23,3 +24,7 @@ type ProjectSettings =
   , printOptions :: PrintOptions
   , rmDirectoryFilesPreRun :: Boolean
   }
+
+data DataExport =
+  DataExportType
+  | DataExportAll
