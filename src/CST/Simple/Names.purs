@@ -20,8 +20,8 @@ module CST.Simple.Names
        , nameP
        , class ReadImportName
        , importNameP
-       , class AsNameError
-       , asNameError
+       , class AsNameFormat
+       , asNameFormat
        , readName
        , readName'
        , module E
@@ -31,13 +31,15 @@ import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Utils (exceptM)
+import CST.Simple.NameFormat (NameFormat(..))
 import Control.Alt ((<|>))
 import Control.Monad.Error.Class (class MonadThrow)
 import Control.MonadPlus (guard)
 import Data.Array as Array
 import Data.Array.NonEmpty as NonEmptyArray
+import Data.Bifunctor (bimap)
 import Data.Char.Unicode as Char
-import Data.Either (Either, hush, note)
+import Data.Either (Either, hush)
 import Data.Foldable (elem, foldMap)
 import Data.Maybe (Maybe(..))
 import Data.String as String
@@ -49,7 +51,7 @@ import Language.PS.CST (Ident, Label(..), ModuleName, QualifiedName(..)) as E
 import Language.PS.CST (Ident, ModuleName, QualifiedName)
 import Language.PS.CST as CST
 import Language.PS.CST.ReservedNames (isReservedName)
-import Text.Parsing.StringParser (Parser, runParser, try)
+import Text.Parsing.StringParser (ParseError(..), Parser, runParser, try, unParser)
 import Text.Parsing.StringParser as Parser
 import Text.Parsing.StringParser.CodeUnits (char, eof, regex, satisfy, skipSpaces, string)
 import Text.Parsing.StringParser.Combinators (many1)
@@ -176,10 +178,11 @@ qualName ::
   forall a.
   ReadName a =>
   ReadImportName a =>
+  AsNameFormat a =>
   String ->
   Either CodegenError (QualifiedName a)
-qualName s =
-  note (InvalidQualifiedName s) (runParser_ (qualNameP <* eof) s)
+qualName =
+  runParser' true (asNameFormat (Proxy :: _ a)) qualNameP
 
 qualNameP ::
   forall a.
@@ -259,50 +262,50 @@ instance readImportNameValueOpName :: ReadImportName (CST.OpName CST.OpNameType_
 
 --
 
-class AsNameError a where
-  asNameError :: Proxy a -> String -> CodegenError
+class AsNameFormat a where
+  asNameFormat :: Proxy a -> NameFormat
 
-instance asNameErrorModuleName :: AsNameError ModuleName where
-  asNameError _ = InvalidModuleName
+instance asNameFormatModuleName :: AsNameFormat ModuleName where
+  asNameFormat _ = NFModuleName
 
-instance asNameErrorTypeName :: AsNameError (CST.ProperName CST.ProperNameType_TypeName) where
-  asNameError _ = InvalidTypeName
+instance asNameFormatTypeName :: AsNameFormat (CST.ProperName CST.ProperNameType_TypeName) where
+  asNameFormat _ = NFTypeName
 
-instance asNameErrorConstructorName :: AsNameError (CST.ProperName CST.ProperNameType_ConstructorName) where
-  asNameError _ = InvalidConstructorName
+instance asNameFormatConstructorName :: AsNameFormat (CST.ProperName CST.ProperNameType_ConstructorName) where
+  asNameFormat _ = NFTypedConstructorName
 
-instance asNameErrorClassName :: AsNameError (CST.ProperName CST.ProperNameType_ClassName) where
-  asNameError _ = InvalidClassName
+instance asNameFormatClassName :: AsNameFormat (CST.ProperName CST.ProperNameType_ClassName) where
+  asNameFormat _ = NFClassName
 
-instance asNameErrorKindName :: AsNameError (CST.ProperName CST.ProperNameType_KindName) where
-  asNameError _ = InvalidKindName
+instance asNameFormatKindName :: AsNameFormat (CST.ProperName CST.ProperNameType_KindName) where
+  asNameFormat _ = NFKindName
 
-instance asNameErrordConstructorName :: AsNameError TypedConstructorName where
-  asNameError _ = InvalidConstructorName
+instance asNameFormatdConstructorName :: AsNameFormat TypedConstructorName where
+  asNameFormat _ = NFTypedConstructorName
 
-instance asNameErrorIdent :: AsNameError Ident where
-  asNameError _ = InvalidIdent
+instance asNameFormatIdent :: AsNameFormat Ident where
+  asNameFormat _ = NFIdent
 
-instance asNameErrorTypeOpName :: AsNameError (CST.OpName CST.OpNameType_TypeOpName) where
-  asNameError _ = InvalidTypeOpName
+instance asNameFormatTypeOpName :: AsNameFormat (CST.OpName CST.OpNameType_TypeOpName) where
+  asNameFormat _ = NFTypeOpName
 
-instance asNameErrorValueOpName :: AsNameError (CST.OpName CST.OpNameType_ValueOpName) where
-  asNameError _ = InvalidValueOpName
+instance asNameFormatValueOpName :: AsNameFormat (CST.OpName CST.OpNameType_ValueOpName) where
+  asNameFormat _ = NFValueOpName
 
 readName ::
   forall a.
   ReadName a =>
-  AsNameError a =>
+  AsNameFormat a =>
   String ->
   Either CodegenError a
 readName s =
-  note (asNameError (Proxy :: _ a) s) (runParser_ nameP s)
+  runParser' false (asNameFormat (Proxy :: _ a)) nameP s
 
 readName' ::
   forall m a.
   MonadThrow CodegenError m =>
   ReadName a =>
-  AsNameError a =>
+  AsNameFormat a =>
   String ->
   m a
 readName' = exceptM <<< readName
@@ -323,3 +326,16 @@ unParen s = do
 
 runParser_ :: forall a. Parser a -> String -> Maybe a
 runParser_ p = hush <<< runParser (p <* eof)
+
+runParser' ::
+  forall a.
+  Boolean ->
+  NameFormat ->
+  Parser a ->
+  String ->
+  Either CodegenError a
+runParser' allowQualified nameFormat p str = bimap
+  (\{ error: ParseError msg, pos } ->
+    InvalidName { given: str, msg, pos, allowQualified, nameFormat })
+  _.result
+  $ unParser (p <* eof) { pos: 0, str }

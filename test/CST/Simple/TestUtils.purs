@@ -9,6 +9,7 @@ module CST.Simple.TestUtils
        , shouldImport
        , shouldMatchCST
        , shouldBeEquiv
+       , shouldErrorName
        , fooBarModuleName
        , intCSTType
        , stringCSTType
@@ -21,8 +22,9 @@ module CST.Simple.TestUtils
 
 import Prelude
 
-import CST.Simple.Internal.CodegenError (CodegenError)
+import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule', exportAll)
+import CST.Simple.NameFormat (NameFormat)
 import CST.Simple.Names (ModuleName)
 import Control.Monad.Error.Class (class MonadThrow)
 import Control.Monad.Except (throwError)
@@ -93,6 +95,16 @@ shouldBeEquiv run a1 a2 = do
   a1' <- build' true (run a1)
   a2' <- build' true (run a2)
   a1' `shouldEqual` a2'
+
+shouldErrorName :: forall a m. MonadThrow Error m => ModuleBuilder a -> NameFormat -> m Unit
+shouldErrorName mb nf = do
+  e <- buildModuleErr mb
+  nf' <- requireMatch e $ case _ of
+    InvalidName { nameFormat } ->
+      Just nameFormat
+    _ ->
+      Nothing
+  nf' `shouldEqual` nf
 
 fooBarModuleName :: ModuleName
 fooBarModuleName =

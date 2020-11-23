@@ -5,10 +5,14 @@ module CST.Simple.NamesSpec
 import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
+import CST.Simple.NameFormat (NameFormat(..))
 import CST.Simple.Names (QualifiedName(..), TypeName, TypeOpName, TypedConstructorName(..), className', constructorName', ident', kindName', moduleName', qualName, typeName', typeOpName', typedConstructorName')
 import CST.Simple.TestUtils (fooBarModuleName)
-import Data.Either (Either(..))
+import Control.Monad.Error.Class (class MonadThrow, throwError)
+import Data.Either (Either(..), isLeft)
 import Data.Maybe (Maybe(..), isJust, isNothing)
+import Data.Tuple.Nested (type (/\), (/\))
+import Effect.Exception (Error, error)
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
@@ -122,18 +126,18 @@ moduleNameSpec = describe "moduleName" do
 qualNameSpec :: Spec Unit
 qualNameSpec = describe "qualName" do
   it "should reject empty" do
-    (qualNameType "") `shouldEqual` Left (InvalidQualifiedName "")
-    (qualNameType ".") `shouldEqual` Left (InvalidQualifiedName ".")
+    (qualNameType "") `shouldSatisfy` isLeft
+    (qualNameType ".") `shouldSatisfy` isLeft
 
   it "should reject invalid module prefix" do
-    (qualNameType "Foo'.Baz") `shouldEqual` Left (InvalidQualifiedName "Foo'.Baz")
+    (qualNameType "Foo'.Baz") `shouldErrorNameE` (true /\ NFTypeName)
 
   it "should reject invalid qualified name wrapper" do
     -- should have had extra parenthesis
-    (qualNameOp "Foo(+)") `shouldEqual` Left (InvalidQualifiedName "Foo(+)")
+    (qualNameOp "Foo(+)") `shouldErrorNameE` (true /\ NFTypeOpName)
 
   it "should reject invalid unqualified name wrapper" do
-    (qualNameOp "Foo") `shouldEqual` Left (InvalidQualifiedName "Foo")
+    (qualNameOp "Foo") `shouldErrorNameE` (true /\ NFTypeOpName)
 
   it "should accept unqualified properName" do
     (qualNameType "Foo") `shouldEqual`
@@ -159,3 +163,10 @@ qualNameType = qualName
 
 qualNameOp :: String -> Either CodegenError (QualifiedName TypeOpName)
 qualNameOp = qualName
+
+
+shouldErrorNameE :: forall a m. MonadThrow Error m => Either CodegenError a -> Boolean /\ NameFormat -> m Unit
+shouldErrorNameE (Right a) nf = throwError $ error $ "expected invalid name, got right"
+shouldErrorNameE (Left (InvalidName { allowQualified, nameFormat })) exp = do
+  (allowQualified /\ nameFormat) `shouldEqual` exp
+shouldErrorNameE (Left e) nf = throwError $ error ("expected invalid name, got: " <> show e)

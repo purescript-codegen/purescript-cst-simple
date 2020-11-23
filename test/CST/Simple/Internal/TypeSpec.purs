@@ -9,7 +9,8 @@ import CST.Simple.Internal.CommonOp ((*->), (*::), (*=>))
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (Type, cnst, runType, typ, typApp, typCons, typForall, typOp, typRecord, typRow, typString, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
-import CST.Simple.TestUtils (buildA, buildModuleErr, cstTypCons, cstUnqualName, cstUnqualProperName, fooBarModuleName, intCSTType, shouldImport, stringCSTType)
+import CST.Simple.NameFormat (NameFormat(..))
+import CST.Simple.TestUtils (buildA, buildModuleErr, cstTypCons, cstUnqualName, cstUnqualProperName, fooBarModuleName, intCSTType, shouldErrorName, shouldImport, stringCSTType)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Maybe (Maybe(..))
@@ -42,7 +43,7 @@ typeSpec = describe "Type" do
     typVar "x" `shouldMatchType` CST.TypeVar (CST.Ident "x")
 
   it "should reject invalid type var" do
-    typVar "X" `shouldErrorType` InvalidIdent "X"
+    typVar "X" `shouldErrorNameType` NFIdent
 
   it "should add type symbol declarations" do
     typString "foo" `shouldMatchType` CST.TypeString "foo"
@@ -106,8 +107,8 @@ typeSpec = describe "Type" do
       )
 
   it "should catch errors in type vars" do
-    typForall [ tvb "A" ] (typ "Int") `shouldErrorType`
-      (InvalidIdent "A")
+    typForall [ tvb "A" ] (typ "Int") `shouldErrorNameType`
+      NFIdent
 
   it "should create type arrows" do
     (typ "Int" *-> typ "String" *-> typ "Int") `shouldMatchType`
@@ -144,8 +145,8 @@ typeSpec = describe "Type" do
       }
 
   it "should guard against invalid operator" do
-    (typOp (typ "String") "Foo.Bar.Baz(Qux)" (typ "Int"))  `shouldErrorType`
-      (InvalidQualifiedName "Foo.Bar.Baz(Qux)")
+    (typOp (typ "String") "Foo.Bar.Baz(Qux)" (typ "Int"))  `shouldErrorNameType`
+      NFTypeOpName
 
   it "should create constrained types" do
     (cnst "Foo.Bar(class Baz)" [ typVar "a" ] *=> typVar "a") `shouldMatchType`
@@ -180,6 +181,9 @@ shouldMatchType t cstType = do
 shouldErrorType :: forall m. MonadThrow Error m => Type -> CodegenError -> m Unit
 shouldErrorType t err =
    buildModuleErr (runType t) `shouldReturn` err
+
+shouldErrorNameType :: forall m. MonadThrow Error m => Type -> NameFormat -> m Unit
+shouldErrorNameType t = shouldErrorName (runType t)
 
 shouldImportType :: forall m. MonadThrow Error m => Type -> CST.ImportDecl -> m Unit
 shouldImportType t import_ =

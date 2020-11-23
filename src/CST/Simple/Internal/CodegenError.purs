@@ -4,21 +4,20 @@ module CST.Simple.Internal.CodegenError
 
 import Prelude
 
+import CST.Simple.NameFormat (NameFormat)
 import Data.Array as Array
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 
 data CodegenError =
-  InvalidModuleName String
-  | MissingExports
-  | InvalidTypeName String
-  | InvalidConstructorName String
-  | InvalidClassName String
-  | InvalidKindName String
-  | InvalidIdent String
-  | InvalidTypeOpName String
-  | InvalidValueOpName String
-  | InvalidQualifiedName String
+  MissingExports
+  | InvalidName
+    { given :: String
+    , pos :: Int
+    , msg :: String
+    , allowQualified :: Boolean
+    , nameFormat :: NameFormat
+    }
   | MissingCaseOfHeadBinders
   | MissingCaseOfBranches
   | MissingCaseOfBranchBinders

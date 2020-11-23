@@ -18,14 +18,14 @@ import CST.Simple.TestUtils (build, build', buildA, requireOne)
 import CST.Simple.Types (DataExport(..))
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array as Array
-import Data.Either (Either(..))
+import Data.Either (Either(..), isLeft)
 import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse)
 import Data.Tuple (snd)
 import Effect.Exception (Error)
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldContain, shouldEqual)
+import Test.Spec.Assertions (shouldContain, shouldEqual, shouldSatisfy)
 
 moduleBuilderSpec :: Spec Unit
 moduleBuilderSpec = describe "ModuleBuilder" do
@@ -37,7 +37,7 @@ moduleBuilderSpec = describe "ModuleBuilder" do
 moduleNameSpec :: Spec Unit
 moduleNameSpec = describe "module name" do
   it "should reject invalid module names" do
-    buildModule "foo" (pure unit) `shouldEqual` Left (InvalidModuleName "foo")
+    buildModule "foo" (pure unit) `shouldSatisfy` isLeft
 
 importsSpec :: Spec Unit
 importsSpec = describe "imports" do

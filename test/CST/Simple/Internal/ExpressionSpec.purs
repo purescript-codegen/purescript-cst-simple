@@ -11,7 +11,8 @@ import CST.Simple.Internal.CommonWords (_ado, _do, _in, _let, _letd)
 import CST.Simple.Internal.Expression (Expr, caseOfBranchN, doDiscard, doLet, exprAdo, exprArray, exprBoolean, exprCaseOf1, exprCaseOfN, exprChar, exprCons, exprConsN, exprDo, exprIdent, exprIdentN, exprIfThenElse, exprInt, exprLetIn, exprNegate, exprNumber, exprOp, exprOpName, exprRecord, exprRecordAccess, exprRecordAccessN, exprRecordUpdate, exprString, exprTyped, recordUpdate, recordUpdateBranch, runExpr, whr)
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typ, typCons)
-import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldBeEquiv, shouldImport)
+import CST.Simple.NameFormat (NameFormat(..))
+import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, requireMatch, shouldBeEquiv, shouldErrorName, shouldImport)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..))
@@ -19,7 +20,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Exception (Error)
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldReturn)
+import Test.Spec.Assertions (shouldEqual, shouldReturn)
 
 expressionSpec :: Spec Unit
 expressionSpec = describe "Expr" do
@@ -125,8 +126,8 @@ expressionSpec = describe "Expr" do
   it "should reject invalid record puns" do
     exprRecord [ recPun "!"
                ]
-      `exprShouldError`
-      InvalidIdent "!"
+      `exprShouldErrorName`
+      NFIdent
 
   it "should create typed expr" do
     exprTyped (exprInt 5) (typCons "Int")
@@ -407,6 +408,9 @@ shouldBeEquivExpr = shouldBeEquiv runExpr
 exprShouldError :: forall m. MonadThrow Error m => Expr -> CodegenError -> m Unit
 exprShouldError e err =
    buildModuleErr (runExpr e) `shouldReturn` err
+
+exprShouldErrorName :: forall m. MonadThrow Error m => Expr -> NameFormat -> m Unit
+exprShouldErrorName e = shouldErrorName (runExpr e)
 
 exprShouldImport :: forall m. MonadThrow Error m => Expr-> CST.ImportDecl -> m Unit
 exprShouldImport t import_ =
