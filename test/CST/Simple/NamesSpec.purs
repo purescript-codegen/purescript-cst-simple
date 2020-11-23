@@ -122,25 +122,25 @@ moduleNameSpec = describe "moduleName" do
 qualNameSpec :: Spec Unit
 qualNameSpec = describe "qualName" do
   it "should reject empty" do
-    (qualNameType "") `shouldEqual` Left (InvalidTypeName "")
-    (qualNameType ".") `shouldEqual` Left (InvalidQualifiedModule "." "")
+    (qualNameType "") `shouldEqual` Left (InvalidQualifiedName "")
+    (qualNameType ".") `shouldEqual` Left (InvalidQualifiedName ".")
 
   it "should reject invalid module prefix" do
-    (qualNameType "Foo'.Baz") `shouldEqual` Left (InvalidQualifiedModule "Foo'.Baz" "Foo'")
+    (qualNameType "Foo'.Baz") `shouldEqual` Left (InvalidQualifiedName "Foo'.Baz")
 
   it "should reject invalid qualified name wrapper" do
-    -- should have had parenthesis
-    (qualNameOp "Foo.+") `shouldEqual` Left (InvalidQualifiedName "Foo.+" "+" Nothing)
+    -- should have had extra parenthesis
+    (qualNameOp "Foo(+)") `shouldEqual` Left (InvalidQualifiedName "Foo(+)")
 
   it "should reject invalid unqualified name wrapper" do
-    (qualNameOp "Foo") `shouldEqual` Left (InvalidTypeOpName "Foo")
+    (qualNameOp "Foo") `shouldEqual` Left (InvalidQualifiedName "Foo")
 
   it "should accept unqualified properName" do
     (qualNameType "Foo") `shouldEqual`
       Right (QualifiedName { qualModule: Nothing, qualName: CST.ProperName "Foo" })
 
   it "should read qualified properName" do
-    (qualNameType "Foo.Bar.Baz") `shouldEqual`
+    (qualNameType "Foo.Bar(Baz)") `shouldEqual`
       Right (QualifiedName { qualModule: Just fooBarModuleName, qualName: CST.ProperName "Baz" })
 
   -- todo differentiate between type op and op
@@ -149,7 +149,7 @@ qualNameSpec = describe "qualName" do
       Right (QualifiedName { qualModule: Nothing, qualName: CST.OpName "<>" })
 
   it "should read qualified opName" do
-    (qualNameOp "Foo.Bar.(<>)") `shouldEqual`
+    (qualNameOp "Foo.Bar(type (<>))") `shouldEqual`
       Right (QualifiedName { qualModule: Just fooBarModuleName, qualName: CST.OpName "<>" })
 
 -- todo opName with period

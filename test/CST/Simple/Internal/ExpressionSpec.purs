@@ -28,11 +28,11 @@ expressionSpec = describe "Expr" do
       CST.ExprIdent (cstUnqualIdent "baz")
 
   it "should create qualified ident" do
-    exprIdent "Foo.Bar.baz" `shouldMatchCSTExpr`
+    exprIdent "Foo.Bar(baz)" `shouldMatchCSTExpr`
       CST.ExprIdent (cstUnqualIdent "baz")
 
   it "should import qualified ident" do
-    exprIdent "Foo.Bar.baz" `exprShouldImport`
+    exprIdent "Foo.Bar(baz)" `exprShouldImport`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names: [ CST.ImportValue (CST.Ident "baz")
@@ -41,7 +41,7 @@ expressionSpec = describe "Expr" do
       }
 
   it "should import qualified ident" do
-    exprIdent "Foo.Bar.baz" `exprShouldImport`
+    exprIdent "Foo.Bar(baz)" `exprShouldImport`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names: [ CST.ImportValue (CST.Ident "baz")
@@ -68,7 +68,7 @@ expressionSpec = describe "Expr" do
       CST.ExprConstructor (cstUnqualProperName "BazA")
 
   it "should create qualified constructor" do
-    exprCons "Foo.Bar.Baz(BazA)" `shouldMatchCSTExpr`
+    exprCons "Foo.Bar(Baz(BazA))" `shouldMatchCSTExpr`
       CST.ExprConstructor (cstUnqualProperName "BazA")
 
   it "should create constructor with args" do
@@ -136,7 +136,7 @@ expressionSpec = describe "Expr" do
       (CST.TypeConstructor (cstUnqualProperName "Int"))
 
   it "should create expr with operation" do
-    (exprOp (exprInt 5) "Prelude.(+)" (exprInt 5))
+    (exprOp (exprInt 5) "Prelude((+))" (exprInt 5))
       `shouldMatchCSTExpr`
       CST.ExprOp
       (CST.ExprNumber (Left 5))
@@ -144,7 +144,7 @@ expressionSpec = describe "Expr" do
       (CST.ExprNumber (Left 5))
 
   it "should create exprOpName" do
-    (exprOpName "Prelude.(+)")
+    (exprOpName "Prelude((+))")
       `shouldMatchCSTExpr`
       CST.ExprOpName
       (cstUnqualOpName "+")

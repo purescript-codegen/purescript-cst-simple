@@ -18,12 +18,12 @@ module CST.Simple.Names
        , qualName
        , class ReadName
        , nameP
+       , class ReadImportName
+       , importNameP
        , class AsNameError
        , asNameError
        , readName
        , readName'
-       , class UnwrapQualName
-       , unwrapQualName
        , module E
        ) where
 
@@ -31,11 +31,11 @@ import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Utils (exceptM)
+import Control.Alt ((<|>))
 import Control.Monad.Error.Class (class MonadThrow)
 import Control.MonadPlus (guard)
 import Data.Array as Array
 import Data.Array.NonEmpty as NonEmptyArray
-import Data.Bifunctor (lmap)
 import Data.Char.Unicode as Char
 import Data.Either (Either, hush, note)
 import Data.Foldable (elem, foldMap)
@@ -49,9 +49,9 @@ import Language.PS.CST (Ident, Label(..), ModuleName, QualifiedName(..)) as E
 import Language.PS.CST (Ident, ModuleName, QualifiedName)
 import Language.PS.CST as CST
 import Language.PS.CST.ReservedNames (isReservedName)
-import Text.Parsing.StringParser (Parser, runParser)
+import Text.Parsing.StringParser (Parser, runParser, try)
 import Text.Parsing.StringParser as Parser
-import Text.Parsing.StringParser.CodeUnits (char, eof, regex, satisfy)
+import Text.Parsing.StringParser.CodeUnits (char, eof, regex, satisfy, skipSpaces, string)
 import Text.Parsing.StringParser.Combinators (many1)
 import Type.Proxy (Proxy(..))
 
@@ -174,33 +174,27 @@ moduleNameP = do
 
 qualName ::
   forall a.
-  UnwrapQualName a =>
   ReadName a =>
-  AsNameError a =>
+  ReadImportName a =>
   String ->
   Either CodegenError (QualifiedName a)
-qualName s = case String.lastIndexOf (String.Pattern ".") s of
-  Just ndx -> ado
-    qualModule <- Just <$> readQualModule (String.take ndx s)
-    qualName <- readQualName $ String.drop (ndx + 1) s
-    in CST.QualifiedName { qualModule, qualName }
-  Nothing ->
-    readName s <#> \n ->
-    CST.QualifiedName { qualModule: Nothing, qualName: n }
+qualName s =
+  note (InvalidQualifiedName s) (runParser_ (qualNameP <* eof) s)
 
+qualNameP ::
+  forall a.
+  ReadName a =>
+  ReadImportName a =>
+  Parser (QualifiedName a)
+qualNameP = try qualifiedP <|> unqualifiedP
   where
-    readQualModule n =
-      note (InvalidQualifiedModule s n) $ moduleName' n
+    unqualifiedP = nameP <#> \name ->
+      CST.QualifiedName { qualModule: Nothing, qualName: name }
 
-    unwrap n =
-      note (InvalidQualifiedName s n Nothing) $ unwrapQualName (Proxy :: _ a) n
-
-    readNameQ u n =
-      lmap
-        (InvalidQualifiedName s u <<< Just)
-        (readName n)
-
-    readQualName u = readNameQ u =<< unwrap u
+    qualifiedP = ado
+      qualModule <- Just <$> moduleNameP
+      qualName <- char '(' *> importNameP <* char ')'
+      in CST.QualifiedName { qualModule, qualName }
 
 -- ReadName
 
@@ -222,7 +216,7 @@ instance readNameClassName :: ReadName (CST.ProperName CST.ProperNameType_ClassN
 instance readNameKindName :: ReadName (CST.ProperName CST.ProperNameType_KindName) where
   nameP = kindNameP
 
-instance readTypedConstructorName :: ReadName TypedConstructorName where
+instance readNameTypedConstructorName :: ReadName TypedConstructorName where
   nameP = typedConstructorNameP
 
 instance readNameIdent :: ReadName Ident where
@@ -233,6 +227,37 @@ instance readNameTypeOpName :: ReadName (CST.OpName CST.OpNameType_TypeOpName) w
 
 instance readNameValueOpName :: ReadName (CST.OpName CST.OpNameType_ValueOpName) where
   nameP = opNameP
+
+--
+
+class ReadImportName a where
+  importNameP :: Parser a
+
+instance readImportNameTypeName :: ReadImportName (CST.ProperName CST.ProperNameType_TypeName) where
+  importNameP = nameP
+
+instance readImportNameConstructorName :: ReadImportName (CST.ProperName CST.ProperNameType_ConstructorName) where
+  importNameP = nameP
+
+instance readImportNameClassName :: ReadImportName (CST.ProperName CST.ProperNameType_ClassName) where
+  importNameP = string "class" *> skipSpaces *> nameP
+
+instance readImportNameKindName :: ReadImportName (CST.ProperName CST.ProperNameType_KindName) where
+  importNameP = string "kind" *> skipSpaces *> nameP
+
+instance readImportNameTypedConstructorName :: ReadImportName TypedConstructorName where
+  importNameP = nameP
+
+instance readImportNameIdent :: ReadImportName Ident where
+  importNameP = nameP
+
+instance readImportNameTypeOpName :: ReadImportName (CST.OpName CST.OpNameType_TypeOpName) where
+  importNameP = string "type" *> skipSpaces *> (char '(' *> nameP <* char ')')
+
+instance readImportNameValueOpName :: ReadImportName (CST.OpName CST.OpNameType_ValueOpName) where
+  importNameP = (char '(' *> nameP <* char ')')
+
+--
 
 class AsNameError a where
   asNameError :: Proxy a -> String -> CodegenError
@@ -281,35 +306,6 @@ readName' ::
   String ->
   m a
 readName' = exceptM <<< readName
-
--- UnwrapQualName
-
-class UnwrapQualName a where
-  unwrapQualName :: Proxy a -> String -> Maybe String
-
-instance unwrapQualNameTypeName :: UnwrapQualName (CST.ProperName CST.ProperNameType_TypeName) where
-  unwrapQualName _ = Just
-
-instance unwrapQualNameConstructorName :: UnwrapQualName (CST.ProperName CST.ProperNameType_ConstructorName) where
-  unwrapQualName _ = Just
-
-instance unwrapQualNameClassName :: UnwrapQualName (CST.ProperName CST.ProperNameType_ClassName) where
-  unwrapQualName _ = Just
-
-instance unwrapQualNameKindName :: UnwrapQualName (CST.ProperName CST.ProperNameType_KindName) where
-  unwrapQualName _ = Just
-
-instance unwrapQualNameIdent :: UnwrapQualName Ident where
-  unwrapQualName _ = Just
-
-instance unwrapOpTypeName :: UnwrapQualName (CST.OpName CST.OpNameType_TypeOpName) where
-  unwrapQualName _ = unParen
-
-instance unwrapOpValueName :: UnwrapQualName (CST.OpName CST.OpNameType_ValueOpName) where
-  unwrapQualName _ = unParen
-
-instance unwrapTypedConstructorName :: UnwrapQualName TypedConstructorName where
-  unwrapQualName _ = Just
 
 -- Utils
 

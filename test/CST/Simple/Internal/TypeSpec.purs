@@ -22,7 +22,7 @@ import Test.Spec.Assertions (shouldEqual, shouldReturn)
 typeSpec :: Spec Unit
 typeSpec = describe "Type" do
   it "should accept qualified type declarations" do
-    typ "Foo.Bar.Baz" `shouldMatchType`
+    typ "Foo.Bar(Baz)" `shouldMatchType`
       ( CST.TypeConstructor $ CST.QualifiedName
         { qualModule: Nothing
         , qualName: CST.ProperName "Baz"
@@ -30,7 +30,7 @@ typeSpec = describe "Type" do
       )
 
   it "should add qualified names to imports" do
-    typ "Foo.Bar.Baz" `shouldImportType`
+    typ "Foo.Bar(Baz)" `shouldImportType`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names: [ CST.ImportType (CST.ProperName "Baz") Nothing -- todo import data type
@@ -72,8 +72,8 @@ typeSpec = describe "Type" do
       }
 
   it "should treat empty typApp as typCons" do
-    appType <- evalTyp $ typApp (typ "Foo.Bar.Baz") []
-    consType <- evalTyp $ typCons "Foo.Bar.Baz"
+    appType <- evalTyp $ typApp (typ "Foo.Bar(Baz)") []
+    consType <- evalTyp $ typCons "Foo.Bar(Baz)"
     appType `shouldEqual` consType
 
   it "should create nested typApp" do
@@ -89,8 +89,8 @@ typeSpec = describe "Type" do
       (cstTypCons "Boolean")
 
   it "should treat empty forall as typCons" do
-    appType <- evalTyp $ typForall [] (typ "Foo.Bar.Baz")
-    consType <- evalTyp $ typCons "Foo.Bar.Baz"
+    appType <- evalTyp $ typForall [] (typ "Foo.Bar(Baz)")
+    consType <- evalTyp $ typCons "Foo.Bar(Baz)"
     appType `shouldEqual` consType
 
   it "should treat create forall typ" do
@@ -114,11 +114,11 @@ typeSpec = describe "Type" do
       (intCSTType `CST.TypeArr` (stringCSTType `CST.TypeArr` intCSTType))
 
   it "should create kinded types" do
-    (typ "Qux" *:: knd "Foo.Bar.Baz") `shouldMatchType`
+    (typ "Qux" *:: knd "Foo.Bar(kind Baz)") `shouldMatchType`
       (CST.TypeKinded (cstTypCons "Qux") (CST.KindName (cstUnqualProperName "Baz")))
 
   it "should import kinds" do
-    (typ "Qux" *:: knd "Foo.Bar.Baz") `shouldImportType`
+    (typ "Qux" *:: knd "Foo.Bar(kind Baz)") `shouldImportType`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names: [ CST.ImportKind (CST.ProperName "Baz")
@@ -127,7 +127,7 @@ typeSpec = describe "Type" do
       }
 
   it "should create type operators" do
-    (typOp (typ "String") "Foo.Bar.Baz.(><)" (typ "Int")) `shouldMatchType`
+    (typOp (typ "String") "Foo.Bar.Baz(type (><))" (typ "Int")) `shouldMatchType`
       (CST.TypeOp
        (cstTypCons "String")
        (cstUnqualName (CST.OpName "><"))
@@ -135,7 +135,7 @@ typeSpec = describe "Type" do
       )
 
   it "should import type operators" do
-    (typOp (typ "String") "Foo.Bar.(><)" (typ "Int")) `shouldImportType`
+    (typOp (typ "String") "Foo.Bar(type (><))" (typ "Int")) `shouldImportType`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names: [ CST.ImportTypeOp (CST.OpName "><")
@@ -144,11 +144,11 @@ typeSpec = describe "Type" do
       }
 
   it "should guard against invalid operator" do
-    (typOp (typ "String") "Foo.Bar.Baz.(Qux)" (typ "Int"))  `shouldErrorType`
-      (InvalidQualifiedName "Foo.Bar.Baz.(Qux)" "(Qux)" (Just (InvalidTypeOpName "Qux")))
+    (typOp (typ "String") "Foo.Bar.Baz(Qux)" (typ "Int"))  `shouldErrorType`
+      (InvalidQualifiedName "Foo.Bar.Baz(Qux)")
 
   it "should create constrained types" do
-    (cnst "Foo.Bar.Baz" [ typVar "a" ] *=> typVar "a") `shouldMatchType`
+    (cnst "Foo.Bar(class Baz)" [ typVar "a" ] *=> typVar "a") `shouldMatchType`
       CST.TypeConstrained
       ( CST.Constraint
         { className: cstUnqualProperName "Baz"
@@ -160,7 +160,7 @@ typeSpec = describe "Type" do
       )
 
   it "should import class constraints constrained types" do
-    (cnst "Foo.Bar.Baz" [ typVar "a" ] *=> typVar "a") `shouldImportType`
+    (cnst "Foo.Bar(class Baz)" [ typVar "a" ] *=> typVar "a") `shouldImportType`
       CST.ImportDecl
       { moduleName: fooBarModuleName
       , names:

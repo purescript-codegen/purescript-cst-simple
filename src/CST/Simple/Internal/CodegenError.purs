@@ -7,7 +7,6 @@ import Prelude
 import Data.Array as Array
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe)
 
 data CodegenError =
   InvalidModuleName String
@@ -19,8 +18,7 @@ data CodegenError =
   | InvalidIdent String
   | InvalidTypeOpName String
   | InvalidValueOpName String
-  | InvalidQualifiedModule String String
-  | InvalidQualifiedName String String (Maybe CodegenError)
+  | InvalidQualifiedName String
   | MissingCaseOfHeadBinders
   | MissingCaseOfBranches
   | MissingCaseOfBranchBinders

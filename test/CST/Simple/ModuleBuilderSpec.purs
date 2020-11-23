@@ -46,7 +46,7 @@ importsSpec = describe "imports" do
       addType
         { name: "X"
         , typeVarBindings: []
-        , type_: typApp (typ "Foo") [ typ "Foo.Bar.Baz", typ "Foo.Bar.Baz" ]
+        , type_: typApp (typ "Foo") [ typ "Foo.Bar(Baz)", typ "Foo.Bar(Baz)" ]
         , export: false
         }
     CST.ImportDecl { names } <- requireOne mod.imports
@@ -58,7 +58,7 @@ importsSpec = describe "imports" do
         { export: false
         , name: "X"
         , typeVarBindings: []
-        , type_: typApp (typ "Foo") [ typ "Foo.Bar.Baz", typ "Foo.Bar.Qux" ]
+        , type_: typApp (typ "Foo") [ typ "Foo.Bar(Baz)", typ "Foo.Bar(Qux)" ]
         }
     CST.ImportDecl { names } <- requireOne mod.imports
     Array.length names `shouldEqual` 2
@@ -68,9 +68,9 @@ importsSpec = describe "imports" do
       addValue
         { export: false
         , name: "x"
-        , type_: typ "Foo.Bar.Baz"
+        , type_: typ "Foo.Bar(Baz)"
         , binders: []
-        , expr: exprCons "Foo.Bar.Baz(Qux)"
+        , expr: exprCons "Foo.Bar(Baz(Qux))"
         }
     CST.ImportDecl { names } <- requireOne mod.imports
     names `shouldEqual`
@@ -84,7 +84,7 @@ importsSpec = describe "imports" do
         , name: "x"
         , type_: typ "Foo"
         , binders: []
-        , expr: exprIdent "Prelude.bind"
+        , expr: exprIdent "Prelude(bind)"
         }
     CST.ImportDecl { names } <- requireOne mod.imports
     Array.length names `shouldEqual` 0
@@ -130,7 +130,7 @@ declarationsSpec = do
     addType
       { name: "X"
       , typeVarBindings: []
-      , type_: typ "Foo.Bar.Baz"
+      , type_: typ "Foo.Bar(Baz)"
       , export: true
       }
       `shouldContainExport`

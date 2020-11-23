@@ -239,7 +239,7 @@ declarationSpec = do
       }
 
   it "should create infix value proper name" do
-    declInfix Infix 5 (fixityOpValue "Foo.Bar.Baz(Baz)" "<+>")
+    declInfix Infix 5 (fixityOpValue "Foo.Bar(Baz(Baz))" "<+>")
      `shouldMatchCSTDecl`
       CST.DeclFixity
       { comments: Nothing
@@ -251,7 +251,7 @@ declarationSpec = do
       }
 
   it "should create infix value type" do
-    declInfix Infix 5 (fixityOpType "Foo.Bar.Baz" "<+>")
+    declInfix Infix 5 (fixityOpType "Foo.Bar(Baz)" "<+>")
      `shouldMatchCSTDecl`
       CST.DeclFixity
       { comments: Nothing
