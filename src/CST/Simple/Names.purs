@@ -18,7 +18,8 @@ module CST.Simple.Names
        , qualName
        , class ReadName
        , nameP
-       , mkNameError
+       , class AsNameError
+       , asNameError
        , readName
        , readName'
        , class UnwrapQualName
@@ -175,6 +176,7 @@ qualName ::
   forall a.
   UnwrapQualName a =>
   ReadName a =>
+  AsNameError a =>
   String ->
   Either CodegenError (QualifiedName a)
 qualName s = case String.lastIndexOf (String.Pattern ".") s of
@@ -204,49 +206,80 @@ qualName s = case String.lastIndexOf (String.Pattern ".") s of
 
 class ReadName a where
   nameP :: Parser a
-  mkNameError :: Proxy a -> String -> CodegenError
 
 instance readNameModuleName :: ReadName ModuleName where
   nameP = moduleNameP
-  mkNameError _ = InvalidModuleName
 
 instance readNameTypeName :: ReadName (CST.ProperName CST.ProperNameType_TypeName) where
   nameP = typeNameP
-  mkNameError _ = InvalidTypeName
 
 instance readNameConstructorName :: ReadName (CST.ProperName CST.ProperNameType_ConstructorName) where
   nameP = constructorNameP
-  mkNameError _ = InvalidConstructorName
 
 instance readNameClassName :: ReadName (CST.ProperName CST.ProperNameType_ClassName) where
   nameP = classNameP
-  mkNameError _ = InvalidClassName
 
 instance readNameKindName :: ReadName (CST.ProperName CST.ProperNameType_KindName) where
   nameP = kindNameP
-  mkNameError _ = InvalidKindName
 
 instance readTypedConstructorName :: ReadName TypedConstructorName where
   nameP = typedConstructorNameP
-  mkNameError _ = InvalidConstructorName
 
 instance readNameIdent :: ReadName Ident where
   nameP = identP
-  mkNameError _ = InvalidIdent
 
 instance readNameTypeOpName :: ReadName (CST.OpName CST.OpNameType_TypeOpName) where
   nameP = opNameP
-  mkNameError _ = InvalidTypeOpName
 
 instance readNameValueOpName :: ReadName (CST.OpName CST.OpNameType_ValueOpName) where
   nameP = opNameP
-  mkNameError _ = InvalidValueOpName
 
-readName :: forall a. ReadName a => String -> Either CodegenError a
+class AsNameError a where
+  asNameError :: Proxy a -> String -> CodegenError
+
+instance asNameErrorModuleName :: AsNameError ModuleName where
+  asNameError _ = InvalidModuleName
+
+instance asNameErrorTypeName :: AsNameError (CST.ProperName CST.ProperNameType_TypeName) where
+  asNameError _ = InvalidTypeName
+
+instance asNameErrorConstructorName :: AsNameError (CST.ProperName CST.ProperNameType_ConstructorName) where
+  asNameError _ = InvalidConstructorName
+
+instance asNameErrorClassName :: AsNameError (CST.ProperName CST.ProperNameType_ClassName) where
+  asNameError _ = InvalidClassName
+
+instance asNameErrorKindName :: AsNameError (CST.ProperName CST.ProperNameType_KindName) where
+  asNameError _ = InvalidKindName
+
+instance asNameErrordConstructorName :: AsNameError TypedConstructorName where
+  asNameError _ = InvalidConstructorName
+
+instance asNameErrorIdent :: AsNameError Ident where
+  asNameError _ = InvalidIdent
+
+instance asNameErrorTypeOpName :: AsNameError (CST.OpName CST.OpNameType_TypeOpName) where
+  asNameError _ = InvalidTypeOpName
+
+instance asNameErrorValueOpName :: AsNameError (CST.OpName CST.OpNameType_ValueOpName) where
+  asNameError _ = InvalidValueOpName
+
+readName ::
+  forall a.
+  ReadName a =>
+  AsNameError a =>
+  String ->
+  Either CodegenError a
 readName s =
-  note (mkNameError (Proxy :: _ a) s) (runParser_ nameP s)
+  note (asNameError (Proxy :: _ a) s) (runParser_ nameP s)
 
-readName' :: forall m a. MonadThrow CodegenError m => ReadName a => String -> m a
+readName' ::
+  forall m a.
+  MonadThrow CodegenError m =>
+  ReadName a =>
+  AsNameError a =>
+  String ->
+  m a
 readName' = exceptM <<< readName
 
 -- UnwrapQualName

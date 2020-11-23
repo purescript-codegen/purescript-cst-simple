@@ -17,7 +17,7 @@ import Prelude
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Import (class AsImport, asImport)
 import CST.Simple.Internal.Utils (exceptM)
-import CST.Simple.Names (class ReadName, class UnwrapQualName, ConstructorName, ModuleName, QualifiedName, TypedConstructorName(..), qualName, readName')
+import CST.Simple.Names (class AsNameError, class ReadName, class UnwrapQualName, ConstructorName, ModuleName, QualifiedName, TypedConstructorName(..), qualName, readName')
 import CST.Simple.Types (ModuleEntry)
 import Control.Alt (class Alt, (<|>))
 import Control.Monad.Error.Class (class MonadError, throwError)
@@ -180,6 +180,7 @@ emptySt = mempty
 mkName ::
   forall n.
   ReadName n =>
+  AsNameError n =>
   String ->
   ModuleBuilder n
 mkName = readName'
@@ -189,6 +190,7 @@ mkQualName ::
   AsImport n =>
   UnwrapQualName n =>
   ReadName n =>
+  AsNameError n =>
   String ->
   ModuleBuilder (QualifiedName n)
 mkQualName s = do
