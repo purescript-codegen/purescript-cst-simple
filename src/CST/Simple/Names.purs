@@ -30,23 +30,26 @@ import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.Internal.Utils (exceptM)
 import Control.Monad.Error.Class (class MonadThrow)
 import Control.MonadPlus (guard)
+import Data.Array as Array
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Bifunctor (lmap)
 import Data.Char.Unicode as Char
-import Data.Either (Either, note)
-import Data.Foldable (all, elem)
+import Data.Either (Either, hush, note)
+import Data.Foldable (elem, foldMap)
 import Data.Maybe (Maybe(..))
 import Data.String as String
 import Data.String.CodeUnits (toCharArray)
+import Data.String.CodeUnits as CodeUnits
 import Data.String.Regex (Regex)
 import Data.String.Regex as Regex
-import Data.String.Regex.Flags as RegexFlags
-import Data.String.Regex.Unsafe (unsafeRegex)
-import Data.Traversable (traverse)
 import Language.PS.CST (Ident, Label(..), ModuleName, QualifiedName(..)) as E
 import Language.PS.CST (Ident, ModuleName, QualifiedName)
 import Language.PS.CST as CST
 import Language.PS.CST.ReservedNames (isReservedName)
+import Text.Parsing.StringParser (Parser, runParser)
+import Text.Parsing.StringParser as Parser
+import Text.Parsing.StringParser.CodeUnits (char, eof, regex, satisfy)
+import Text.Parsing.StringParser.Combinators (many1)
 import Type.Proxy (Proxy(..))
 
 type TypeName = CST.ProperName CST.ProperNameType_TypeName
@@ -56,34 +59,41 @@ type KindName = CST.ProperName CST.ProperNameType_KindName
 type Namespace = CST.ProperName CST.ProperNameType_Namespace
 
 typeName' :: String -> Maybe TypeName
-typeName' = properName'
+typeName' = runParser_ properNameP
+
+typeNameP :: Parser TypeName
+typeNameP = properNameP
 
 constructorName' :: String -> Maybe ConstructorName
-constructorName' = properName'
+constructorName' = runParser_ constructorNameP
+
+constructorNameP :: Parser ConstructorName
+constructorNameP = properNameP
 
 className' :: String -> Maybe ClassName
-className' = properName'
+className' = runParser_ classNameP
+
+classNameP :: Parser ClassName
+classNameP = properNameP
 
 kindName' :: String -> Maybe KindName
-kindName' = properName'
+kindName' = runParser_ kindNameP
+
+kindNameP :: Parser KindName
+kindNameP = properNameP
 
 -- properName' is used to create variants of ProperName
 -- except for namespace which disallows `_` and `'`.
-properName' :: forall p. String -> Maybe (CST.ProperName p)
-properName' s =
-  CST.ProperName <$> filterRegex properNameRegex s
-
-properNameRegex :: Regex
-properNameRegex =
-  unsafeRegex "^[A-Z][A-Za-z0-9_']*$" RegexFlags.noFlags
+properNameP :: forall p. Parser (CST.ProperName p)
+properNameP =
+  CST.ProperName <$> regex "[A-Z][A-Za-z0-9_']*"
 
 namespace' :: String -> Maybe Namespace
-namespace' s =
-  CST.ProperName <$> filterRegex namespaceRegex s
+namespace' = runParser_ namespaceP
 
-namespaceRegex :: Regex
-namespaceRegex =
-  unsafeRegex "^[A-Z][A-Za-z0-9]*$" RegexFlags.noFlags
+namespaceP :: Parser Namespace
+namespaceP =
+  CST.ProperName <$> regex "[A-Z][A-Za-z0-9]*"
 
 -- TypedConstructorName
 
@@ -97,21 +107,25 @@ derive instance typedConstructorNameOrd :: Ord TypedConstructorName
 
 typedConstructorName' :: String -> Maybe TypedConstructorName
 typedConstructorName' s = do
-  openParenNdx <- String.indexOf (String.Pattern "(") s
-  let split1 = String.splitAt openParenNdx s
-  typeName <- typeName' split1.before
-  consName <- constructorName' =<< unParen split1.after
-  pure $ TypedConstructorName typeName consName
+  runParser_ typedConstructorNameP s
+
+typedConstructorNameP :: Parser TypedConstructorName
+typedConstructorNameP =
+  TypedConstructorName
+  <$> typeNameP
+  <*> (char '(' *> constructorNameP <* char ')')
 
 -- ident
 
 ident' :: String -> Maybe Ident
-ident' s =
-  guard (not (isReservedName s) && Regex.test identRegex s) $> CST.Ident s
+ident' =
+  runParser_ identP
 
-identRegex :: Regex
-identRegex =
-  unsafeRegex "^[a-z_][A-Za-z0-9_']*$" RegexFlags.noFlags
+identP :: Parser CST.Ident
+identP = do
+  i <- regex "[a-z_][A-Za-z0-9_']*"
+  when (isReservedName i) (Parser.fail "Ident was reserved name")
+  pure $ CST.Ident i
 
 -- opName
 
@@ -126,11 +140,12 @@ valueOpName' :: String -> Maybe ValueOpName
 valueOpName' = opName'
 
 opName' :: forall p. String -> Maybe (CST.OpName p)
-opName' s =
-  guard ( not String.null s
-          && all isSymbolChar (toCharArray s)
-        )
-  $> CST.OpName s
+opName' = runParser_ opNameP
+
+opNameP :: forall p. Parser (CST.OpName p)
+opNameP = do
+  cs <- many1 (satisfy isSymbolChar)
+  pure $ CST.OpName $ foldMap CodeUnits.singleton cs
 
 isSymbolChar :: Char -> Boolean
 isSymbolChar c =
@@ -144,11 +159,13 @@ asciiSymbolChars = toCharArray ":!#$%&*+./<=>?@\\^|-~"
 -- moduleName
 
 moduleName' :: String -> Maybe ModuleName
-moduleName' s =
-  CST.ModuleName
-  <$> ( NonEmptyArray.fromArray
-        =<< traverse (namespace') (String.split (String.Pattern ".") s)
-      )
+moduleName' = runParser_ moduleNameP
+
+moduleNameP :: Parser ModuleName
+moduleNameP = do
+  a <- namespaceP
+  as <- Array.many $ char '.' *> namespaceP
+  pure $ CST.ModuleName $ NonEmptyArray.cons' a as
 
 -- TODO support period in opName
 
@@ -180,7 +197,6 @@ qualName s = case String.lastIndexOf (String.Pattern ".") s of
         (readName n)
 
     readQualName u = readNameQ u =<< unwrap u
-
 
 -- ReadName
 
@@ -259,3 +275,6 @@ unParen s = do
   let p2 = String.splitAt (String.length s - 2) p1.after
   guard (p2.after == ")")
   pure p2.before
+
+runParser_ :: forall a. Parser a -> String -> Maybe a
+runParser_ p = hush <<< runParser (p <* eof)
