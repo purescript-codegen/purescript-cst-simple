@@ -1,5 +1,6 @@
 module CST.Simple.Internal.CodegenError
-       ( CodegenError(..)
+       ( NameError
+       , CodegenError(..)
        ) where
 
 import Prelude
@@ -9,15 +10,20 @@ import Data.Array as Array
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 
+type NameError =
+  { given :: String
+  , pos :: Int
+  , msg :: String
+  , allowQualified :: Boolean
+  , allowUnqualified :: Boolean
+  , allowAlias :: Boolean
+  , nameFormat :: NameFormat
+  }
+
 data CodegenError =
   MissingExports
-  | InvalidName
-    { given :: String
-    , pos :: Int
-    , msg :: String
-    , allowQualified :: Boolean
-    , nameFormat :: NameFormat
-    }
+  | IllegalReExportOnExportAll
+  | InvalidName NameError
   | MissingCaseOfHeadBinders
   | MissingCaseOfBranches
   | MissingCaseOfBranchBinders

@@ -152,10 +152,6 @@ import CST.Simple.Internal.Expression
   , valueBindingFields
   ) as E
 
-import CST.Simple.Internal.Import
-  ( class AsImport
-  ) as E
-
 import CST.Simple.Internal.Kind
   ( Kind
   , knd

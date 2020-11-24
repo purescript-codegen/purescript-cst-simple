@@ -17,6 +17,8 @@ module CST.Simple.Names
        , moduleName'
        , AliasedQualifiedName(..)
        , aqualName
+       , FixedQualifiedName(..)
+       , fixedQualName
        , class ReadName
        , nameP
        , class ReadImportName
@@ -197,7 +199,13 @@ aqualName ::
   String ->
   Either CodegenError (AliasedQualifiedName a)
 aqualName =
-  runParser' true (asNameFormat (Proxy :: _ a)) aqualNameP
+  runParser'
+  { allowQualified: true
+  , allowUnqualified: true
+  , allowAlias: true
+  }
+  (asNameFormat (Proxy :: _ a))
+  aqualNameP
 
 aqualNameP ::
   forall a.
@@ -212,12 +220,41 @@ aqualNameP = try qualifiedP <|> unqualifiedP
                            }
 
     qualifiedP = ado
-      moduleName <- moduleNameP
-      qualName <- optional skipSpaces *> char '(' *> importNameP <* char ')'
+      FixedQualifiedName { moduleName, name: qualName } <- fixedQualNameP
       alias <- optionMaybe (skipSpaces *> string "as" *> skipSpaces *> moduleNameP)
       in AliasedQualifiedName { qualModule: Just { moduleName, alias }
                               , qualName
                               }
+
+newtype FixedQualifiedName a =
+  FixedQualifiedName { moduleName :: ModuleName
+                     , name :: a
+                     }
+
+fixedQualName ::
+  forall a.
+  ReadImportName a =>
+  AsNameFormat a =>
+  String ->
+  Either CodegenError (FixedQualifiedName a)
+fixedQualName =
+  runParser'
+  { allowQualified: true
+  , allowUnqualified: false
+  , allowAlias: false
+  }
+  (asNameFormat (Proxy :: _ a))
+  fixedQualNameP
+
+fixedQualNameP ::
+  forall a.
+  ReadImportName a =>
+  Parser (FixedQualifiedName a)
+fixedQualNameP = ado
+  moduleName <- moduleNameP
+  name <- optional skipSpaces *> char '(' *> importNameP <* char ')'
+  in FixedQualifiedName { moduleName, name }
+
 
 -- ReadName
 
@@ -319,7 +356,14 @@ readName ::
   String ->
   Either CodegenError a
 readName s =
-  runParser' false (asNameFormat (Proxy :: _ a)) nameP s
+  runParser'
+  { allowQualified: false
+  , allowUnqualified: false
+  , allowAlias: false
+  }
+  (asNameFormat (Proxy :: _ a))
+  nameP
+  s
 
 readName' ::
   forall m a.
@@ -349,13 +393,16 @@ runParser_ p = hush <<< runParser (p <* eof)
 
 runParser' ::
   forall a.
-  Boolean ->
+  { allowQualified :: Boolean
+  , allowUnqualified :: Boolean
+  , allowAlias :: Boolean
+  } ->
   NameFormat ->
   Parser a ->
   String ->
   Either CodegenError a
-runParser' allowQualified nameFormat p str = bimap
+runParser' { allowQualified, allowUnqualified, allowAlias } nameFormat p str = bimap
   (\{ error: ParseError msg, pos } ->
-    InvalidName { given: str, msg, pos, allowQualified, nameFormat })
+    InvalidName { given: str, msg, pos, allowQualified, allowUnqualified, allowAlias, nameFormat })
   _.result
   $ unParser (p <* eof) { pos: 0, str }

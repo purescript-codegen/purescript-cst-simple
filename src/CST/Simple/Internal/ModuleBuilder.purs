@@ -27,9 +27,10 @@ import Control.Monad.Writer (class MonadTell, class MonadWriter, Writer, runWrit
 import Data.Array as Array
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either)
-import Data.Foldable (fold, foldr, for_)
+import Data.Foldable (any, fold, foldr, for_)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), isNothing)
+import Data.Monoid.Disj (Disj(..))
 import Data.Set as Set
 import Data.Tuple (snd, uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -37,7 +38,8 @@ import Language.PS.CST as CST
 
 type ModuleBuilderState =
   { imports :: Array ImportEntry
-  , exports :: Exports
+  , exports :: Array CST.Export
+  , exportAll :: Disj Boolean
   , decls :: Array CST.Declaration
   , foreignBinding :: Maybe String
   }
@@ -66,7 +68,8 @@ derive newtype instance moduleBuilderMonadTell ::
     , import_ :: CST.Import
     , alias :: Maybe ModuleName
     }
-  , exports :: Exports
+  , exports :: Array CST.Export
+  , exportAll :: Disj Boolean
   , decls :: Array CST.Declaration
   , foreignBinding :: Maybe String
   } ModuleBuilder
@@ -78,7 +81,8 @@ derive newtype instance moduleBuilderMonadWriter ::
     , import_ :: CST.Import
     , alias :: Maybe ModuleName
     }
-  , exports :: Exports
+  , exports :: Array CST.Export
+  , exportAll :: Disj Boolean
   , decls :: Array CST.Declaration
   , foreignBinding :: Maybe String
   } ModuleBuilder
@@ -96,21 +100,6 @@ instance moduleBuilderShow :: Show a => Show (ModuleBuilder a) where
   show m =
     "(ModuleBuilder " <> show m <> ")"
 
-data Exports =
-  ExportAll
-  | ExportSelected (Array CST.Export)
-
-derive instance exportsEq :: Eq Exports
-derive instance exportsOrd :: Ord Exports
-
-instance exportsSemigroup :: Semigroup Exports where
-  append ExportAll _ = ExportAll
-  append _ ExportAll = ExportAll
-  append (ExportSelected s1) (ExportSelected s2) = ExportSelected (s1 <> s2)
-
-instance exportsMonoid :: Monoid Exports where
-  mempty = ExportSelected []
-
 buildModule ::
   String ->
   ModuleBuilder Unit ->
@@ -127,7 +116,8 @@ buildModule' moduleName' mb = do
   moduleName <- readName' moduleName'
   let a' /\ c = runModuleBuilder mb
   a <- a'
-  exports <- getExports c.exports
+  let Disj exportAll = c.exportAll
+  exports <- getExports c.exports exportAll
   pure $ a
     /\ { cstModule: CST.Module
          { moduleName
@@ -139,10 +129,15 @@ buildModule' moduleName' mb = do
        }
 
   where
-    getExports es = case es of
-      ExportSelected [] -> throwError MissingExports
-      ExportSelected es' -> pure $ es'
-      ExportAll -> pure []
+    getExports [] false = throwError MissingExports
+    getExports es false = pure es
+    getExports es true =
+      if any isModuleExport es
+      then throwError IllegalReExportOnExportAll
+      else pure []
+
+    isModuleExport (CST.ExportModule _) = true
+    isModuleExport _ = false
 
     toImportDecl moduleName names' =
       CST.ImportDecl { moduleName
@@ -166,13 +161,13 @@ addImport moduleName import_ alias =
 
 exportAll :: ModuleBuilder Unit
 exportAll =
-  modBuilder (_ { exports = ExportAll
+  modBuilder (_ { exportAll = Disj true
                 }
              )
 
 addCSTExport :: CST.Export -> ModuleBuilder Unit
 addCSTExport export =
-  modBuilder (_ { exports = ExportSelected [export]
+  modBuilder (_ { exports = [export]
                 }
              )
 

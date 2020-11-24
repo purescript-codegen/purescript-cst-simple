@@ -13,11 +13,12 @@ import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, buildModule, exportAll)
 import CST.Simple.Internal.Type (cnst, typ, typApp, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
-import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignData, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addKind, addNewtype, addType, addValue)
-import CST.Simple.TestUtils (build, build', buildA, requireOne)
+import CST.Simple.ModuleBuilder (addClassDecl, addDataDecl, addForeignData, addForeignJsValue, addInstanceChainDecl, addInstanceDecl, addKind, addNewtype, addType, addValue, reExportClass, reExportKind, reExportOp, reExportType, reExportValue)
+import CST.Simple.TestUtils (build, build', buildA, buildModuleErr, fooBarModuleName, getNameError, requireOne)
 import CST.Simple.Types (DataExport(..))
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array as Array
+import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..), isLeft)
 import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse)
@@ -25,13 +26,14 @@ import Data.Tuple (snd)
 import Effect.Exception (Error)
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldContain, shouldEqual, shouldSatisfy)
+import Test.Spec.Assertions (shouldContain, shouldEqual, shouldReturn, shouldSatisfy)
 
 moduleBuilderSpec :: Spec Unit
 moduleBuilderSpec = describe "ModuleBuilder" do
   moduleNameSpec
   importsSpec
   exportsSpec
+  reExportsSpec
   declarationsSpec
 
 moduleNameSpec :: Spec Unit
@@ -108,6 +110,41 @@ exportsSpec = describe "exports" do
   it "should allow export all" do
     mc <- build exportAll
     mc.exports `shouldEqual` []
+
+reExportsSpec :: Spec Unit
+reExportsSpec = describe "re-exports" do
+  it "should add type re-exports" do
+    reExportType "Foo.Bar(Baz)" DataExportType `shouldReExport`
+      CST.ImportType (CST.ProperName "Baz") Nothing
+
+    reExportType "Foo.Bar(Baz)" DataExportAll `shouldReExport`
+      CST.ImportType (CST.ProperName "Baz") (Just CST.DataAll)
+
+  it "should add value re-exports" do
+    reExportValue "Foo.Bar(baz)" `shouldReExport`
+      CST.ImportValue (CST.Ident "baz")
+
+  it "should add op re-exports" do
+    reExportOp "Foo.Bar((<>))" `shouldReExport`
+      CST.ImportOp (CST.OpName "<>")
+
+  it "should add class re-exports" do
+    reExportClass "Foo.Bar(class Baz)" `shouldReExport`
+      CST.ImportClass (CST.ProperName "Baz")
+
+  it "should add class re-exports" do
+    reExportKind "Foo.Bar(kind Baz)" `shouldReExport`
+      CST.ImportKind (CST.ProperName "Baz")
+
+  it "should disallow re-export on exportAll" do
+    buildModuleErr (exportAll *> reExportValue "Foo.Bar(baz)")
+      `shouldReturn` IllegalReExportOnExportAll
+
+  it "should report re-export name error" do
+    { allowQualified, allowUnqualified, allowAlias } <-
+      getNameError (reExportValue "Foo.Bar(Baz)")
+    { allowQualified, allowUnqualified, allowAlias } `shouldEqual`
+      { allowQualified: true, allowUnqualified: false, allowAlias: false }
 
 declarationsSpec :: Spec Unit
 declarationsSpec = do
@@ -317,3 +354,18 @@ shouldContainExport ::
 shouldContainExport cmd e = do
   mod <- snd <$> build' false cmd
   mod.exports `shouldContain` e
+
+shouldReExport ::
+  forall m.
+  MonadThrow Error m =>
+  ModuleBuilder Unit ->
+  CST.Import ->
+  m Unit
+shouldReExport cmd i = do
+  mod <- snd <$> build' false cmd
+  mod.imports `shouldContain`
+    CST.ImportDecl
+    { moduleName: fooBarModuleName
+    , names: [ i ]
+    , qualification: Just $ CST.ModuleName $ NonEmptyArray.singleton $ CST.ProperName "E"
+    }

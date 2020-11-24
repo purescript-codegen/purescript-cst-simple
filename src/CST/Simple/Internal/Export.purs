@@ -8,10 +8,12 @@ module CST.Simple.Internal.Export
        , exportClass
        , exportKind
        , exportModule
+       , exportModule'
        ) where
 
 import Prelude
 
+import CST.Simple (ModuleName)
 import CST.Simple.Internal.CodegenError (CodegenError)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder)
 import CST.Simple.Internal.Utils (exceptM)
@@ -60,3 +62,6 @@ exportKind kind_ = Export $ CST.ExportKind <$> readName kind_
 
 exportModule :: String -> Export
 exportModule moduleName = Export $ CST.ExportModule <$> readName moduleName
+
+exportModule' :: ModuleName -> Export
+exportModule' moduleName = Export $ pure $ CST.ExportModule moduleName
