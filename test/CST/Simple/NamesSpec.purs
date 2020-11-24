@@ -6,10 +6,10 @@ import Prelude
 
 import CST.Simple.Internal.CodegenError (CodegenError(..))
 import CST.Simple.NameFormat (NameFormat(..))
-import CST.Simple.Names (QualifiedName(..), TypeName, TypeOpName, TypedConstructorName(..), className', constructorName', ident', kindName', moduleName', qualName, typeName', typeOpName', typedConstructorName')
-import CST.Simple.TestUtils (fooBarModuleName)
+import CST.Simple.Names (AliasedQualifiedName(..), TypeName, TypeOpName, TypedConstructorName(..), aqualName, className', constructorName', ident', kindName', moduleName', typeName', typeOpName', typedConstructorName')
+import CST.Simple.TestUtils (barModuleName, fooBarModuleName)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
-import Data.Either (Either(..), isLeft)
+import Data.Either (Either(..), isLeft, isRight)
 import Data.Maybe (Maybe(..), isJust, isNothing)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Exception (Error, error)
@@ -141,28 +141,59 @@ qualNameSpec = describe "qualName" do
 
   it "should accept unqualified properName" do
     (qualNameType "Foo") `shouldEqual`
-      Right (QualifiedName { qualModule: Nothing, qualName: CST.ProperName "Foo" })
+      Right ( AliasedQualifiedName
+              { qualModule: Nothing
+              , qualName: CST.ProperName "Foo"
+              }
+            )
 
   it "should read qualified properName" do
     (qualNameType "Foo.Bar(Baz)") `shouldEqual`
-      Right (QualifiedName { qualModule: Just fooBarModuleName, qualName: CST.ProperName "Baz" })
+      Right ( AliasedQualifiedName
+              { qualModule: Just
+                { moduleName: fooBarModuleName
+                , alias: Nothing
+                }
+              , qualName: CST.ProperName "Baz" }
+            )
+
+  it "should allow space after module name" do
+    (qualNameType "Foo.Bar (Baz)") `shouldSatisfy` isRight
 
   -- todo differentiate between type op and op
   it "should accept unqualified opName" do
     (qualNameOp "<>") `shouldEqual`
-      Right (QualifiedName { qualModule: Nothing, qualName: CST.OpName "<>" })
+      Right (AliasedQualifiedName { qualModule: Nothing, qualName: CST.OpName "<>" })
 
   it "should read qualified opName" do
     (qualNameOp "Foo.Bar(type (<>))") `shouldEqual`
-      Right (QualifiedName { qualModule: Just fooBarModuleName, qualName: CST.OpName "<>" })
+      Right ( AliasedQualifiedName
+              { qualModule: Just
+                { moduleName: fooBarModuleName
+                , alias: Nothing
+                }
+              , qualName: CST.OpName "<>"
+              }
+            )
+
+  it "should read aliased qualified name" do
+    (qualNameType "Foo.Bar(Baz) as Bar") `shouldEqual`
+      Right ( AliasedQualifiedName
+              { qualModule: Just
+                { moduleName: fooBarModuleName
+                , alias: Just barModuleName
+                }
+              , qualName: CST.ProperName "Baz"
+              }
+            )
 
 -- todo opName with period
 
-qualNameType :: String -> Either CodegenError (QualifiedName TypeName)
-qualNameType = qualName
+qualNameType :: String -> Either CodegenError (AliasedQualifiedName TypeName)
+qualNameType = aqualName
 
-qualNameOp :: String -> Either CodegenError (QualifiedName TypeOpName)
-qualNameOp = qualName
+qualNameOp :: String -> Either CodegenError (AliasedQualifiedName TypeOpName)
+qualNameOp = aqualName
 
 
 shouldErrorNameE :: forall a m. MonadThrow Error m => Either CodegenError a -> Boolean /\ NameFormat -> m Unit

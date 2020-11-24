@@ -11,6 +11,7 @@ module CST.Simple.TestUtils
        , shouldBeEquiv
        , shouldErrorName
        , fooBarModuleName
+       , barModuleName
        , intCSTType
        , stringCSTType
        , cstTypCons
@@ -109,6 +110,10 @@ shouldErrorName mb nf = do
 fooBarModuleName :: ModuleName
 fooBarModuleName =
   CST.ModuleName $ NonEmptyArray.cons' (CST.ProperName "Foo") [ CST.ProperName "Bar" ]
+
+barModuleName :: ModuleName
+barModuleName =
+  CST.ModuleName $ NonEmptyArray.singleton (CST.ProperName "Bar")
 
 intCSTType :: CST.Type
 intCSTType =

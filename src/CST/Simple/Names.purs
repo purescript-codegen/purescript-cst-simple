@@ -15,7 +15,8 @@ module CST.Simple.Names
        , ValueOpName
        , valueOpName'
        , moduleName'
-       , qualName
+       , AliasedQualifiedName(..)
+       , aqualName
        , class ReadName
        , nameP
        , class ReadImportName
@@ -41,6 +42,8 @@ import Data.Bifunctor (bimap)
 import Data.Char.Unicode as Char
 import Data.Either (Either, hush)
 import Data.Foldable (elem, foldMap)
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
 import Data.String as String
 import Data.String.CodeUnits (toCharArray)
@@ -48,13 +51,13 @@ import Data.String.CodeUnits as CodeUnits
 import Data.String.Regex (Regex)
 import Data.String.Regex as Regex
 import Language.PS.CST (Ident, Label(..), ModuleName, QualifiedName(..)) as E
-import Language.PS.CST (Ident, ModuleName, QualifiedName)
+import Language.PS.CST (Ident, ModuleName)
 import Language.PS.CST as CST
 import Language.PS.CST.ReservedNames (isReservedName)
 import Text.Parsing.StringParser (ParseError(..), Parser, runParser, try, unParser)
 import Text.Parsing.StringParser as Parser
 import Text.Parsing.StringParser.CodeUnits (char, eof, regex, satisfy, skipSpaces, string)
-import Text.Parsing.StringParser.Combinators (many1)
+import Text.Parsing.StringParser.Combinators (many1, optionMaybe, optional)
 import Type.Proxy (Proxy(..))
 
 type TypeName = CST.ProperName CST.ProperNameType_TypeName
@@ -172,32 +175,49 @@ moduleNameP = do
   as <- Array.many $ char '.' *> namespaceP
   pure $ CST.ModuleName $ NonEmptyArray.cons' a as
 
--- TODO support period in opName
+newtype AliasedQualifiedName a =
+  AliasedQualifiedName { qualModule :: Maybe
+                         { moduleName :: ModuleName
+                         , alias :: Maybe ModuleName
+                         }
+                       , qualName :: a
+                       }
 
-qualName ::
+derive newtype instance aliasedQualifiedNameEq :: Eq a => Eq (AliasedQualifiedName a)
+derive newtype instance aliasedQualifiedNameOrd :: Ord a => Ord (AliasedQualifiedName a)
+derive instance aliasedQualifiedNameGeneric :: Generic (AliasedQualifiedName a) _
+instance aliasedQualifiedNameShow :: Show a => Show (AliasedQualifiedName a) where
+  show = genericShow
+
+aqualName ::
   forall a.
   ReadName a =>
   ReadImportName a =>
   AsNameFormat a =>
   String ->
-  Either CodegenError (QualifiedName a)
-qualName =
-  runParser' true (asNameFormat (Proxy :: _ a)) qualNameP
+  Either CodegenError (AliasedQualifiedName a)
+aqualName =
+  runParser' true (asNameFormat (Proxy :: _ a)) aqualNameP
 
-qualNameP ::
+aqualNameP ::
   forall a.
   ReadName a =>
   ReadImportName a =>
-  Parser (QualifiedName a)
-qualNameP = try qualifiedP <|> unqualifiedP
+  Parser (AliasedQualifiedName a)
+aqualNameP = try qualifiedP <|> unqualifiedP
   where
     unqualifiedP = nameP <#> \name ->
-      CST.QualifiedName { qualModule: Nothing, qualName: name }
+      AliasedQualifiedName { qualModule: Nothing
+                           , qualName: name
+                           }
 
     qualifiedP = ado
-      qualModule <- Just <$> moduleNameP
-      qualName <- char '(' *> importNameP <* char ')'
-      in CST.QualifiedName { qualModule, qualName }
+      moduleName <- moduleNameP
+      qualName <- optional skipSpaces *> char '(' *> importNameP <* char ')'
+      alias <- optionMaybe (skipSpaces *> string "as" *> skipSpaces *> moduleNameP)
+      in AliasedQualifiedName { qualModule: Just { moduleName, alias }
+                              , qualName
+                              }
 
 -- ReadName
 

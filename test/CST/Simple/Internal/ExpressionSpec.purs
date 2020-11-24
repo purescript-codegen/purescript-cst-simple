@@ -12,7 +12,7 @@ import CST.Simple.Internal.Expression (Expr, caseOfBranchN, doDiscard, doLet, ex
 import CST.Simple.Internal.RecordLabeled (recField, recPun)
 import CST.Simple.Internal.Type (typ, typCons)
 import CST.Simple.NameFormat (NameFormat(..))
-import CST.Simple.TestUtils (buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, requireMatch, shouldBeEquiv, shouldErrorName, shouldImport)
+import CST.Simple.TestUtils (barModuleName, buildA, buildModuleErr, cstUnqualIdent, cstUnqualOpName, cstUnqualProperName, fooBarModuleName, shouldBeEquiv, shouldErrorName, shouldImport)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..))
@@ -20,7 +20,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Exception (Error)
 import Language.PS.CST as CST
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldEqual, shouldReturn)
+import Test.Spec.Assertions (shouldReturn)
 
 expressionSpec :: Spec Unit
 expressionSpec = describe "Expr" do
@@ -84,6 +84,24 @@ expressionSpec = describe "Expr" do
         (CST.ExprIdent (cstUnqualIdent "a"))
       )
       (CST.ExprIdent (cstUnqualIdent "b"))
+
+  it "should import qualified constructor" do
+    exprCons "Foo.Bar(Baz(BazA))" `exprShouldImport`
+      CST.ImportDecl
+      { moduleName: fooBarModuleName
+      , names: [ CST.ImportType (CST.ProperName "Baz") (Just CST.DataAll)
+               ]
+      , qualification: Nothing
+      }
+
+  it "should import qualified constructor with alias" do
+    exprCons "Foo.Bar(Baz(BazA)) as Bar" `exprShouldImport`
+      CST.ImportDecl
+      { moduleName: fooBarModuleName
+      , names: [ CST.ImportType (CST.ProperName "Baz") (Just CST.DataAll)
+               ]
+      , qualification: Just barModuleName
+      }
 
   it "should create boolean expr" do
     exprBoolean true `shouldMatchCSTExpr`

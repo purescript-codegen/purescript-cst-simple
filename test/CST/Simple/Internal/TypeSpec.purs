@@ -4,13 +4,13 @@ module CST.Simple.Internal.TypeSpec
 
 import Prelude
 
-import CST.Simple.Internal.CodegenError (CodegenError(..))
+import CST.Simple.Internal.CodegenError (CodegenError)
 import CST.Simple.Internal.CommonOp ((*->), (*::), (*=>))
 import CST.Simple.Internal.Kind (knd)
 import CST.Simple.Internal.Type (Type, cnst, runType, typ, typApp, typCons, typForall, typOp, typRecord, typRow, typString, typVar)
 import CST.Simple.Internal.TypeVarBinding (tvb)
 import CST.Simple.NameFormat (NameFormat(..))
-import CST.Simple.TestUtils (buildA, buildModuleErr, cstTypCons, cstUnqualName, cstUnqualProperName, fooBarModuleName, intCSTType, shouldErrorName, shouldImport, stringCSTType)
+import CST.Simple.TestUtils (barModuleName, buildA, buildModuleErr, cstTypCons, cstUnqualName, cstUnqualProperName, fooBarModuleName, intCSTType, shouldErrorName, shouldImport, stringCSTType)
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Maybe (Maybe(..))
@@ -22,21 +22,38 @@ import Test.Spec.Assertions (shouldEqual, shouldReturn)
 
 typeSpec :: Spec Unit
 typeSpec = describe "Type" do
-  it "should accept qualified type declarations" do
-    typ "Foo.Bar(Baz)" `shouldMatchType`
+  it "should accept qualified type cons" do
+    typCons "Foo.Bar(Baz)" `shouldMatchType`
       ( CST.TypeConstructor $ CST.QualifiedName
         { qualModule: Nothing
         , qualName: CST.ProperName "Baz"
         }
       )
 
-  it "should add qualified names to imports" do
-    typ "Foo.Bar(Baz)" `shouldImportType`
+  it "should add qualified cons to imports" do
+    typCons "Foo.Bar(Baz)" `shouldImportType`
       CST.ImportDecl
       { moduleName: fooBarModuleName
-      , names: [ CST.ImportType (CST.ProperName "Baz") Nothing -- todo import data type
+      , names: [ CST.ImportType (CST.ProperName "Baz") Nothing
                ]
       , qualification: Nothing
+      }
+
+  it "should accept qualified type cons with alias" do
+    typCons "Foo.Bar(Baz) as Bar" `shouldMatchType`
+      ( CST.TypeConstructor $ CST.QualifiedName
+        { qualModule: Just barModuleName
+        , qualName: CST.ProperName "Baz"
+        }
+      )
+
+  it "should import qualified type cons with alias" do
+    typCons "Foo.Bar(Baz) as Bar" `shouldImportType`
+      CST.ImportDecl
+      { moduleName: fooBarModuleName
+      , names: [ CST.ImportType (CST.ProperName "Baz") Nothing
+               ]
+      , qualification: Just barModuleName
       }
 
   it "should add type var" do

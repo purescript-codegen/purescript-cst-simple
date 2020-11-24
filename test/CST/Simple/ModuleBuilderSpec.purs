@@ -63,7 +63,7 @@ importsSpec = describe "imports" do
     CST.ImportDecl { names } <- requireOne mod.imports
     Array.length names `shouldEqual` 2
 
-  it "should join module join module constructor and type" do
+  it "should join module constructor and type" do
     mod <- build do
       addValue
         { export: false
@@ -76,6 +76,17 @@ importsSpec = describe "imports" do
     names `shouldEqual`
       [ CST.ImportType (CST.ProperName "Baz") (Just CST.DataAll)
       ]
+
+  it "should not join aliased module constructor and unaliased type" do
+    mod <- build do
+      addValue
+        { export: false
+        , name: "x"
+        , type_: typ "Foo.Bar(Baz) as Bar"
+        , binders: []
+        , expr: exprCons "Foo.Bar(Baz(Qux))"
+        }
+    Array.length mod.imports `shouldEqual` 2
 
   it "should import Prelude unqualified" do
     mod <- build do
