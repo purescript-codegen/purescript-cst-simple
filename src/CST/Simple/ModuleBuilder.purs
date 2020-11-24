@@ -18,14 +18,14 @@ import Prelude
 
 import CST.Simple.Internal.Binder (Binder)
 import CST.Simple.Internal.Declaration (DataCtor, Declaration, Fixity, FixityOp, Instance, InstanceBinding, declClass, declData, declDerive, declDeriveNewtype, declForeignData, declForeignKind, declForeignValue, declInfix, declInstance, declInstanceChain, declNewtype, declSignature, declType, declValue, runDeclaration)
-import CST.Simple.Internal.Export (Export, exportKind, exportTypeAllMembers, exportTypeNoMembers, exportValue, runExport)
+import CST.Simple.Internal.Export (Export, exportKind, exportType, exportValue, runExport)
 import CST.Simple.Internal.Expression (Expr, Guarded, grd_)
 import CST.Simple.Internal.Kind (Kind)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder, addCSTDeclaration, addCSTExport, addForeignBinding)
 import CST.Simple.Internal.Type (Constraint, Type)
 import CST.Simple.Internal.TypeVarBinding (TypeVarBinding)
 import CST.Simple.Types (DataExport(..))
-import Data.Foldable (for_)
+import Data.Foldable (traverse_)
 import Data.Maybe (Maybe)
 import Data.Tuple.Nested (type (/\))
 
@@ -49,7 +49,7 @@ addType ::
   ModuleBuilder Unit
 addType { name, typeVarBindings, type_, export } = do
   addDeclaration $ declType name typeVarBindings type_
-  when export $ addExport $ exportTypeNoMembers name
+  when export $ addExport $ exportType name DataExportType
 
 addNewtype ::
   { name :: String
@@ -61,11 +61,7 @@ addNewtype ::
   ModuleBuilder Unit
 addNewtype { name, export, typeVarBindings, consName, type_ } = do
   addDeclaration $ declNewtype name typeVarBindings consName type_
-  for_ export $ case _ of
-    DataExportType ->
-      addExport $ exportTypeNoMembers name
-    DataExportAll ->
-      addExport $ exportTypeAllMembers name
+  traverse_ (addExport <<< exportType name) export
 
 addValue ::
   { name :: String
@@ -100,7 +96,7 @@ addForeignData ::
   ModuleBuilder Unit
 addForeignData { name, kind_, export } = do
   addDeclaration $ declForeignData name kind_
-  when export $ addExport $ exportTypeNoMembers name
+  when export $ addExport $ exportType name DataExportType
 
 addDataDecl :: String -> Array TypeVarBinding -> Array DataCtor -> ModuleBuilder Unit
 addDataDecl name fields constructors' =

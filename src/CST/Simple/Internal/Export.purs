@@ -3,8 +3,7 @@ module CST.Simple.Internal.Export
        , runExport
        , exportValue
        , exportOp
-       , exportTypeNoMembers
-       , exportTypeAllMembers
+       , exportType
        , exportTypeSomeMembers
        , exportClass
        , exportKind
@@ -17,6 +16,7 @@ import CST.Simple.Internal.CodegenError (CodegenError)
 import CST.Simple.Internal.ModuleBuilder (ModuleBuilder)
 import CST.Simple.Internal.Utils (exceptM)
 import CST.Simple.Names (readName)
+import CST.Simple.Types (DataExport(..))
 import Data.Either (Either)
 import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse)
@@ -37,12 +37,14 @@ exportValue ident = Export $ CST.ExportValue <$> readName ident
 exportOp :: String -> Export
 exportOp op = Export $ CST.ExportOp <$> readName op
 
-exportTypeNoMembers :: String -> Export
-exportTypeNoMembers typ = Export $ CST.ExportType <$> readName typ <*> pure Nothing
+exportType :: String -> DataExport -> Export
+exportType typ de =
+  Export $ CST.ExportType <$> readName typ <*> pure dataMembers
 
-exportTypeAllMembers :: String -> Export
-exportTypeAllMembers typ =
-  Export $ CST.ExportType <$> readName typ <*> pure (Just CST.DataAll)
+  where
+    dataMembers = case de of
+      DataExportType -> Nothing
+      DataExportAll -> Just CST.DataAll
 
 exportTypeSomeMembers :: String -> Array String -> Export
 exportTypeSomeMembers typ members = Export ado
