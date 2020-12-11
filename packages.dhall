@@ -34,7 +34,7 @@ let additions =
           , "strings"
           ]
         , repo = "https://github.com/purescript-codegen/purescript-ps-cst.git"
-        , version = "5b0a078"
+        , version = "cb36ad9"
         }
       }
 
