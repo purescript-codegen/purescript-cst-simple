@@ -120,21 +120,21 @@ barModuleName :: ModuleName
 barModuleName =
   CST.ModuleName $ NonEmptyArray.singleton (CST.ProperName "Bar")
 
-intCSTType :: CST.Type
+intCSTType :: CST.PSType
 intCSTType =
   CST.TypeConstructor $ CST.QualifiedName
   { qualModule: Nothing
   , qualName: CST.ProperName "Int"
   }
 
-stringCSTType :: CST.Type
+stringCSTType :: CST.PSType
 stringCSTType =
   CST.TypeConstructor $ CST.QualifiedName
   { qualModule: Nothing
   , qualName: CST.ProperName "String"
   }
 
-cstTypCons :: String -> CST.Type
+cstTypCons :: String -> CST.PSType
 cstTypCons = CST.TypeConstructor <<< cstUnqualProperName
 
 cstUnqualProperName :: forall p. String -> CST.QualifiedName (CST.ProperName p)

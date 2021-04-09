@@ -41,12 +41,13 @@ import Control.MonadPlus (guard)
 import Data.Array as Array
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Bifunctor (bimap)
-import Data.Char.Unicode as Char
+import Data.CodePoint.Unicode (isAscii, isSymbol)
 import Data.Either (Either, hush)
 import Data.Foldable (elem, foldMap)
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
+import Data.Show.Generic (genericShow)
+import Data.String (codePointFromChar)
 import Data.String as String
 import Data.String.CodeUnits (toCharArray)
 import Data.String.CodeUnits as CodeUnits
@@ -56,7 +57,7 @@ import Language.PS.CST (Ident, Label(..), ModuleName, QualifiedName(..)) as E
 import Language.PS.CST (Ident, ModuleName)
 import Language.PS.CST as CST
 import Language.PS.CST.ReservedNames (isReservedName)
-import Text.Parsing.StringParser (ParseError(..), Parser, runParser, try, unParser)
+import Text.Parsing.StringParser (ParseError, Parser, runParser, try, unParser)
 import Text.Parsing.StringParser as Parser
 import Text.Parsing.StringParser.CodeUnits (char, eof, regex, satisfy, skipSpaces, string)
 import Text.Parsing.StringParser.Combinators (many1, optionMaybe, optional)
@@ -161,7 +162,9 @@ isSymbolChar :: Char -> Boolean
 isSymbolChar c =
   -- https://github.com/purescript/purescript/blob/48634d05da1021ac1bcb4907461ae9b2d3b0e699/lib/purescript-cst/src/Language/PureScript/CST/Lexer.hs#L659
   c `elem` asciiSymbolChars
-  || (not (Char.isAscii c) && Char.isSymbol c)
+  || (not (isAscii cp) && isSymbol cp)
+  where
+    cp = codePointFromChar c
 
 asciiSymbolChars :: Array Char
 asciiSymbolChars = toCharArray ":!#$%&*+./<=>?@\\^|-~"
@@ -402,7 +405,7 @@ runParser' ::
   String ->
   Either CodegenError a
 runParser' { allowQualified, allowUnqualified, allowAlias } nameFormat p str = bimap
-  (\{ error: ParseError msg, pos } ->
+  (\{ error: msg, pos } ->
     InvalidName { given: str, msg, pos, allowQualified, allowUnqualified, allowAlias, nameFormat })
   _.result
   $ unParser (p <* eof) { pos: 0, str }

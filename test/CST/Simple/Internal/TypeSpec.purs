@@ -168,7 +168,7 @@ typeSpec = describe "Type" do
   it "should create constrained types" do
     (cnst "Foo.Bar(class Baz)" [ typVar "a" ] *=> typVar "a") `shouldMatchType`
       CST.TypeConstrained
-      ( CST.Constraint
+      ( CST.PSConstraint
         { className: cstUnqualProperName "Baz"
         , args: [ CST.TypeVar (CST.Ident "a")
                 ]
@@ -187,11 +187,11 @@ typeSpec = describe "Type" do
       , qualification: Nothing
       }
 
-evalTyp :: forall m. MonadThrow Error m => Type -> m CST.Type
+evalTyp :: forall m. MonadThrow Error m => Type -> m CST.PSType
 evalTyp t = do
   buildA (runType t)
 
-shouldMatchType :: forall m. MonadThrow Error m => Type -> CST.Type -> m Unit
+shouldMatchType :: forall m. MonadThrow Error m => Type -> CST.PSType -> m Unit
 shouldMatchType t cstType = do
   evalTyp t `shouldReturn` cstType
 

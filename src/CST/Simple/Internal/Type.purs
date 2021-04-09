@@ -47,7 +47,7 @@ import Data.Tuple (uncurry)
 import Data.Tuple.Nested (type (/\))
 import Language.PS.CST as CST
 
-newtype Type = Type (ModuleBuilder CST.Type)
+newtype Type = Type (ModuleBuilder CST.PSType)
 
 derive newtype instance typeEq :: Eq Type
 derive newtype instance typeOrd :: Ord Type
@@ -55,7 +55,7 @@ derive newtype instance typeOrd :: Ord Type
 instance typeShow :: Show Type where
   show (Type mb) = "(Type " <> show mb <> ")"
 
-runType :: Type -> ModuleBuilder CST.Type
+runType :: Type -> ModuleBuilder CST.PSType
 runType (Type mb) = mb
 
 typ :: String -> Type
@@ -112,9 +112,9 @@ typRecord_ :: Array (String /\ Type) -> Type
 typRecord_ pairs = typRecord pairs Nothing
 
 typLabelled ::
-  ( { rowLabels :: Array { label :: CST.Label, type_ :: CST.Type}
-    , rowTail :: Maybe CST.Type
-    } -> CST.Type
+  ( { rowLabels :: Array { label :: CST.Label, type_ :: CST.PSType}
+    , rowTail :: Maybe CST.PSType
+    } -> CST.PSType
   ) ->
   Array (String /\ Type) ->
   Maybe Type ->
@@ -164,7 +164,7 @@ typConstrained constraint type_ = Type $ CST.TypeConstrained
 
 -- Constraint
 
-newtype Constraint = Constraint (ModuleBuilder CST.Constraint)
+newtype Constraint = Constraint (ModuleBuilder CST.PSConstraint)
 
 derive newtype instance constraintEq :: Eq Constraint
 derive newtype instance constraintOrd :: Ord Constraint
@@ -173,14 +173,14 @@ instance constraintShow :: Show Constraint where
   show (Constraint mb) =
     "(Constraint " <> show mb <> ")"
 
-runConstraint :: Constraint -> ModuleBuilder CST.Constraint
+runConstraint :: Constraint -> ModuleBuilder CST.PSConstraint
 runConstraint (Constraint mb) = mb
 
 cnst :: String -> Array Type -> Constraint
 cnst className' args' = Constraint $ ado
   className <- mkQualName className'
   args <- traverse runType args'
-  in CST.Constraint
+  in CST.PSConstraint
     { className
     , args
     }

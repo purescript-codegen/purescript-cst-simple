@@ -20,13 +20,13 @@ import Control.Monad.State (class MonadState, StateT(..), execStateT)
 import Data.Bifunctor (lmap)
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
 import Data.Identity (Identity)
 import Data.List as List
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
+import Data.Show.Generic (genericShow)
 import Data.Tuple.Nested ((/\))
 import Language.PS.CST as CST
 
@@ -69,7 +69,7 @@ buildProjectT ::
   ProjectBuilderT m Unit ->
   m (Either ProjectError Project)
 buildProjectT (ProjectBuilderT pb) =
-  map mkProject <$> (runExceptT $ execStateT pb mempty)
+  map mkProject <$> (runExceptT $ execStateT pb { moduleMap: Map.empty })
   where
     mkProject { moduleMap } =
       { modules: List.toUnfoldable $ Map.values moduleMap

@@ -86,7 +86,7 @@ declarationSpec = do
           ]
         , name: CST.ProperName "Foo"
         , super:
-          [ CST.Constraint
+          [ CST.PSConstraint
             { args: []
             , className: cstUnqualProperName "Bar"
             }
@@ -115,7 +115,7 @@ declarationSpec = do
         { head:
           { instClass: cstUnqualProperName "Foo"
           , instConstraints:
-            [ CST.Constraint { className: cstUnqualProperName "Bar", args: [] }
+            [ CST.PSConstraint { className: cstUnqualProperName "Bar", args: [] }
             ]
           , instName: CST.Ident "fooI"
           , instTypes: NonEmptyArray.singleton
@@ -149,7 +149,7 @@ declarationSpec = do
         { head:
           { instClass: cstUnqualProperName "Foo"
           , instConstraints:
-            [ CST.Constraint { className: cstUnqualProperName "Bar", args: [] }
+            [ CST.PSConstraint { className: cstUnqualProperName "Bar", args: [] }
             ]
           , instName: CST.Ident "fooI"
           , instTypes: NonEmptyArray.singleton
@@ -178,7 +178,7 @@ declarationSpec = do
       , head:
         { instClass: cstUnqualProperName "Foo"
           , instConstraints:
-            [ CST.Constraint { className: cstUnqualProperName "Bar", args: [] }
+            [ CST.PSConstraint { className: cstUnqualProperName "Bar", args: [] }
             ]
           , instName: CST.Ident "fooI"
           , instTypes: NonEmptyArray.singleton
@@ -195,7 +195,7 @@ declarationSpec = do
       , head:
         { instClass: cstUnqualProperName "Foo"
           , instConstraints:
-            [ CST.Constraint { className: cstUnqualProperName "Bar", args: [] }
+            [ CST.PSConstraint { className: cstUnqualProperName "Bar", args: [] }
             ]
           , instName: CST.Ident "fooI"
           , instTypes: NonEmptyArray.singleton
