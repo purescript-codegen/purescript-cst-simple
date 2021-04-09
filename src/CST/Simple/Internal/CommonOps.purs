@@ -60,7 +60,7 @@ instance leftSingleArrowDoStatement :: LeftSingleArrow Binder Expr DoStatement w
 class RightDoubleArrow a b c | a b -> c where
   rightDoubleArrow :: a -> b -> c
 
-infixr 10 rightDoubleArrow as *=>
+infixr 4 rightDoubleArrow as *=>
 
 instance rightDoubleArrowType :: RightDoubleArrow Constraint Type Type where
   rightDoubleArrow = typConstrained
