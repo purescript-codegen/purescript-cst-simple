@@ -98,7 +98,7 @@ instance moduleBuilderOrd :: Ord a => Ord (ModuleBuilder a) where
 
 instance moduleBuilderShow :: Show a => Show (ModuleBuilder a) where
   show m =
-    "(ModuleBuilder " <> show m <> ")"
+    "(ModuleBuilder " <> show (runModuleBuilder m) <> ")"
 
 buildModule ::
   String ->
